@@ -1,2 +1,2 @@
 # udaq-readout
-DUNE Upstream DAQ - FELIX Readout Software
+appfwk DAQModule for DUNE Upstream DAQ FELIX Readout Software 
