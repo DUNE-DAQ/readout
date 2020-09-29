@@ -215,7 +215,7 @@ CardReaderDAQModule::initDMA()
   current_addr_ = phys_addr_;
   destination_ = phys_addr_;
   read_index_ = 0;
-  ERS_INFO("CardReader initialized card[" << card_id_ << "]");
+  ERS_INFO("flxCard initDMA done card[" << card_id_ << "]");
 }
 
 void 
@@ -285,22 +285,24 @@ CardReaderDAQModule::processDMA()
     u_long write_index = (current_addr_ - phys_addr_) / M_BLOCK_SIZE;
     uint64_t bytes = 0;
     while (read_index_ != write_index) {
-      uint64_t fromAddress = virt_addr_ + (read_index_ * M_BLOCK_SIZE);
+      uint64_t from_address = virt_addr_ + (read_index_ * M_BLOCK_SIZE);
 
       // Interpret block
       const felix::packetformat::block* block = const_cast<felix::packetformat::block*>(
-        felix::packetformat::block_from_bytes(reinterpret_cast<const char*>(fromAddress))
+        felix::packetformat::block_from_bytes(reinterpret_cast<const char*>(from_address))
       );
 
       // Get ELink ID
-      unsigned blockElink = static_cast<unsigned>(block->elink)/64;
-      //ERS_INFO("BLOCK ELINK: " << blockElink);
+      unsigned block_elink_to_id = static_cast<unsigned>(block->elink)/64;
+      //ERS_INFO("BLOCK ELINK: " << block_elink);
 
-#warning RS: Add here the proper queue handling via appfwk
+#warning RS: Add here the proper error handling via appfwk
       // Queue block pointer for processing
-      //if ( !block_queues_[blockElink]->write(fromAddress) ) {
-        //elink_metrics_[block_elink]++;
-        //ERROR("Could not queue in block for elink[" << blockElink << "]");
+      block_ptr_queues_[block_elink_to_id]->push(from_address);
+
+      //if ( !block_ptr_queues_[block_elink_to_id]->push(from_address) ) {
+      //  elink_metrics_[block_elink]++;
+      //  ERROR("Could not queue in block for elink[" << block_elink << "]");
       //}
 
       // Advance
