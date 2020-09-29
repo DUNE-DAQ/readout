@@ -69,11 +69,8 @@ private:
   bool configured_;
   typedef std::unique_ptr<DAQSink<uint64_t>> UniqueBlockPtrQueue;
   std::map<uint8_t, UniqueBlockPtrQueue> block_ptr_queues_;
-  std::chrono::milliseconds queueTimeout_;
-  size_t wait_between_sends_ms_ = 999;
 
   // Card control
-  //felix::types::UniqueFlxCard& flx_card_;
   typedef std::unique_ptr<FlxCard> UniqueFlxCard;
   UniqueFlxCard flx_card_;
   std::mutex card_mutex_;
@@ -101,11 +98,6 @@ private:
   uint64_t current_addr_;   // pointer to the current write position for the card
   unsigned read_index_;
   u_long destination_;      // FlxCard.h
-
-/*
-  // Queues
-  std::map<uint64_t, felix::types::UniqueBlockPtrQueue>& block_queues_;
-*/
 
   // Processor
   inline static const std::string dma_processor_name_ = "flx-dma";

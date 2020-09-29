@@ -64,8 +64,6 @@ CardReaderDAQModule::init()
 void
 CardReaderDAQModule::do_configure(const std::vector<std::string>& /*args*/)
 {
-  wait_between_sends_ms_ = get_config().value<int>("wait_between_sends_ms", 1000);
-  queueTimeout_ = std::chrono::milliseconds(get_config().value<int>("queue_timeout_ms", 100));
   if (configured_) {
     ERS_INFO("Card is already configured! Won't touch it.");
   } else {
@@ -263,7 +261,7 @@ CardReaderDAQModule::processDMA()
     {
       if (active_.load()) {
         readCurrentAddress();
-        std::this_thread::sleep_for(std::chrono::microseconds(5000)); //cfg.poll_time = 5000!!!
+        std::this_thread::sleep_for(std::chrono::microseconds(5000)); //cfg.poll_time = 5000
       } else {
         ERS_INFO("Stop issued during poll! Returning...");
         return;
