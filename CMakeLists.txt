@@ -1,38 +1,37 @@
 cmake_minimum_required(VERSION 3.12)
 project(udaq-readout VERSION 0.0.0)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../daq-buildtools/cmake ${CMAKE_MODULE_PATH})
-include(DAQ)
+find_package(daq-buildtools 1.2.1 REQUIRED)
 
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
-
-#find_package(felix-deps REQUIRED)
-
-#link_directories(${FELIX_LIB})
-#target_link_libraries(${module_name} PUBLIC ${FELIX_LIB}/FlxCard.so)
+#find_package(udaq_readout_deps REQUIRED)
 
 ##############################################################################
-daq_point_build_to( src )
 
-message("FELIX INC -> " $ENV{FELIX_INC})
-message("FELIX LIB -> " $ENV{FELIX_LIB})
-add_library(udaq-readout_CardReaderDAQModule_duneDAQModule src/CardReaderDAQModule.cpp)
-target_include_directories (udaq-readout_CardReaderDAQModule_duneDAQModule PUBLIC $ENV{FELIX_INC})
-target_link_libraries(udaq-readout_CardReaderDAQModule_duneDAQModule appfwk::appfwk
-  $ENV{FELIX_LIB}/libFlxCard.so
-  $ENV{FELIX_LIB}/libcmem_rcc.so
-  $ENV{FELIX_LIB}/libpacketformat.so
-)
+set(FLXCARD_DEPENDENCIES $ENV{UDAQ_READOUT_DEPS_LIB}/libFlxCard.so $ENV{UDAQ_READOUT_DEPS_LIB}/libcmem_rcc.so)
+set(FLXUTIL_DEPENDENCIES $ENV{UDAQ_READOUT_DEPS_LIB}/libpacketformat.so)
 
 ##############################################################################
-daq_point_build_to( test )
+# Main library
 
+daq_add_library(DefaultParserImpl.cpp LINK_LIBRARIES appfwk ${FLXUTIL_DEPENDENCIES}) 
+
+##############################################################################
+# Plugins
+
+daq_add_plugin(CardReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout ${FLXCARD_DEPENDENCIES})
+daq_add_plugin(LinkReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout ${FLXUTIL_DEPENDENCIES})
+
+##############################################################################
+# Integration tests
+# TBA
+
+##############################################################################
+# Test configurations
 file(COPY test/felix_readout_card0_app.json DESTINATION test)
 
 ##############################################################################
-daq_point_build_to( unittest )
 
-daq_install(TARGETS udaq-readout_CardReaderDAQModule_duneDAQModule)
-
+daq_install()
