@@ -1,104 +1,111 @@
-#ifndef APPFWK_UDAQ_READOUT_REUSABLETHREAD_HPP
-#define APPFWK_UDAQ_READOUT_REUSABLETHREAD_HPP
+/**
+* @file CommandFacility.cpp Reusable thread wrapper
+* The same thread instance can be used with different tasks to be executed
+* Inspired by: 
+* https://codereview.stackexchange.com/questions/134214/reuseable-c11-thread
+*
+* This is part of the DUNE DAQ , copyright 2020.
+* Licensing/copyright details are in the COPYING file that you should have
+* received with this code.
+*/
+#ifndef UDAQ_READOUT_SRC_REUSABLETHREAD_HPP_
+#define UDAQ_READOUT_SRC_REUSABLETHREAD_HPP_
 
-/// \cond
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <thread>
-/// \endcond
-
-/********************************
- * ReusableThread
- * Adapted from:
- *   // https://codereview.stackexchange.com/questions/134214/reuseable-c11-thread
- * Description: Pausable/Reusable thread
- * Author: Roland Sipos rsipos@cern.ch
- * Date: November 2017
- *********************************/
+#include <string>
 
 namespace dunedaq {
-namespace appfwk {
 namespace readout {
-
-using namespace std::chrono_literals;
 
 class ReusableThread {
 public:
-  ReusableThread(unsigned int threadID)
-      : m_thread_id(threadID), m_task_executed(true), m_task_assigned(false), m_thread_quit(false),
-        m_worker_done(false), m_thread(&ReusableThread::thread_worker, this) {}
+  explicit ReusableThread(int thread_id)
+    : thread_id_(thread_id)
+    , task_executed_(true)
+    , task_assigned_(false)
+    , thread_quit_(false)
+    , worker_done_(false)
+    , thread_(&ReusableThread::thread_worker, this) 
+  { }
 
   ~ReusableThread() {
-    while (m_task_assigned) {
-      std::this_thread::sleep_for(1ms);
+    while (task_assigned_) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    m_thread_quit = true;
-    while (!m_worker_done) {
-      std::this_thread::sleep_for(1ms);
-      m_cv.notify_all();
+    thread_quit_ = true;
+    while (!worker_done_) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      cv_.notify_all();
     }
-    m_thread.join();
+    thread_.join();
   }
 
-  ReusableThread(const ReusableThread &) = delete;
-  ReusableThread &operator=(const ReusableThread &) = delete;
+  ReusableThread(const ReusableThread&) 
+    = delete; ///< ReusableThread is not copy-constructible
+  ReusableThread& operator=(const ReusableThread&) 
+    = delete; ///< ReusableThread is not copy-assginable
+  ReusableThread(ReusableThread&&) 
+    = delete; ///< ReusableThread is not move-constructible
+  ReusableThread& operator=(ReusableThread&&) 
+    = delete; ///< ReusableThread is not move-assignable
 
-  unsigned int get_thread_id() const { return m_thread_id; }
+  int getThreadID() const { return thread_id_; }
 
-  bool get_readiness() const { return m_task_executed; }
+  bool getReadiness() const { return task_executed_; }
 
-  void set_name(const std::string& name, uint16_t tid) {
+  void setName(const std::string& name, int tid) {
     char tname[16];
-    snprintf(tname, 16, "%s-%d", name.c_str(), tid);
-    auto handle = m_thread.native_handle();
+    snprintf(tname, 16, "%s-%d", name.c_str(), tid); // NOLINT 
+    auto handle = thread_.native_handle();
     pthread_setname_np(handle, tname);
   }
 
-
-  template <typename Function, typename... Args> bool set_work(Function &&f, Args &&... args) {
-    if (!m_task_assigned && m_task_executed.exchange(false)) {
-      m_task = std::bind(f, args...);
-      m_task_assigned = true;
-      m_cv.notify_all();
+  template <typename Function, typename... Args> 
+  bool setWork(Function &&f, Args &&... args) {
+    if (!task_assigned_ && task_executed_.exchange(false)) {
+      task_ = std::bind(f, args...);
+      task_assigned_ = true;
+      cv_.notify_all();
       return true;
     }
     return false;
   }
 
 private:
-  unsigned int m_thread_id;
-  std::atomic<bool> m_task_executed;
-  std::atomic<bool> m_task_assigned;
-  std::atomic<bool> m_thread_quit;
-  std::atomic<bool> m_worker_done;
-  std::function<void()> m_task;
+  int thread_id_;
+  std::atomic<bool> task_executed_;
+  std::atomic<bool> task_assigned_;
+  std::atomic<bool> thread_quit_;
+  std::atomic<bool> worker_done_;
+  std::function<void()> task_;
 
-  std::mutex m_mtx;
-  std::condition_variable m_cv;
-  std::thread m_thread;
+  std::mutex mtx_;
+  std::condition_variable cv_;
+  std::thread thread_;
 
   void thread_worker() {
-    std::unique_lock<std::mutex> lock(m_mtx);
+    std::unique_lock<std::mutex> lock(mtx_);
 
-    while (!m_thread_quit) {
-      if (!m_task_executed && m_task_assigned) {
-        m_task();
-        m_task_executed = true;
-        m_task_assigned = false;
+    while (!thread_quit_) {
+      if (!task_executed_ && task_assigned_) {
+        task_();
+        task_executed_ = true;
+        task_assigned_ = false;
       } else {
-        m_cv.wait(lock);
+        cv_.wait(lock);
       }
     }
 
-    m_worker_done = true;
+    worker_done_ = true;
   }
 };
 
-} // namespace readout
-} // namespace appfwk
-} // namespace dunedaq
+}
+} // namespace dunedaq::readout
 
-#endif //APPFWK_UDAQ_READOUT_REUSABLETHREAD_HPP
+#endif // UDAQ_READOUT_SRC_REUSABLETHREAD_HPP_

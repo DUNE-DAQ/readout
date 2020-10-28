@@ -1,13 +1,5 @@
 /**
  * @file CardReaderDAQModule.hpp
- *
- * CardReaderDAQModule creates vectors of integers of a given length, starting with the given start integer and
- * counting up to the given ending integer. Its current position is persisted between generated vectors, so if the
- * parameters are chosen correctly, the generated vectors will "walk" through the valid range.
- *
- * This is part of the DUNE DAQ Application Framework, copyright 2020.
- * Licensing/copyright details are in the COPYING file that you should have
- * received with this code.
  */
 
 #ifndef APPFWK_UDAQ_READOUT_CARDREADERDAQMODULE_HPP_
@@ -19,6 +11,7 @@
 
 // Module internals
 #include "ReusableThread.hpp"
+#include "ReadoutTypes.hpp"
 
 // FELIX Software Suite provided
 #include "flxcard/FlxCard.h"
@@ -29,9 +22,8 @@
 #include <string>
 #include <vector>
 
-namespace dunedaq {
-namespace appfwk {
-namespace readout {
+namespace dunedaq::readout {
+
 /**
  * @brief CardReaderDAQModule reads FELIX DMA block pointers
  *
@@ -67,8 +59,7 @@ private:
 
   // Configuration
   bool configured_;
-  typedef std::unique_ptr<DAQSink<uint64_t>> UniqueBlockPtrQueue;
-  std::map<uint8_t, UniqueBlockPtrQueue> block_ptr_queues_;
+  std::map<uint8_t, UniqueBlockPtrSink> block_ptr_sinks_;
 
   // Card control
   typedef std::unique_ptr<FlxCard> UniqueFlxCard;
@@ -118,15 +109,7 @@ private:
   void readCurrentAddress();
 
 };
-} // namespace readout
-} // namespace appfwk
 
-ERS_DECLARE_ISSUE_BASE(appfwk,
-                       ProducerProgressUpdate,
-                       appfwk::GeneralDAQModuleIssue,
-                       message,
-                       ((std::string)name),
-                       ((std::string)message))
-} // namespace dunedaq
+} // namespace readout
 
 #endif // APPFWK_UDAQ_READOUT_CARDREADERDAQMODULE_HPP_

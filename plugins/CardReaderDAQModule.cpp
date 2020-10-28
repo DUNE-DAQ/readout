@@ -25,13 +25,12 @@
 #define TRACE_NAME "CardReaderDAQModule" // NOLINT
 
 namespace dunedaq {
-namespace appfwk {
 namespace readout {
 
 CardReaderDAQModule::CardReaderDAQModule(const std::string& name)
   : DAQModule(name)
   , configured_(false)
-  , block_ptr_queues_{ } 
+  , block_ptr_sinks_{ } 
   , dma_processor_{0}
 {
   register_command("configure", &CardReaderDAQModule::do_configure);
@@ -52,10 +51,10 @@ CardReaderDAQModule::init()
   ERS_INFO("Base parameters initialized: " << get_config().dump()); 
 
   if (queue_names.size() != num_links_) {
-    ers::error(ConfigurationError(ERS_HERE, "Number of links does not match number of output queues."));
+    ers::error(readout::ConfigurationError(ERS_HERE, "Number of links does not match number of output queues."));
   } else {
     for (unsigned i=0; i<queue_names.size(); ++i){
-     block_ptr_queues_[i] = std::make_unique<DAQSink<uint64_t>>(queue_names[i]);
+     block_ptr_sinks_[i] = std::make_unique<BlockPtrSink>(queue_names[i]);
      ERS_INFO("Added BlockPtr DAQSink for link[" << i << "].");
     }
   }
@@ -67,7 +66,7 @@ CardReaderDAQModule::do_configure(const std::vector<std::string>& /*args*/)
   if (configured_) {
     ERS_INFO("Card is already configured! Won't touch it.");
   } else {
-    ERS_INFO("Configuring CardReaderDAQModule of card[" << card_id_ << "].");
+    ERS_INFO("Configuring CardReaderDAQModule of card[" << std::to_string(card_id_) << "].");
     // Open card
     openCard();
     ERS_INFO("Card[" << card_id_ << "] opened.");
@@ -94,7 +93,7 @@ CardReaderDAQModule::do_start(const std::vector<std::string>& /*args*/)
   if (!active_.load()) { 
     startDMA();
     setRunning(true);
-    dma_processor_.set_work(&CardReaderDAQModule::processDMA, this);
+    dma_processor_.setWork(&CardReaderDAQModule::processDMA, this);
     ERS_INFO("Started CardReader of card " << card_id_ << "...");
   } else {
     ERS_INFO("CardReader of card " << card_id_ << " is already running!");
@@ -109,8 +108,8 @@ CardReaderDAQModule::do_stop(const std::vector<std::string>& /*args*/)
   if (active_.load()) {
     stopDMA();
     setRunning(false);
-    while (!dma_processor_.get_readiness()) {
-      std::this_thread::sleep_for(10ms);
+    while (!dma_processor_.getReadiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     ERS_INFO("Stopped CardReader of card " << card_id_ << "!"); 
   } else {
@@ -135,7 +134,7 @@ CardReaderDAQModule::openCard()
     card_mutex_.unlock();
   }
   catch(FlxException& ex) {
-    ers::error(FelixError(ERS_HERE, ex.what()));
+    ers::error(readout::FelixError(ERS_HERE, ex.what()));
     exit(EXIT_FAILURE);
   }
 }
@@ -150,7 +149,7 @@ CardReaderDAQModule::closeCard()
     card_mutex_.unlock();
   }
   catch(FlxException& ex) {
-    ers::error(FelixError(ERS_HERE, ex.what()));
+    ers::error(readout::FelixError(ERS_HERE, ex.what()));
     exit(EXIT_FAILURE);
   }
 }
@@ -176,7 +175,7 @@ CardReaderDAQModule::allocateCMEM(uint8_t numa, u_long bsize, u_long* paddr, u_l
     card_mutex_.lock();
     flx_card_->card_close();
     card_mutex_.unlock();
-    ers::error(FelixError(ERS_HERE, 
+    ers::error(readout::FelixError(ERS_HERE, 
       "Not enough CMEM memory allocated or the application demands too much CMEM memory.\n"
       "Fix the CMEM memory reservation in the driver or change the module's configuration."));
     exit(EXIT_FAILURE);
@@ -296,7 +295,7 @@ CardReaderDAQModule::processDMA()
 
 #warning RS: Add here the proper error handling via appfwk
       // Queue block pointer for processing
-      block_ptr_queues_[block_elink_to_id]->push(from_address);
+      block_ptr_sinks_[block_elink_to_id]->push(from_address);
 
       //if ( !block_ptr_queues_[block_elink_to_id]->push(from_address) ) {
       //  elink_metrics_[block_elink]++;
@@ -326,7 +325,6 @@ CardReaderDAQModule::processDMA()
 
 
 } // namespace readout
-} // namespace appfwk
 } // namespace dunedaq
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::appfwk::readout::CardReaderDAQModule)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::CardReaderDAQModule)

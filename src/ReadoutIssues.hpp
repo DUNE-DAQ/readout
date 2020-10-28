@@ -1,18 +1,18 @@
-#ifndef APPFWK_UDAQ_READOUT_READOUTISSUES_HPP_
-#define APPFWK_UDAQ_READOUT_READOUTISSUES_HPP_
+/**
+ * @file ReadoutIssues.hpp Readout system related ERS issues
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ */
+#ifndef UDAQ_READOUT_SRC_READOUTISSUES_HPP_
+#define UDAQ_READOUT_SRC_READOUTISSUES_HPP_
 
-#include "ers/ers.h"
+#include <ers/Issue.h>
+
 #include <string>
 
 namespace dunedaq {
-namespace appfwk {
-
-/**
- * @brief Readout unit specific issues
- * @author Roland Sipos
- * @date   2020-2021
- *
- * */
 
     ERS_DECLARE_ISSUE(readout, FelixError,
                       "FELIX Error: " << flxerror,
@@ -22,7 +22,13 @@ namespace appfwk {
                       "Readout Configuration Error: " << conferror,
                       ((std::string)conferror)) 
 
-}
-}
+    ERS_DECLARE_ISSUE_BASE(readout,
+                           ResourceQueueError,
+                           readout::ConfigurationError,
+                           "The " << queueType << " queue was not successfully created.",
+                           ((std::string)name),
+                           ((std::string)queueType))
 
-#endif
+} // namespace dunedaq
+
+#endif // UDAQ_READOUT_SRC_READOUTISSUES_HPP_
