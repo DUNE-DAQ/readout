@@ -1,8 +1,5 @@
 /**
-* @file CommandFacility.cpp Reusable thread wrapper
-* The same thread instance can be used with different tasks to be executed
-* Inspired by: 
-* https://codereview.stackexchange.com/questions/134214/reuseable-c11-thread
+* @file ReadoutTypes.hpp Common types in udaq-readout
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
