@@ -1,0 +1,186 @@
+{
+  "felix-readout-01": {
+    "flx-dma-0": [0, 32],
+
+    "flx-parser-0": [4, 36], 
+    "flx-parser-64": [4, 36], 
+    "flx-parser-128": [8, 40],
+    "flx-parser-192": [8, 40],
+    "flx-parser-256": [12, 44],
+    "flx-parser-320": [12, 44],
+    "flx-parser-2048": [16, 48], 
+    "flx-parser-2112": [16, 48], 
+    "flx-parser-2176": [20, 52], 
+    "flx-parser-2240": [20, 52], 
+    "flx-parser-2304": [24, 56], 
+    "flx-parser-2368": [24, 56],
+
+    "flx-proc-0": [],
+    "flx-proc-64": [],
+    "flx-proc-128": [],
+    "flx-proc-192": [],
+    "flx-proc-256": [],
+    "flx-proc-320": [],
+    "flx-proc-2048": [],
+    "flx-proc-2112": [],
+    "flx-proc-2176": [],
+    "flx-proc-2240": [],
+    "flx-proc-2304": [],
+    "flx-proc-2368": []
+  },
+
+  "felix-readout-02": {
+    "flx-dma-1": [0, 32],
+
+    "flx-parser-0": [4, 36], 
+    "flx-parser-64": [4, 36], 
+    "flx-parser-128": [8, 40],
+    "flx-parser-192": [8, 40],
+    "flx-parser-256": [12, 44],
+    "flx-parser-320": [12, 44],
+    "flx-parser-2048": [16, 48], 
+    "flx-parser-2112": [16, 48], 
+    "flx-parser-2176": [20, 52], 
+    "flx-parser-2240": [20, 52], 
+    "flx-parser-2304": [24, 56], 
+    "flx-parser-2368": [24, 56],
+
+    "flx-proc-0": [],
+    "flx-proc-64": [],
+    "flx-proc-128": [],
+    "flx-proc-192": [],
+    "flx-proc-256": [],
+    "flx-proc-320": [],
+    "flx-proc-2048": [],
+    "flx-proc-2112": [],
+    "flx-proc-2176": [],
+    "flx-proc-2240": [],
+    "flx-proc-2304": [],
+    "flx-proc-2368": []
+  },
+
+
+  "felix-readout-03": {
+    "flx-dma-0": [1, 33],
+
+    "flx-parser-0": [5, 37], 
+    "flx-parser-64": [5, 37], 
+    "flx-parser-128": [9, 41],
+    "flx-parser-192": [9, 41],
+    "flx-parser-256": [13, 45],
+    "flx-parser-320": [13, 45],
+    "flx-parser-2048": [17, 49], 
+    "flx-parser-2112": [17, 49], 
+    "flx-parser-2176": [21, 53], 
+    "flx-parser-2240": [21, 53], 
+    "flx-parser-2304": [25, 57], 
+    "flx-parser-2368": [25, 57],
+
+    "flx-proc-0": [],
+    "flx-proc-64": [],
+    "flx-proc-128": [],
+    "flx-proc-192": [],
+    "flx-proc-256": [],
+    "flx-proc-320": [],
+    "flx-proc-2048": [],
+    "flx-proc-2112": [],
+    "flx-proc-2176": [],
+    "flx-proc-2240": [],
+    "flx-proc-2304": [],
+    "flx-proc-2368": []
+  },
+
+  "felix-readout-04": {
+    "flx-dma-1": [1, 33],
+
+    "flx-parser-0": [5, 37], 
+    "flx-parser-64": [5, 37], 
+    "flx-parser-128": [9, 41],
+    "flx-parser-192": [9, 41],
+    "flx-parser-256": [13, 45],
+    "flx-parser-320": [13, 45],
+    "flx-parser-2048": [17, 49], 
+    "flx-parser-2112": [17, 49], 
+    "flx-parser-2176": [21, 53], 
+    "flx-parser-2240": [21, 53], 
+    "flx-parser-2304": [25, 57], 
+    "flx-parser-2368": [25, 57],
+
+    "flx-proc-0": [],
+    "flx-proc-64": [],
+    "flx-proc-128": [],
+    "flx-proc-192": [],
+    "flx-proc-256": [],
+    "flx-proc-320": [],
+    "flx-proc-2048": [],
+    "flx-proc-2112": [],
+    "flx-proc-2176": [],
+    "flx-proc-2240": [],
+    "flx-proc-2304": [],
+    "flx-proc-2368": []
+  },
+
+
+  "felix-readout-05": {
+    "flx-dma-0": [3, 35],
+
+    "flx-parser-0": [7, 39], 
+    "flx-parser-64": [7, 39], 
+    "flx-parser-128": [11, 43],
+    "flx-parser-192": [11, 43],
+    "flx-parser-256": [15, 47],
+    "flx-parser-320": [15, 47],
+    "flx-parser-2048": [19, 51], 
+    "flx-parser-2112": [19, 51], 
+    "flx-parser-2176": [23, 55], 
+    "flx-parser-2240": [23, 55], 
+    "flx-parser-2304": [27, 59], 
+    "flx-parser-2368": [27, 59],
+
+    "flx-proc-0": [],
+    "flx-proc-64": [],
+    "flx-proc-128": [],
+    "flx-proc-192": [],
+    "flx-proc-256": [],
+    "flx-proc-320": [],
+    "flx-proc-2048": [],
+    "flx-proc-2112": [],
+    "flx-proc-2176": [],
+    "flx-proc-2240": [],
+    "flx-proc-2304": [],
+    "flx-proc-2368": []
+  },
+
+  "felix-readout-06": {
+    "flx-dma-1": [3, 35],
+
+    "flx-parser-0": [7, 39], 
+    "flx-parser-64": [7, 39], 
+    "flx-parser-128": [11, 43],
+    "flx-parser-192": [11, 43],
+    "flx-parser-256": [15, 47],
+    "flx-parser-320": [15, 47],
+    "flx-parser-2048": [19, 51], 
+    "flx-parser-2112": [19, 51], 
+    "flx-parser-2176": [23, 55], 
+    "flx-parser-2240": [23, 55], 
+    "flx-parser-2304": [27, 59], 
+    "flx-parser-2368": [27, 59],
+
+    "flx-proc-0": [],
+    "flx-proc-64": [],
+    "flx-proc-128": [],
+    "flx-proc-192": [],
+    "flx-proc-256": [],
+    "flx-proc-320": [],
+    "flx-proc-2048": [],
+    "flx-proc-2112": [],
+    "flx-proc-2176": [],
+    "flx-proc-2240": [],
+    "flx-proc-2304": [],
+    "flx-proc-2368": []
+  }
+
+
+}
+
