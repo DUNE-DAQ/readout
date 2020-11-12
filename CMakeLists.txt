@@ -6,12 +6,12 @@ find_package(daq-buildtools 1.2.1 REQUIRED)
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
-#find_package(udaq_readout_deps REQUIRED)
+find_package(udaq_readout_deps REQUIRED)
 
 ##############################################################################
 
-set(FLXCARD_DEPENDENCIES $ENV{UDAQ_READOUT_DEPS_LIB}/libFlxCard.so $ENV{UDAQ_READOUT_DEPS_LIB}/libcmem_rcc.so)
-set(FLXUTIL_DEPENDENCIES $ENV{UDAQ_READOUT_DEPS_LIB}/libpacketformat.so)
+set(FLXCARD_DEPENDENCIES udaq_readout_deps::FlxCard udaq_readout_deps::cmem_rcc)
+set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat)
 
 ##############################################################################
 # Main library
