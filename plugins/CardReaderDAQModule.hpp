@@ -49,13 +49,13 @@ public:
   CardReaderDAQModule& operator=(CardReaderDAQModule&&) =
     delete; ///< CardReaderDAQModule is not move-assignable
 
-  void init() override;
+  void init(const data_t& args) override;
 
 private:
   // Commands
-  void do_configure(const std::vector<std::string>& args);
-  void do_start(const std::vector<std::string>& args);
-  void do_stop(const std::vector<std::string>& args);
+  void do_configure(const data_t& args);
+  void do_start(const data_t& args);
+  void do_stop(const data_t& args);
 
   // Configuration
   bool configured_;

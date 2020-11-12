@@ -41,17 +41,19 @@ LinkReaderDAQModule::LinkReaderDAQModule(const std::string& name)
 }
 
 void
-LinkReaderDAQModule::init()
+LinkReaderDAQModule::init(const data_t& /*args*/)
 {
-  link_id_ = get_config().value<unsigned>("link_id", 0);
-  link_tag_ = get_config().value<unsigned>("link_tag", 0);
+  link_id_ = 0; //get_config().value<unsigned>("link_id", 0);
+  link_tag_ = 0; //get_config().value<unsigned>("link_tag", 0);
   parser_impl_.set_ids(link_id_, link_tag_);
-  parser_type_ = get_config().value<std::string>("parser_type", "frame"); 
+  parser_type_ = "frame"; //get_config().value<std::string>("parser_type", "frame"); 
 
   std::ostringstream osstr;
   osstr << "LinkReader[" << link_id_ << "," << link_tag_ << ',' << parser_type_ << ']';
   id_str_ = osstr.str(); 
   configured_ = true;
+
+/*
   try
   {
     block_ptr_source_ = std::make_unique<BlockPtrSource>(get_config()["input"].get<std::string>());
@@ -68,10 +70,11 @@ LinkReaderDAQModule::init()
   {
     throw ResourceQueueError(ERS_HERE, get_name(), "output", excpt);
   }
+*/
 }
 
 void 
-LinkReaderDAQModule::do_start(const std::vector<std::string>& /*args*/)
+LinkReaderDAQModule::do_start(const data_t& /*args*/)
 {
   if (!active_.load()) {
     link_processor_.setWork(&LinkReaderDAQModule::processLink, this);
@@ -83,7 +86,7 @@ LinkReaderDAQModule::do_start(const std::vector<std::string>& /*args*/)
 }
 
 void 
-LinkReaderDAQModule::do_stop(const std::vector<std::string>& /*args*/)
+LinkReaderDAQModule::do_stop(const data_t& /*args*/)
 {
   if (active_.load()) {
     while(!link_processor_.getReadiness()) {

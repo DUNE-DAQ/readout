@@ -39,17 +39,28 @@ CardReaderDAQModule::CardReaderDAQModule(const std::string& name)
 }
 
 void
-CardReaderDAQModule::init()
+CardReaderDAQModule::init(const data_t& /*args*/)
 {
-  card_id_ = get_config().value<uint8_t>("card_id", 0);
-  card_offset_ = get_config().value<uint8_t>("card_offset", 0);
-  dma_id_ = get_config().value<uint8_t>("dma_id", 0);
-  numa_id_ = get_config().value<uint8_t>("numa_id", 0);
-  num_sources_ = get_config().value<uint8_t>("num_sources", 1);
-  num_links_ = get_config().value<uint8_t>("num_links", M_MAX_LINKS_PER_CARD);
-  std::vector<std::string> queue_names = get_config()["outputs"].get<std::vector<std::string>>();
-  ERS_INFO("Base parameters initialized: " << get_config().dump()); 
+/*
+  auto ini = args.get<cmd::ModInit>();
+  for (const auto& qi : ini.qinfos) {
+    if (qi.name == "output") {
+      ERS_INFO("CardReader output queue is " << qi.inst);
+      
+    }
+  }
+*/
 
+  card_id_ = 0; //init_data.get<uint8_t>("card_id", 0);
+  card_offset_ = 0; //get_config().value<uint8_t>("card_offset", 0);
+  dma_id_ = 0; //get_config().value<uint8_t>("dma_id", 0);
+  numa_id_ = 0; //get_config().value<uint8_t>("numa_id", 0);
+  num_sources_ = 1; //get_config().value<uint8_t>("num_sources", 1);
+  num_links_ = 6; //get_config().value<uint8_t>("num_links", M_MAX_LINKS_PER_CARD);
+  std::vector<std::string> queue_names; // = get_config()["outputs"].get<std::vector<std::string>>();
+  //ERS_INFO("Base parameters initialized: " << get_config().dump()); 
+
+/*
   if (queue_names.size() != num_links_) {
     ers::error(readout::ConfigurationError(ERS_HERE, "Number of links does not match number of output queues."));
   } else {
@@ -58,10 +69,11 @@ CardReaderDAQModule::init()
      ERS_INFO("Added BlockPtr DAQSink for link[" << i << "].");
     }
   }
+*/
 }
 
 void
-CardReaderDAQModule::do_configure(const std::vector<std::string>& /*args*/)
+CardReaderDAQModule::do_configure(const data_t& /*args*/)
 {
   if (configured_) {
     ERS_INFO("Card is already configured! Won't touch it.");
@@ -86,7 +98,7 @@ CardReaderDAQModule::do_configure(const std::vector<std::string>& /*args*/)
 }
 
 void
-CardReaderDAQModule::do_start(const std::vector<std::string>& /*args*/)
+CardReaderDAQModule::do_start(const data_t& /*args*/)
 {
   //thread_.start_working_thread();
   ERS_INFO("Starting CardReader of card " << card_id_ << "...");
@@ -101,7 +113,7 @@ CardReaderDAQModule::do_start(const std::vector<std::string>& /*args*/)
 }
 
 void
-CardReaderDAQModule::do_stop(const std::vector<std::string>& /*args*/)
+CardReaderDAQModule::do_stop(const data_t& /*args*/)
 {
   //thread_.stop_working_thread();
   ERS_INFO("Stopping CardReader of card " << card_id_ << "...");

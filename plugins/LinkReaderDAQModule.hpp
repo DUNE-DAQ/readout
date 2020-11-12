@@ -43,12 +43,12 @@ public:
   LinkReaderDAQModule& operator=(LinkReaderDAQModule&&) =
     delete; ///< LinkReaderDAQModule is not move-assignable
 
-  void init() override;
+  void init(const data_t&) override;
 
 private:
   // Commands
-  void do_start(const std::vector<std::string>& /*args*/);
-  void do_stop(const std::vector<std::string>& /*args*/);
+  void do_start(const data_t& /*args*/);
+  void do_stop(const data_t& /*args*/);
 
   // Configuration
   bool configured_;
