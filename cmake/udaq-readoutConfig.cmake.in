@@ -5,6 +5,7 @@ include(CMakeFindDependencyMacro)
 
 find_dependency(appfwk)
 find_dependency(udaq_readout_deps)
+find_dependency(folly REQUIRED)
 
 set_and_check(targets_file ${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake)
 include(${targets_file})
