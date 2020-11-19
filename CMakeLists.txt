@@ -1,17 +1,19 @@
 cmake_minimum_required(VERSION 3.12)
 project(udaq-readout VERSION 0.0.0)
 
-find_package(daq-buildtools 1.2.1 REQUIRED)
+#find_package(daq-buildtools 1.2.1 REQUIRED)
+find_package(daq-cmake REQUIRED)
 
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
 find_package(udaq_readout_deps REQUIRED)
+find_package(folly REQUIRED)
 
 ##############################################################################
 
 set(FLXCARD_DEPENDENCIES udaq_readout_deps::FlxCard udaq_readout_deps::cmem_rcc)
-set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat)
+set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat Folly::folly)
 
 ##############################################################################
 # Main library
