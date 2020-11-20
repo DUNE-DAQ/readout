@@ -11,11 +11,11 @@
 #ifndef UDAQ_READOUT_SRC_LATENCYBUFFER_HPP_
 #define UDAQ_READOUT_SRC_LATENCYBUFFER_HPP_
 
-#include <atomic>
-
 #include <folly/ProducerConsumerQueue.h>
 
 #include "ReadoutTypes.hpp"
+
+#include <atomic>
 
 namespace dunedaq {
 namespace readout {
@@ -33,7 +33,7 @@ public:
     = delete; ///< LatencyBuffer is not move-assignable
 
 private:
-  LinkId id_;
+
 };
 
 }

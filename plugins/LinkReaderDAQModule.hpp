@@ -17,6 +17,7 @@
 #include "ReadoutTypes.hpp"
 #include "ReusableThread.hpp"
 #include "DefaultParserImpl.hpp"
+#include "LatencyBuffer.hpp"
 
 #include <string>
 #include <chrono>
@@ -74,12 +75,6 @@ private:
   felix::packetformat::BlockParser<DefaultParserImpl> parser_;
   void processLink();
 
-  //typedef felix::packetformat::BlockParser<LinkParserImpl> LinkParser;
-  //typedef felix::packetformat::BlockParser<HitsParserImpl> HitsParser;
-
-  // Operations
-  //TParser m_parser_impl;
-  //felix::packetformat::BlockParser m_parser;
 };
 
 } // namespace dunedaq::readout
