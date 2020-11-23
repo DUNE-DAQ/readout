@@ -11,6 +11,7 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include <cstdint> // uint64_t
 #include <memory> // unique_ptr
 
 namespace dunedaq {
@@ -37,10 +38,10 @@ struct SUPERCHUNK_STRUCT {
   char fragments[SUPERCHUNK_SIZE];
 };
 
-typedef dunedaq::appfwk::DAQSink<uint64_t> BlockPtrSink; // NOLINT uint64_t
+typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT uint64_t
 typedef std::unique_ptr<BlockPtrSink> UniqueBlockPtrSink; 
 
-typedef dunedaq::appfwk::DAQSource<uint64_t> BlockPtrSource; // NOLINT uint64_t
+typedef dunedaq::appfwk::DAQSource<std::uint64_t> BlockPtrSource; // NOLINT uint64_t
 typedef std::unique_ptr<BlockPtrSource> UniqueBlockPtrSource;
 
 typedef dunedaq::appfwk::DAQSink<SUPERCHUNK_STRUCT> FrameSink;
