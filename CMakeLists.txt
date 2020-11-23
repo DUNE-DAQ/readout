@@ -22,6 +22,7 @@ daq_add_library(DefaultParserImpl.cpp LINK_LIBRARIES appfwk ${FLXUTIL_DEPENDENCI
 # Plugins
 daq_add_plugin(CardReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout ${FLXCARD_DEPENDENCIES})
 daq_add_plugin(LinkReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout ${FLXUTIL_DEPENDENCIES})
+daq_add_plugin(FakeLinkDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout)
 
 ##############################################################################
 # Integration tests
