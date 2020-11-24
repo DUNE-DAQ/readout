@@ -20,11 +20,11 @@
 #include "ReadoutTypes.hpp"
 #include "ReusableThread.hpp"
 #include "DefaultParserImpl.hpp"
-#include "LatencyBuffer.hpp"
+#include "LatencyBufferInterface.hpp"
+#include "WIBLatencyBuffer.hpp"
 
-#include <string>
-#include <chrono>
-#include <vector>
+#include <memory>
+#include <fstream>
 
 namespace dunedaq {
 namespace readout {
@@ -51,8 +51,28 @@ public:
 
 private:
   // Commands
+  void do_conf(const data_t& /*args*/);
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
+
+  // Configuration
+  bool configured_;
+  int frame_size_;
+  int superchunk_factor_;
+  std::string qtype_;
+  size_t qsize_;
+  std::string data_filename_;
+
+  // Internals
+  std::ifstream rawdata_ifs_;
+  std::unique_ptr<LatencyBufferInterface> input_buffer_;
+  std::unique_ptr<LatencyBufferInterface> latency_buffer_;
+
+  // Processor
+  ReusableThread rthread_;
+  void do_work(std::atomic<bool>& running_flag);
+
+
 
 };
 

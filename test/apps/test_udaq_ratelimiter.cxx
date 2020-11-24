@@ -53,7 +53,7 @@ main(int /*argc*/, char** /*argv[]*/)
   }
 
   // Check
-  ERS_INFO("OPS in 5 seconds (should be really close to 5 million:): " << ops);
+  ERS_INFO("Operations in 5 seconds (should be really close to 5 million:): " << ops);
 
   // Exit
   ERS_INFO("Exiting.");

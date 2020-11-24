@@ -17,7 +17,6 @@
 #include "ReadoutTypes.hpp"
 #include "ReusableThread.hpp"
 #include "DefaultParserImpl.hpp"
-#include "LatencyBuffer.hpp"
 
 #include <string>
 #include <chrono>
@@ -54,7 +53,7 @@ private:
   // Configuration
   bool configured_;
   UniqueBlockPtrSource block_ptr_source_;
-  UniqueFrameSink parser_sink_;
+  UniqueWIBFrameSink parser_sink_;
   std::chrono::milliseconds source_timeout_;
 
   // Internals

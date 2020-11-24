@@ -33,9 +33,9 @@ struct LinkId {
  * that is called a SuperChunk. Default mode is with 12 frames:
  * 12[WIB frames] x 464[Bytes] = 5568[Bytes] 
 */
-const constexpr std::size_t SUPERCHUNK_SIZE = 5568; // for 12: 5568
-struct SUPERCHUNK_STRUCT {
-  char fragments[SUPERCHUNK_SIZE];
+const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
+struct WIB_SUPERCHUNK_STRUCT {
+  char data[WIB_SUPERCHUNK_SIZE];
 };
 
 typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT uint64_t
@@ -44,11 +44,11 @@ typedef std::unique_ptr<BlockPtrSink> UniqueBlockPtrSink;
 typedef dunedaq::appfwk::DAQSource<std::uint64_t> BlockPtrSource; // NOLINT uint64_t
 typedef std::unique_ptr<BlockPtrSource> UniqueBlockPtrSource;
 
-typedef dunedaq::appfwk::DAQSink<SUPERCHUNK_STRUCT> FrameSink;
-typedef std::unique_ptr<FrameSink> UniqueFrameSink;
+typedef dunedaq::appfwk::DAQSink<WIB_SUPERCHUNK_STRUCT> WIBFrameSink;
+typedef std::unique_ptr<WIBFrameSink> UniqueWIBFrameSink;
 
-typedef dunedaq::appfwk::DAQSource<SUPERCHUNK_STRUCT> FrameSource;
-typedef std::unique_ptr<FrameSource> UniqueFrameSource;
+typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
+typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 
 } // namespace readout
 } // namespace dunedaq

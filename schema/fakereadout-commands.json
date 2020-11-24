@@ -1,0 +1,70 @@
+[
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "output",
+                                "inst": "hose",
+                                "name": "output"
+                            }
+                        ]
+                    },
+                    "inst": "fake-elink0",
+                    "plugin": "FakeLinkDAQModule"
+                } 
+            ],
+            "queues": [
+                {
+                    "capacity": 10,
+                    "inst": "hose",
+                    "kind": "StdDeQueue"
+                }
+            ]
+        },
+        "id": "init"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "ending_int": 14,
+                        "nIntsPerVector": 10,
+                        "queue_timeout_ms": 100,
+                        "starting_int": -4,
+                        "wait_between_sends_ms": 1000
+                    },
+                    "match": "fake-elink0"
+                }
+            ]
+        },
+        "id": "conf"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "run": 42
+                    },
+                    "match": ""
+                }
+            ]
+        },
+        "id": "start"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {},
+                    "match": "fake-elink0"
+                } 
+            ]
+        },
+        "id": "stop"
+    }
+]
