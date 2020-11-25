@@ -36,6 +36,7 @@ FakeLinkDAQModule::FakeLinkDAQModule(const std::string& name)
   , data_filename_("")
   , latency_buffer_(nullptr)
   , rate_limiter_(nullptr)
+  , request_handler_(nullptr)
   , worker_thread_(std::bind(&FakeLinkDAQModule::do_work, this, std::placeholders::_1))
   , run_marker_{false}
   , stats_thread_(0)
@@ -96,9 +97,13 @@ FakeLinkDAQModule::do_conf(const data_t& /*args*/)
     input_buffer_.insert(input_buffer_.begin(), std::istreambuf_iterator<char>(rawdata_ifs_), std::istreambuf_iterator<char>());
     ERS_INFO("Available elements: " << element_count_ << " | In bytes: " << input_buffer_.size());
 
-    // Prepare latency buffer and rate limiter
+    // Prepare latency buffer and ratelimiter
     latency_buffer_ = std::make_unique<WIBLatencyBuffer>(qsize_);
     rate_limiter_ = std::make_unique<RateLimiter>(rate_);
+
+    // Pass access for ReqestHandler on the LatencyBuffer
+    request_handler_ = std::make_unique<RequestHandler>(latency_buffer_, run_marker_);
+    request_handler_->configure(0.8f, 0.5f);
 
     // Mark configured
     configured_ = true;
@@ -109,6 +114,7 @@ void
 FakeLinkDAQModule::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
+  request_handler_->start();
   stats_thread_.set_work(&FakeLinkDAQModule::run_stats, this);
   worker_thread_.start_working_thread();
 }
@@ -117,6 +123,7 @@ void
 FakeLinkDAQModule::do_stop(const data_t& /*args*/)
 {
   run_marker_.store(false);
+  request_handler_->stop();
   worker_thread_.stop_working_thread();
   while (!stats_thread_.get_readiness()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));            
@@ -129,14 +136,22 @@ FakeLinkDAQModule::do_work(std::atomic<bool>& running_flag)
   rate_limiter_->init();
   int offset = 0;
   while (running_flag.load()) {
+    // Which element to push to the buffer
     if (offset == element_count_) {
       offset = 0;
     } else {
       offset++;
     }
+
+    // Create next superchunk
     WIB_SUPERCHUNK_STRUCT superchunk;
     ::memcpy(&superchunk.data, input_buffer_.data()+offset*superchunk_size_, superchunk_size_);
     latency_buffer_->write(std::move(superchunk));
+
+    // Notify request handler to do size check
+    request_handler_->auto_pop_request();
+
+    // Count packet and limit rate
     ++packet_count_;
     rate_limiter_->limit();
   }

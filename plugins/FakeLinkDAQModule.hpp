@@ -11,13 +11,11 @@
 #ifndef UDAQ_READOUT_SRC_FAKELINKDAQMODULE_HPP_
 #define UDAQ_READOUT_SRC_FAKELINKDAQMODULE_HPP_
 
+// appfwk
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/ThreadHelper.hpp"
 
-// 3rd party felix
-#include "packetformat/block_parser.hpp"
-
-// module
+// package
 #include "ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
 #include "ReusableThread.hpp"
@@ -25,7 +23,9 @@
 #include "DefaultParserImpl.hpp"
 #include "LatencyBufferInterface.hpp"
 #include "WIBLatencyBuffer.hpp"
+#include "RequestHandler.hpp"
 
+// std
 #include <memory>
 #include <fstream>
 #include <cstdint>
@@ -69,7 +69,7 @@ private:
   std::string qtype_;
   size_t qsize_;
   int rate_;
-  stats::packet_counter_t packet_count_;
+  stats::counter_t packet_count_;
   std::string data_filename_;
 
   // Internals
@@ -77,6 +77,7 @@ private:
   std::vector<std::uint8_t> input_buffer_;
   std::unique_ptr<WIBLatencyBuffer> latency_buffer_;
   std::unique_ptr<RateLimiter> rate_limiter_;
+  std::unique_ptr<RequestHandler> request_handler_;
 
   // Processor
   dunedaq::appfwk::ThreadHelper worker_thread_;
