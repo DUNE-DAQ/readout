@@ -11,7 +11,7 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
-#include <cstdint> // uint64_t
+#include <cstdint> // uint_t types
 #include <memory> // unique_ptr
 
 namespace dunedaq {
