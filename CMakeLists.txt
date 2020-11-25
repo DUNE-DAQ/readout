@@ -8,15 +8,16 @@ daq_setup_environment()
 find_package(appfwk REQUIRED)
 find_package(udaq_readout_deps REQUIRED)
 find_package(folly REQUIRED)
+find_package(TBB REQUIRED)
 
 ##############################################################################
 # Dependency sets
 set(FLXCARD_DEPENDENCIES udaq_readout_deps::FlxCard udaq_readout_deps::cmem_rcc)
-set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat Folly::folly)
+set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS})
 
 ##############################################################################
 # Main library
-daq_add_library(DefaultParserImpl.cpp LINK_LIBRARIES appfwk ${FLXUTIL_DEPENDENCIES})
+daq_add_library(DefaultParserImpl.cpp RequestHandler.cpp LINK_LIBRARIES appfwk ${FLXUTIL_DEPENDENCIES})
 
 ##############################################################################
 # Plugins
@@ -31,6 +32,7 @@ daq_add_application(udaq_readout_test_ratelimiter test_udaq_ratelimiter.cxx TEST
 ##############################################################################
 # Test configurations
 file(COPY test/felix_readout_card0_app.json DESTINATION test)
+file(COPY schema/fakereadout-commands.json DESTINATION test)
 
 ##############################################################################
 # Installation
