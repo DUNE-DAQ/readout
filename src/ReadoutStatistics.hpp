@@ -10,19 +10,21 @@
 
 #include <atomic>
 
-namespace dunedaq::readout {
+namespace dunedaq::readout::stats {
+
+typedef std::atomic<int> packet_counter_t;
 
 struct ParserStats {
-  std::atomic<int> packet_ctr_{0};
-  std::atomic<int> short_ctr_{0};
-  std::atomic<int> chunk_ctr_{0};
-  std::atomic<int> subchunk_ctr_{0};
-  std::atomic<int> block_ctr_{0};
-  std::atomic<int> error_short_ctr_{0};
-  std::atomic<int> error_chunk_ctr_{0};
-  std::atomic<int> error_subchunk_ctr_{0};
-  std::atomic<int> error_block_ctr_{0};
-  std::atomic<int> last_chunk_size_{0};
+  packet_counter_t packet_ctr_{0};
+  packet_counter_t short_ctr_{0};
+  packet_counter_t chunk_ctr_{0};
+  packet_counter_t subchunk_ctr_{0};
+  packet_counter_t block_ctr_{0};
+  packet_counter_t error_short_ctr_{0};
+  packet_counter_t error_chunk_ctr_{0};
+  packet_counter_t error_subchunk_ctr_{0};
+  packet_counter_t error_block_ctr_{0};
+  packet_counter_t last_chunk_size_{0};
 };
 
 } // namespace dunedaq::readout
