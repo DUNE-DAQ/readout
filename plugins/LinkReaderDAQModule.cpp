@@ -77,7 +77,7 @@ void
 LinkReaderDAQModule::do_start(const data_t& /*args*/)
 {
   if (!active_.load()) {
-    link_processor_.setWork(&LinkReaderDAQModule::processLink, this);
+    link_processor_.set_work(&LinkReaderDAQModule::processLink, this);
     active_.store(true);
     ERS_INFO(id_str_ << " started.");
   } else {
@@ -89,7 +89,7 @@ void
 LinkReaderDAQModule::do_stop(const data_t& /*args*/)
 {
   if (active_.load()) {
-    while(!link_processor_.getReadiness()) {
+    while(!link_processor_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     active_.store(false);

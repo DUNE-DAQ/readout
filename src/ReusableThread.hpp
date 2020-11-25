@@ -54,19 +54,26 @@ public:
   ReusableThread& operator=(ReusableThread&&) 
     = delete; ///< ReusableThread is not move-assignable
 
-  int getThreadID() const { return thread_id_; }
+  // Set thread ID
+  void set_thread_id(int tid) { thread_id_ = tid; }
 
-  bool getReadiness() const { return task_executed_; }
+  // Get thread ID
+  int get_thread_id() const { return thread_id_; }
 
-  void setName(const std::string& name, int tid) {
+  // Set name for pthread handle
+  void set_name(const std::string& name, int tid) {
     char tname[16];
     snprintf(tname, 16, "%s-%d", name.c_str(), tid); // NOLINT 
     auto handle = thread_.native_handle();
     pthread_setname_np(handle, tname);
   }
 
+  // Check for completed task execution
+  bool get_readiness() const { return task_executed_; }
+
+  // Set task to be executed
   template <typename Function, typename... Args> 
-  bool setWork(Function &&f, Args &&... args) {
+  bool set_work(Function &&f, Args &&... args) {
     if (!task_assigned_ && task_executed_.exchange(false)) {
       task_ = std::bind(f, args...);
       task_assigned_ = true;
@@ -77,6 +84,7 @@ public:
   }
 
 private:
+  // Internals
   int thread_id_;
   std::atomic<bool> task_executed_;
   std::atomic<bool> task_assigned_;
@@ -84,10 +92,12 @@ private:
   std::atomic<bool> worker_done_;
   std::function<void()> task_;
 
+  // Locks
   std::mutex mtx_;
   std::condition_variable cv_;
   std::thread thread_;
 
+  // Actual worker thread
   void thread_worker() {
     std::unique_lock<std::mutex> lock(mtx_);
 

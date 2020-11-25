@@ -105,7 +105,7 @@ CardReaderDAQModule::do_start(const data_t& /*args*/)
   if (!active_.load()) { 
     startDMA();
     setRunning(true);
-    dma_processor_.setWork(&CardReaderDAQModule::processDMA, this);
+    dma_processor_.set_work(&CardReaderDAQModule::processDMA, this);
     ERS_INFO("Started CardReader of card " << card_id_ << "...");
   } else {
     ERS_INFO("CardReader of card " << card_id_ << " is already running!");
@@ -120,7 +120,7 @@ CardReaderDAQModule::do_stop(const data_t& /*args*/)
   if (active_.load()) {
     stopDMA();
     setRunning(false);
-    while (!dma_processor_.getReadiness()) {
+    while (!dma_processor_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     ERS_INFO("Stopped CardReader of card " << card_id_ << "!"); 
