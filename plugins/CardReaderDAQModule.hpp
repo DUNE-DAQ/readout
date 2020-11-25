@@ -94,7 +94,7 @@ private:
   inline static const std::string dma_processor_name_ = "flx-dma";
   std::atomic<bool> run_lock_{false};
   std::atomic<bool> active_{false};
-  ReusableThread dma_processor_; //
+  ReusableThread dma_processor_;
   void processDMA();
 
   // Functionalities
