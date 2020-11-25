@@ -95,7 +95,6 @@ FakeLinkDAQModule::do_conf(const data_t& /*args*/)
     input_buffer_.reserve(filesize);
     input_buffer_.insert(input_buffer_.begin(), std::istreambuf_iterator<char>(rawdata_ifs_), std::istreambuf_iterator<char>());
     ERS_INFO("Available elements: " << element_count_ << " | In bytes: " << input_buffer_.size());
-    ERS_INFO("ASD: " << (unsigned)input_buffer_[0]);
 
     // Prepare latency buffer and rate limiter
     latency_buffer_ = std::make_unique<WIBLatencyBuffer>(qsize_);
