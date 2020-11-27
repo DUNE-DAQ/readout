@@ -1,5 +1,5 @@
 /**
-* @file CommandFacility.cpp Reusable thread wrapper
+* @file ReusableThread.hpp Reusable thread wrapper
 * The same thread instance can be used with different tasks to be executed
 * Inspired by: 
 * https://codereview.stackexchange.com/questions/134214/reuseable-c11-thread
