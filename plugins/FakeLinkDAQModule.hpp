@@ -1,8 +1,10 @@
 /**
- * @file FakeLinkDAQModule.hpp FELIX FULLMODE Fake Link
- * Generates user payloads at a given rate, from FELIX binary captures
+ * @file FakeLinkDAQModule.hpp FELIX FULLMODE WIB Fake Link
+ * Generates user payloads at a given rate, from WIB to FELIX binary captures
  * This implementation is purely software based, no FELIX card and tools
  * are needed to use this module.
+ *
+ * TODO: Make it generic, to consumer other types of user payloads.
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -13,6 +15,7 @@
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
+#include "appfwk/DAQSink.hpp"
 #include "appfwk/ThreadHelper.hpp"
 
 // package
@@ -20,10 +23,7 @@
 #include "ReadoutStatistics.hpp"
 #include "ReusableThread.hpp"
 #include "RateLimiter.hpp"
-#include "DefaultParserImpl.hpp"
-#include "LatencyBufferInterface.hpp"
-#include "WIBLatencyBuffer.hpp"
-#include "RequestHandler.hpp"
+#include "FileSourceBuffer.hpp"
 
 // std
 #include <memory>
@@ -62,22 +62,18 @@ private:
   // Configuration
   bool configured_;
   int input_limit_;
-  int frame_size_;
-  int superchunk_factor_;
-  int superchunk_size_;
-  int element_count_;
-  std::string qtype_;
-  size_t qsize_;
+  std::string raw_type_;
   int rate_;
   stats::counter_t packet_count_;
   std::string data_filename_;
 
+  // appfwk Queues
+  std::chrono::milliseconds queue_timeout_ms_;
+  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>> output_queue_;
+
   // Internals
-  std::ifstream rawdata_ifs_;
-  std::vector<std::uint8_t> input_buffer_;
-  std::unique_ptr<WIBLatencyBuffer> latency_buffer_;
+  std::unique_ptr<FileSourceBuffer> source_buffer_;
   std::unique_ptr<RateLimiter> rate_limiter_;
-  std::unique_ptr<RequestHandler> request_handler_;
 
   // Processor
   dunedaq::appfwk::ThreadHelper worker_thread_;

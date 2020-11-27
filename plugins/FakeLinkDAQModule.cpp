@@ -7,6 +7,7 @@
 */
 #include "FakeLinkDAQModule.hpp"
 #include "ReadoutIssues.hpp"
+#include "ReadoutConstants.hpp"
 
 #include <fstream>
 #include <iomanip>
@@ -27,16 +28,12 @@ namespace readout {
 FakeLinkDAQModule::FakeLinkDAQModule(const std::string& name)
   : DAQModule(name)
   , configured_(false)
-  , frame_size_(0)
-  , superchunk_factor_(0)
-  , qtype_("")
-  , qsize_(0)
   , rate_(0)
   , packet_count_{0}
   , data_filename_("")
-  , latency_buffer_(nullptr)
+  , queue_timeout_ms_(std::chrono::milliseconds(0))
+  , output_queue_(nullptr)
   , rate_limiter_(nullptr)
-  , request_handler_(nullptr)
   , worker_thread_(std::bind(&FakeLinkDAQModule::do_work, this, std::placeholders::_1))
   , run_marker_{false}
   , stats_thread_(0)
@@ -49,7 +46,8 @@ FakeLinkDAQModule::FakeLinkDAQModule(const std::string& name)
 void
 FakeLinkDAQModule::init(const data_t& /*args*/)
 {
-
+  ERS_INFO("Resetting queue fakelink-out");
+  output_queue_.reset(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>("fakelink-out"));
 }
 
 void 
@@ -58,52 +56,19 @@ FakeLinkDAQModule::do_conf(const data_t& /*args*/)
   if (configured_) {
     ers::error(ConfigurationError(ERS_HERE, "This module is already configured!"));
   } else {
-
     // These should come from args
-    input_limit_ = 10*1024*1024;
-    frame_size_ = 464;
-    superchunk_factor_ = 12;
-    superchunk_size_ = frame_size_*superchunk_factor_;
-    qtype_ = std::string("WIBFrame");
-    qsize_ = 100000;
+    auto input_limit = 10*1024*1024;
     rate_ = 166; // 166 khz
+    raw_type_ = std::string("wib");
     data_filename_ = std::string("/tmp/frames.bin");
+    queue_timeout_ms_ = std::chrono::milliseconds(2000);
 
-    // Open file
-    rawdata_ifs_.open(data_filename_, std::ios::in | std::ios::binary);
-    if (!rawdata_ifs_) {
-      ers::error(ConfigurationError(ERS_HERE, "Couldn't open binary file."));
-    }
+    // Read input
+    source_buffer_ = std::make_unique<FileSourceBuffer>(input_limit, constant::WIB_SUPERCHUNK_SIZE);
+    source_buffer_->read(data_filename_);
 
-    // Check file size
-    rawdata_ifs_.ignore(std::numeric_limits<std::streamsize>::max());
-    std::streamsize filesize = rawdata_ifs_.gcount();
-    if (filesize > input_limit_) { // bigger than configured limit
-      ers::error(ConfigurationError(ERS_HERE, "File size limit exceeded."));
-    }
-    
-    // Check for exact match
-    int remainder = filesize % superchunk_size_;
-    if (remainder > 0) {
-      ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
-    }
-
-    // Set usable element count
-    element_count_ = filesize / superchunk_size_;
-
-    // Read file into input buffer
-    rawdata_ifs_.seekg(0, std::ios::beg);
-    input_buffer_.reserve(filesize);
-    input_buffer_.insert(input_buffer_.begin(), std::istreambuf_iterator<char>(rawdata_ifs_), std::istreambuf_iterator<char>());
-    ERS_INFO("Available elements: " << element_count_ << " | In bytes: " << input_buffer_.size());
-
-    // Prepare latency buffer and ratelimiter
-    latency_buffer_ = std::make_unique<WIBLatencyBuffer>(qsize_);
+    // Prepare ratelimiter
     rate_limiter_ = std::make_unique<RateLimiter>(rate_);
-
-    // Pass access for ReqestHandler on the LatencyBuffer
-    request_handler_ = std::make_unique<RequestHandler>(latency_buffer_, run_marker_);
-    request_handler_->configure(0.8f, 0.5f);
 
     // Mark configured
     configured_ = true;
@@ -114,7 +79,6 @@ void
 FakeLinkDAQModule::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
-  request_handler_->start();
   stats_thread_.set_work(&FakeLinkDAQModule::run_stats, this);
   worker_thread_.start_working_thread();
 }
@@ -123,7 +87,6 @@ void
 FakeLinkDAQModule::do_stop(const data_t& /*args*/)
 {
   run_marker_.store(false);
-  request_handler_->stop();
   worker_thread_.stop_working_thread();
   while (!stats_thread_.get_readiness()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));            
@@ -133,25 +96,30 @@ FakeLinkDAQModule::do_stop(const data_t& /*args*/)
 void 
 FakeLinkDAQModule::do_work(std::atomic<bool>& running_flag)
 {
+  // Init ratelimiter, element offset and source buffer ref
   rate_limiter_->init();
   int offset = 0;
+  const auto& source = source_buffer_->get();
+
+  // Run until stop marker
   while (running_flag.load()) {
     // Which element to push to the buffer
-    if (offset == element_count_) {
+    if (offset == source_buffer_->num_elements()) {
       offset = 0;
     } else {
       offset++;
     }
-
     // Create next superchunk
-    WIB_SUPERCHUNK_STRUCT superchunk;
-    ::memcpy(&superchunk.data, input_buffer_.data()+offset*superchunk_size_, superchunk_size_);
-    latency_buffer_->write(std::move(superchunk));
-
-    // Notify request handler to do size check
-    request_handler_->auto_pop_request();
-
-    // Count packet and limit rate
+    std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
+    // Memcpy from file buffer to flat char array
+    ::memcpy(&payload_ptr->data, source.data()+offset*constant::WIB_SUPERCHUNK_SIZE, constant::WIB_SUPERCHUNK_SIZE);
+    // queue in to actual DAQSink
+    try {
+      output_queue_->push(std::move(payload_ptr), queue_timeout_ms_);
+    } catch (...) { // RS TODO: ERS issues
+      std::runtime_error("Queue timed out...");
+    }
+    // Count packet and limit rate if needed.
     ++packet_count_;
     rate_limiter_->limit();
   }
@@ -160,15 +128,15 @@ FakeLinkDAQModule::do_work(std::atomic<bool>& running_flag)
 void
 FakeLinkDAQModule::run_stats()
 {
+  // Temporarily, for debugging, a rate checker thread...
   int new_packets = 0;
   auto t0 = std::chrono::high_resolution_clock::now();
   while (run_marker_.load()) {
     auto now = std::chrono::high_resolution_clock::now();
     new_packets = packet_count_.exchange(0);
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-    ERS_INFO("Packet rate: " << new_packets/seconds/1000. << " [kHz] "
-          << "Latency buffer size: " << latency_buffer_->sizeGuess());
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    ERS_INFO("Packet rate: " << new_packets/seconds/1000. << " [kHz]");
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     t0 = now;
   }
 }
