@@ -8,36 +8,37 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_LATENCYBUFFER_HPP_
-#define UDAQ_READOUT_SRC_LATENCYBUFFER_HPP_
+#ifndef UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFER_HPP_
+#define UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFER_HPP_
 
-#include "ReadoutTypes.hpp"
-#include "LatencyBufferInterface.hpp"
+#include "LatencyBufferBase.hpp"
+#include "DefaultParserImpl.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
 
-#include <atomic>
+#include <typeinfo>
 
 namespace dunedaq {
 namespace readout {
 
-class WIBLatencyBuffer : public LatencyBufferInterface,
-                         public folly::ProducerConsumerQueue<WIB_SUPERCHUNK_STRUCT> {
+template<class RawDataType>
+class ContinousLatencyBuffer : public LatencyBufferBase,
+                               public folly::ProducerConsumerQueue<RawDataType> {
 public:
-  explicit WIBLatencyBuffer(const size_t qsize)
-  : folly::ProducerConsumerQueue<WIB_SUPERCHUNK_STRUCT>(qsize)
+  ContinousLatencyBuffer(const size_t qsize)
+  : folly::ProducerConsumerQueue<RawDataType>(qsize)
   {
-    ERS_INFO("WIBLatencyBuffer created...");
+
+    // need to implement from POP from Source and push to Folly....
+    
+
+    // Bind custom post process of data
+    //parser_impl_.post_process_chunk_func =
+    //  std::bind(&ContinousLatencyBuffer<RawDataType>::write_data_to_buffer, this, std::placeholders::_1);
   }
 
-  WIBLatencyBuffer(const WIBLatencyBuffer&) 
-    = delete; ///< WIBLatencyBuffer is not copy-constructible
-  WIBLatencyBuffer& operator=(const WIBLatencyBuffer&) 
-    = delete; ///< WIBLatencyBuffer is not copy-assginable
-  WIBLatencyBuffer(WIBLatencyBuffer&&) 
-    = delete; ///< WIBLatencyBuffer is not move-constructible
-  WIBLatencyBuffer& operator=(WIBLatencyBuffer&&) 
-    = delete; ///< WIBLatencyBuffer is not move-assignable
+  // LatencyBuffer implements type conversion from felix chunk to RawType (store type)
+  //void write_data_to_buffer(const felix::packetformat::chunk& chunk);
 
 private:
 
@@ -46,4 +47,4 @@ private:
 }
 } // namespace dunedaq::readout
 
-#endif // UDAQ_READOUT_SRC_LATENCYBUFFER_HPP_
+#endif // UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFER_HPP_
