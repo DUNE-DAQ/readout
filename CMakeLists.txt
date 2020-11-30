@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(readout VERSION 0.0.0)
+project(udaq-readout VERSION 0.0.0)
 
 find_package(daq-cmake REQUIRED)
 
@@ -25,10 +25,10 @@ daq_add_library(DefaultParserImpl.cpp
 
 ##############################################################################
 # Plugins
-daq_add_plugin(CardReaderDAQModule duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk udaq-readout ${FLXCARD_DEPENDENCIES})
+daq_add_plugin(CardReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout ${FLXCARD_DEPENDENCIES})
 daq_add_plugin(LinkReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout)
 daq_add_plugin(FakeLinkDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout)
-daq_add_plugin(ReadoutDAQModule duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk udaq-readout)
+daq_add_plugin(ReadoutDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout)
 
 ##############################################################################
 # Integration tests
