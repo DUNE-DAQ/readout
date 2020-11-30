@@ -16,6 +16,7 @@
 
 namespace dunedaq {
 namespace readout {
+namespace types {
 
 /**
  * @brief A FULLMODE Elink is identified by the following: 
@@ -50,6 +51,7 @@ typedef std::unique_ptr<WIBFrameSink> UniqueWIBFrameSink;
 typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
 typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 
+} // namespace types
 } // namespace readout
 } // namespace dunedaq
 
