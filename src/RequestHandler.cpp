@@ -54,7 +54,7 @@ RequestHandler::auto_pop_request()
 }
 
 void
-RequestHandler::do_request(/*appfwk::Request ?*/)
+RequestHandler::issue_request(/*appfwk::Request ?*/)
 {
 
 }

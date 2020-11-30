@@ -13,7 +13,8 @@
 
 #include "ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
-#include "WIBLatencyBuffer.hpp"
+#include "ContinousLatencyBuffer.hpp"
+#include "DefaultParserImpl.hpp"
 
 #include <tbb/concurrent_queue.h>
 
@@ -25,15 +26,20 @@
 namespace dunedaq {
 namespace readout {
 
+class RequestHandlerBase {
+
+};
+
 class RequestHandler { // : appfwk::RequestReceiver ??
 public:
-  explicit RequestHandler(std::unique_ptr<WIBLatencyBuffer>& lbuffer,
+  explicit RequestHandler(std::unique_ptr<ContinousLatencyBuffer<types::WIB_SUPERCHUNK_STRUCT>>& lbuffer,
                           std::atomic<bool>& marker)
   : pop_limit_pct_(0.0f)
   , pop_size_pct_(0.0f)
   , pop_limit_size_(0)
   , pop_counter_{0}
   , buffer_capacity_(0)
+  , parser_impl_() // TO BE REMOVED
   , latency_buffer_(lbuffer)
   , run_marker_(marker)
   {
@@ -52,7 +58,10 @@ public:
   void configure(float pop_limit_pct, float pop_size_pct); 
   void start();
   void stop();
+  
+  // Requests
   void auto_pop_request();
+  void issue_request();
 
 protected:
   void auto_pop();
@@ -67,16 +76,19 @@ private:
   stats::counter_t pop_counter_;
   int buffer_capacity_;
 
+  // TO BE REMOVED
+  DefaultParserImpl parser_impl_;
+
   // Latency buffer to work on
-  std::unique_ptr<WIBLatencyBuffer>& latency_buffer_;
+  std::unique_ptr<ContinousLatencyBuffer<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer_;
 
   // Internals
   typedef tbb::concurrent_queue<std::future<void>> RequestQueue;
   RequestQueue request_queue_;
 
-  // Auto pop
-  typedef std::function<void()> PopCallback;
-  PopCallback auto_pop_callback_;
+  // Pop on buffer is a special request
+  typedef std::function<void()> AutoPopCallback;
+  AutoPopCallback auto_pop_callback_;
 
   // Executor
   std::thread executor_;
