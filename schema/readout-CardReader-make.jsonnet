@@ -1,4 +1,4 @@
-// hand written helpers to make object compliant with udaq-readout-cardreader
+// hand written helpers to make object compliant with readout-CardReader
 {
     // The internally known name of the only queue used
     queue: "blocks-0", 

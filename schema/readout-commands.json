@@ -7,19 +7,19 @@
                         "qinfos": [
                             {
                                 "dir": "output",
-                                "inst": "fakelink-out",
+                                "inst": "hose",
                                 "name": "output"
                             }
                         ]
                     },
                     "inst": "fake-elink0",
-                    "plugin": "FakeLinkDAQModule"
+                    "plugin": "ReadoutDAQModule"
                 } 
             ],
             "queues": [
                 {
-                    "capacity": 600000,
-                    "inst": "fakelink-out",
+                    "capacity": 10,
+                    "inst": "hose",
                     "kind": "StdDeQueue"
                 }
             ]
@@ -31,8 +31,13 @@
             "modules": [
                 {
                     "data": {
+                        "ending_int": 14,
+                        "nIntsPerVector": 10,
+                        "queue_timeout_ms": 100,
+                        "starting_int": -4,
+                        "wait_between_sends_ms": 1000
                     },
-                    "match": ""
+                    "match": "fake-elink0"
                 }
             ]
         },
