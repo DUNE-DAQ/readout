@@ -17,13 +17,18 @@ set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat Folly::folly ${TBB} ${T
 
 ##############################################################################
 # Main library
-daq_add_library(DefaultParserImpl.cpp RequestHandler.cpp LINK_LIBRARIES appfwk ${FLXUTIL_DEPENDENCIES})
+daq_add_library(DefaultParserImpl.cpp
+                RequestHandler.cpp
+                ContinousLatencyBuffer.cpp
+  LINK_LIBRARIES appfwk::appfwk ${FLXUTIL_DEPENDENCIES}
+)
 
 ##############################################################################
 # Plugins
-daq_add_plugin(CardReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout ${FLXCARD_DEPENDENCIES})
-daq_add_plugin(LinkReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout ${FLXUTIL_DEPENDENCIES})
-daq_add_plugin(FakeLinkDAQModule duneDAQModule LINK_LIBRARIES appfwk udaq-readout)
+daq_add_plugin(CardReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout ${FLXCARD_DEPENDENCIES})
+daq_add_plugin(LinkReaderDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout)
+daq_add_plugin(FakeLinkDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout)
+daq_add_plugin(ReadoutDAQModule duneDAQModule LINK_LIBRARIES appfwk::appfwk udaq-readout)
 
 ##############################################################################
 # Integration tests
