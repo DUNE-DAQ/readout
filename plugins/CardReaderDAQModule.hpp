@@ -59,6 +59,9 @@ private:
 
   // Configuration
   bool configured_;
+  using conf_count_t = dunedaq::udaq-readout::cardreaderdaqmodule::Count;
+  using module_conf_t = dunedaq::udaq-readout::cardreaderdaqmodule::Conf;
+  module_conf cfg_;    
   std::map<uint8_t, types::UniqueBlockPtrSink> block_ptr_sinks_;
 
   // Card control

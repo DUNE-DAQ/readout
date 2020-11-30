@@ -52,8 +52,8 @@ private:
 
   // Configuration
   bool configured_;
-  UniqueBlockPtrSource block_ptr_source_;
-  UniqueWIBFrameSink parser_sink_;
+  types::UniqueBlockPtrSource block_ptr_source_;
+  types::UniqueWIBFrameSink parser_sink_;
   std::chrono::milliseconds source_timeout_;
 
   // Internals
