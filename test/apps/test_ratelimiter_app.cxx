@@ -1,8 +1,6 @@
 /**
- * @file test_rest_app.cxx Test application for using the
- * restCommandFacility with a RestCommandedObject.
- * Showcases error handling of bad URIs and proper cleanup
- * of resources via the killswitch.
+ * @file test_ratelimiter_app.cxx Test application for 
+ * ratelimiter implementation
  *
  * This is part of the DUNE DAQ Application Framework, copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
