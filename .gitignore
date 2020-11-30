@@ -1,3 +1,6 @@
+# autogen files
+/src/readout
+
 # Prerequisites
 *.d
 
