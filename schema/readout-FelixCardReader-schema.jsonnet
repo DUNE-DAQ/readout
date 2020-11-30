@@ -8,11 +8,11 @@
 local moo = import "moo.jsonnet";
 
 // A schema builder in the given path (namespace)
-local ns = "dunedaq.udaq-readout.cardreaderdaqmodule"; //dunedaq::udaq-readout::readoutdaqmodule
+local ns = "dunedaq.readout.felixcardreader";
 local s = moo.oschema.schema(ns);
 
 // Object structure used by the test/fake producer module
-local cardreaderdaqmodule = {
+local felixcardreader = {
     size  : s.number("Size", "u8",
                      doc="A count of very many things"),
 
@@ -42,4 +42,4 @@ local cardreaderdaqmodule = {
 
 };
 
-moo.oschema.sort_select(cardreaderdaqmodule, ns)
+moo.oschema.sort_select(felixcardreader, ns)
