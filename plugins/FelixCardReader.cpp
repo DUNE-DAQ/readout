@@ -1,5 +1,5 @@
 /**
- * @file CardReaderDAQModule.cc CardReaderDAQModule class
+ * @file FelixCardReader.cc FelixCardReader class
  * implementation
  *
  * This is part of the DUNE DAQ Application Framework, copyright 2020.
@@ -7,7 +7,7 @@
  * received with this code.
  */
 
-#include "CardReaderDAQModule.hpp"
+#include "FelixCardReader.hpp"
 #include "ReadoutIssues.hpp"
 
 #include "flxcard/FlxException.h"
@@ -22,24 +22,24 @@
 /**
  * @brief Name used by TRACE TLOG calls from this source file
  */
-#define TRACE_NAME "CardReaderDAQModule" // NOLINT
+#define TRACE_NAME "FelixCardReader" // NOLINT
 
 namespace dunedaq {
 namespace readout {
 
-CardReaderDAQModule::CardReaderDAQModule(const std::string& name)
+FelixCardReader::FelixCardReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
   , block_ptr_sinks_{ } 
   , dma_processor_{0}
 {
-  register_command("configure", &CardReaderDAQModule::do_configure);
-  register_command("start", &CardReaderDAQModule::do_start);
-  register_command("stop", &CardReaderDAQModule::do_stop);
+  register_command("configure", &FelixCardReader::do_configure);
+  register_command("start", &FelixCardReader::do_start);
+  register_command("stop", &FelixCardReader::do_stop);
 }
 
 void
-CardReaderDAQModule::init(const data_t& /*args*/)
+FelixCardReader::init(const data_t& /*args*/)
 {
 /*
   auto ini = args.get<cmd::ModInit>();
@@ -73,12 +73,12 @@ CardReaderDAQModule::init(const data_t& /*args*/)
 }
 
 void
-CardReaderDAQModule::do_configure(const data_t& /*args*/)
+FelixCardReader::do_configure(const data_t& /*args*/)
 {
   if (configured_) {
     ERS_INFO("Card is already configured! Won't touch it.");
   } else {
-    ERS_INFO("Configuring CardReaderDAQModule of card[" << std::to_string(card_id_) << "].");
+    ERS_INFO("Configuring FelixCardReader of card[" << std::to_string(card_id_) << "].");
     // Open card
     openCard();
     ERS_INFO("Card[" << card_id_ << "] opened.");
@@ -98,14 +98,14 @@ CardReaderDAQModule::do_configure(const data_t& /*args*/)
 }
 
 void
-CardReaderDAQModule::do_start(const data_t& /*args*/)
+FelixCardReader::do_start(const data_t& /*args*/)
 {
   //thread_.start_working_thread();
   ERS_INFO("Starting CardReader of card " << card_id_ << "...");
   if (!active_.load()) { 
     startDMA();
     setRunning(true);
-    dma_processor_.set_work(&CardReaderDAQModule::processDMA, this);
+    dma_processor_.set_work(&FelixCardReader::processDMA, this);
     ERS_INFO("Started CardReader of card " << card_id_ << "...");
   } else {
     ERS_INFO("CardReader of card " << card_id_ << " is already running!");
@@ -113,7 +113,7 @@ CardReaderDAQModule::do_start(const data_t& /*args*/)
 }
 
 void
-CardReaderDAQModule::do_stop(const data_t& /*args*/)
+FelixCardReader::do_stop(const data_t& /*args*/)
 {
   //thread_.stop_working_thread();
   ERS_INFO("Stopping CardReader of card " << card_id_ << "...");
@@ -130,14 +130,14 @@ CardReaderDAQModule::do_stop(const data_t& /*args*/)
 }
 
 void 
-CardReaderDAQModule::setRunning(bool shouldRun) 
+FelixCardReader::setRunning(bool shouldRun) 
 { 
   bool wasRunning = active_.exchange(shouldRun);
   ERS_INFO("Active state was toggled from " << wasRunning << " to " << shouldRun);
 }
 
 void 
-CardReaderDAQModule::openCard()
+FelixCardReader::openCard()
 {
   ERS_INFO("Opening FELIX card " << card_id_);
   try {
@@ -152,7 +152,7 @@ CardReaderDAQModule::openCard()
 }
 
 void 
-CardReaderDAQModule::closeCard()
+FelixCardReader::closeCard()
 {
   ERS_INFO("Closing FELIX card " << card_id_);
   try {
@@ -167,7 +167,7 @@ CardReaderDAQModule::closeCard()
 }
 
 int 
-CardReaderDAQModule::allocateCMEM(uint8_t numa, u_long bsize, u_long* paddr, u_long* vaddr)
+FelixCardReader::allocateCMEM(uint8_t numa, u_long bsize, u_long* paddr, u_long* vaddr)
 {
   ERS_INFO("Allocating CMEM buffer " << card_id_ << " dma id:" << dma_id_);
   int handle;
@@ -196,7 +196,7 @@ CardReaderDAQModule::allocateCMEM(uint8_t numa, u_long bsize, u_long* paddr, u_l
 }
 
 void 
-CardReaderDAQModule::initDMA()
+FelixCardReader::initDMA()
 {
   ERS_INFO("InitDMA issued...");
   card_mutex_.lock();
@@ -228,7 +228,7 @@ CardReaderDAQModule::initDMA()
 }
 
 void 
-CardReaderDAQModule::startDMA()
+FelixCardReader::startDMA()
 {
   ERS_INFO("Issuing flxCard.dma_to_host for card " << card_id_ << " dma id:" << dma_id_);
   card_mutex_.lock();
@@ -237,7 +237,7 @@ CardReaderDAQModule::startDMA()
 } 
 
 void 
-CardReaderDAQModule::stopDMA()
+FelixCardReader::stopDMA()
 {
   ERS_INFO("Issuing flxCard.dma_stop for card " << card_id_ << " dma id:" << dma_id_);
   card_mutex_.lock();
@@ -246,14 +246,14 @@ CardReaderDAQModule::stopDMA()
 } 
 
 uint64_t 
-CardReaderDAQModule::bytesAvailable() 
+FelixCardReader::bytesAvailable() 
 { 
   return (current_addr_ - ((read_index_ * M_BLOCK_SIZE) + phys_addr_) + dma_memory_size_) 
           % dma_memory_size_;
 }
 
 void 
-CardReaderDAQModule::readCurrentAddress() 
+FelixCardReader::readCurrentAddress() 
 {
   card_mutex_.lock();
   current_addr_ = flx_card_->m_bar0->DMA_DESC_STATUS[dma_id_].current_address;
@@ -262,7 +262,7 @@ CardReaderDAQModule::readCurrentAddress()
 
 
 void 
-CardReaderDAQModule::processDMA()
+FelixCardReader::processDMA()
 {
   ERS_INFO("CardReader starts processing blocks...");
   while (active_) {
@@ -339,4 +339,4 @@ CardReaderDAQModule::processDMA()
 } // namespace readout
 } // namespace dunedaq
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::CardReaderDAQModule)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FelixCardReader)

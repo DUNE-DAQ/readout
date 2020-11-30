@@ -1,9 +1,11 @@
 /**
- * @file CardReaderDAQModule.hpp
+ * @file FelixCardReader.hpp
  */
 
-#ifndef APPFWK_UDAQ_READOUT_CARDREADERDAQMODULE_HPP_
-#define APPFWK_UDAQ_READOUT_CARDREADERDAQMODULE_HPP_
+#ifndef APPFWK_UDAQ_READOUT_FELIXCARDREADER_HPP_
+#define APPFWK_UDAQ_READOUT_FELIXCARDREADER_HPP_
+
+#include "readout/felixcardreader/Structs.hpp"
 
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSink.hpp"
@@ -25,29 +27,29 @@
 namespace dunedaq::readout {
 
 /**
- * @brief CardReaderDAQModule reads FELIX DMA block pointers
+ * @brief FelixCardReader reads FELIX DMA block pointers
  *
  * @author Roland Sipos
  * @date   2020-2021
  *
  */
-class CardReaderDAQModule : public dunedaq::appfwk::DAQModule
+class FelixCardReader : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-   * @brief CardReaderDAQModule Constructor
-   * @param name Instance name for this CardReaderDAQModule instance
+   * @brief FelixCardReader Constructor
+   * @param name Instance name for this FelixCardReader instance
    */
-  explicit CardReaderDAQModule(const std::string& name);
+  explicit FelixCardReader(const std::string& name);
 
-  CardReaderDAQModule(const CardReaderDAQModule&) =
-    delete; ///< CardReaderDAQModule is not copy-constructible
-  CardReaderDAQModule& operator=(const CardReaderDAQModule&) =
-    delete; ///< CardReaderDAQModule is not copy-assignable
-  CardReaderDAQModule(CardReaderDAQModule&&) =
-    delete; ///< CardReaderDAQModule is not move-constructible
-  CardReaderDAQModule& operator=(CardReaderDAQModule&&) =
-    delete; ///< CardReaderDAQModule is not move-assignable
+  FelixCardReader(const FelixCardReader&) =
+    delete; ///< FelixCardReader is not copy-constructible
+  FelixCardReader& operator=(const FelixCardReader&) =
+    delete; ///< FelixCardReader is not copy-assignable
+  FelixCardReader(FelixCardReader&&) =
+    delete; ///< FelixCardReader is not move-constructible
+  FelixCardReader& operator=(FelixCardReader&&) =
+    delete; ///< FelixCardReader is not move-assignable
 
   void init(const data_t& args) override;
 
@@ -59,9 +61,9 @@ private:
 
   // Configuration
   bool configured_;
-  using conf_count_t = dunedaq::udaq-readout::cardreaderdaqmodule::Count;
-  using module_conf_t = dunedaq::udaq-readout::cardreaderdaqmodule::Conf;
-  module_conf cfg_;    
+  using conf_count_t = dunedaq::readout::felixcardreader::Count;
+  using module_conf_t = dunedaq::readout::felixcardreader::Conf;
+  module_conf_t cfg_;    
   std::map<uint8_t, types::UniqueBlockPtrSink> block_ptr_sinks_;
 
   // Card control
@@ -115,4 +117,4 @@ private:
 
 } // namespace readout
 
-#endif // APPFWK_UDAQ_READOUT_CARDREADERDAQMODULE_HPP_
+#endif // APPFWK_UDAQ_READOUT_FELIXCARDREADER_HPP_
