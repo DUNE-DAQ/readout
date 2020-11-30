@@ -1,11 +1,11 @@
 /**
- * @file FakeLinkDAQModule.cpp FakeLinkDAQModule class implementation
+ * @file FakeElinkReader.cpp FakeElinkReader class implementation
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#include "FakeLinkDAQModule.hpp"
+#include "FakeElinkReader.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
@@ -20,12 +20,12 @@
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
-#define TRACE_NAME "FakeLinkDAQModule" // NOLINT
+#define TRACE_NAME "FakeElinkReader" // NOLINT
 
 namespace dunedaq {
 namespace readout { 
 
-FakeLinkDAQModule::FakeLinkDAQModule(const std::string& name)
+FakeElinkReader::FakeElinkReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
   , rate_(0)
@@ -34,24 +34,24 @@ FakeLinkDAQModule::FakeLinkDAQModule(const std::string& name)
   , queue_timeout_ms_(std::chrono::milliseconds(0))
   , output_queue_(nullptr)
   , rate_limiter_(nullptr)
-  , worker_thread_(std::bind(&FakeLinkDAQModule::do_work, this, std::placeholders::_1))
+  , worker_thread_(std::bind(&FakeElinkReader::do_work, this, std::placeholders::_1))
   , run_marker_{false}
   , stats_thread_(0)
 {
-  register_command("conf", &FakeLinkDAQModule::do_conf);
-  register_command("start", &FakeLinkDAQModule::do_start);
-  register_command("stop", &FakeLinkDAQModule::do_stop);
+  register_command("conf", &FakeElinkReader::do_conf);
+  register_command("start", &FakeElinkReader::do_start);
+  register_command("stop", &FakeElinkReader::do_stop);
 }
 
 void
-FakeLinkDAQModule::init(const data_t& /*args*/)
+FakeElinkReader::init(const data_t& /*args*/)
 {
   ERS_INFO("Resetting queue fakelink-out");
   output_queue_.reset(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>("fakelink-out"));
 }
 
 void 
-FakeLinkDAQModule::do_conf(const data_t& /*args*/)
+FakeElinkReader::do_conf(const data_t& /*args*/)
 {
   if (configured_) {
     ers::error(ConfigurationError(ERS_HERE, "This module is already configured!"));
@@ -76,15 +76,15 @@ FakeLinkDAQModule::do_conf(const data_t& /*args*/)
 }
 
 void 
-FakeLinkDAQModule::do_start(const data_t& /*args*/)
+FakeElinkReader::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
-  stats_thread_.set_work(&FakeLinkDAQModule::run_stats, this);
+  stats_thread_.set_work(&FakeElinkReader::run_stats, this);
   worker_thread_.start_working_thread();
 }
 
 void 
-FakeLinkDAQModule::do_stop(const data_t& /*args*/)
+FakeElinkReader::do_stop(const data_t& /*args*/)
 {
   run_marker_.store(false);
   worker_thread_.stop_working_thread();
@@ -94,7 +94,7 @@ FakeLinkDAQModule::do_stop(const data_t& /*args*/)
 }
 
 void 
-FakeLinkDAQModule::do_work(std::atomic<bool>& running_flag)
+FakeElinkReader::do_work(std::atomic<bool>& running_flag)
 {
   // Init ratelimiter, element offset and source buffer ref
   rate_limiter_->init();
@@ -126,7 +126,7 @@ FakeLinkDAQModule::do_work(std::atomic<bool>& running_flag)
 }
 
 void
-FakeLinkDAQModule::run_stats()
+FakeElinkReader::run_stats()
 {
   // Temporarily, for debugging, a rate checker thread...
   int new_packets = 0;
@@ -144,4 +144,4 @@ FakeLinkDAQModule::run_stats()
 }
 } // namespace dunedaq::readout
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FakeLinkDAQModule)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FakeElinkReader)

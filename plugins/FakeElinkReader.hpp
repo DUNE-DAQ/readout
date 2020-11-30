@@ -1,5 +1,5 @@
 /**
- * @file FakeLinkDAQModule.hpp FELIX FULLMODE WIB Fake Link
+ * @file FakeElinkReader.hpp FELIX FULLMODE WIB Fake Link
  * Generates user payloads at a given rate, from WIB to FELIX binary captures
  * This implementation is purely software based, no FELIX card and tools
  * are needed to use this module.
@@ -10,8 +10,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FAKELINKDAQMODULE_HPP_
-#define UDAQ_READOUT_SRC_FAKELINKDAQMODULE_HPP_
+#ifndef UDAQ_READOUT_SRC_FAKELINKREADER_HPP_
+#define UDAQ_READOUT_SRC_FAKELINKREADER_HPP_
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
@@ -33,23 +33,23 @@
 namespace dunedaq {
 namespace readout {
 
-class FakeLinkDAQModule : public dunedaq::appfwk::DAQModule
+class FakeElinkReader : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-  * @brief FakeLinkDAQModule Constructor
-  * @param name Instance name for this FakeLinkDAQModule instance
+  * @brief FakeElinkReader Constructor
+  * @param name Instance name for this FakeElinkReader instance
   */
-  explicit FakeLinkDAQModule(const std::string& name);
+  explicit FakeElinkReader(const std::string& name);
 
-  FakeLinkDAQModule(const FakeLinkDAQModule&) =
-    delete; ///< FakeLinkDAQModule is not copy-constructible
-  FakeLinkDAQModule& operator=(const FakeLinkDAQModule&) =
-    delete; ///< FakeLinkDAQModule is not copy-assignable
-  FakeLinkDAQModule(FakeLinkDAQModule&&) =
-    delete; ///< FakeLinkDAQModule is not move-constructible
-  FakeLinkDAQModule& operator=(FakeLinkDAQModule&&) =
-    delete; ///< FakeLinkDAQModule is not move-assignable
+  FakeElinkReader(const FakeElinkReader&) =
+    delete; ///< FakeElinkReader is not copy-constructible
+  FakeElinkReader& operator=(const FakeElinkReader&) =
+    delete; ///< FakeElinkReader is not copy-assignable
+  FakeElinkReader(FakeElinkReader&&) =
+    delete; ///< FakeElinkReader is not move-constructible
+  FakeElinkReader& operator=(FakeElinkReader&&) =
+    delete; ///< FakeElinkReader is not move-assignable
 
   void init(const data_t&) override;
 
@@ -89,4 +89,4 @@ private:
 } // namespace dunedaq::readout
 }
 
-#endif // UDAQ_READOUT_SRC_LINKREADERDAQMODULE_HPP_
+#endif // UDAQ_READOUT_SRC_FAKELINKREADER_HPP_
