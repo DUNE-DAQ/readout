@@ -1,11 +1,11 @@
 /**
- * @file LinkReaderDAQModule.cpp LinkReaderDAQModule class implementation
+ * @file ElinkReader.cpp ElinkReader class implementation
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#include "LinkReaderDAQModule.hpp"
+#include "ElinkReader.hpp"
 #include "ReadoutIssues.hpp"
 
 #include <sstream>
@@ -17,12 +17,12 @@
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
-#define TRACE_NAME "LinkReaderDAQModule" // NOLINT
+#define TRACE_NAME "ElinkReader" // NOLINT
 
 namespace dunedaq {
 namespace readout { 
 
-LinkReaderDAQModule::LinkReaderDAQModule(const std::string& name)
+ElinkReader::ElinkReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
   , link_id_(0)
@@ -36,12 +36,12 @@ LinkReaderDAQModule::LinkReaderDAQModule(const std::string& name)
   , parser_impl_()
   , parser_(parser_impl_)
 {
-  register_command("start", &LinkReaderDAQModule::do_start);
-  register_command("stop", &LinkReaderDAQModule::do_stop);
+  register_command("start", &ElinkReader::do_start);
+  register_command("stop", &ElinkReader::do_stop);
 }
 
 void
-LinkReaderDAQModule::init(const data_t& /*args*/)
+ElinkReader::init(const data_t& /*args*/)
 {
   link_id_ = 0; //get_config().value<unsigned>("link_id", 0);
   link_tag_ = 0; //get_config().value<unsigned>("link_tag", 0);
@@ -74,10 +74,10 @@ LinkReaderDAQModule::init(const data_t& /*args*/)
 }
 
 void 
-LinkReaderDAQModule::do_start(const data_t& /*args*/)
+ElinkReader::do_start(const data_t& /*args*/)
 {
   if (!active_.load()) {
-    link_processor_.set_work(&LinkReaderDAQModule::processLink, this);
+    link_processor_.set_work(&ElinkReader::processLink, this);
     active_.store(true);
     ERS_INFO(id_str_ << " started.");
   } else {
@@ -86,7 +86,7 @@ LinkReaderDAQModule::do_start(const data_t& /*args*/)
 }
 
 void 
-LinkReaderDAQModule::do_stop(const data_t& /*args*/)
+ElinkReader::do_stop(const data_t& /*args*/)
 {
   if (active_.load()) {
     while(!link_processor_.get_readiness()) {
@@ -100,7 +100,7 @@ LinkReaderDAQModule::do_stop(const data_t& /*args*/)
 }
 
 void 
-LinkReaderDAQModule::processLink()
+ElinkReader::processLink()
 {
   ERS_INFO(id_str_ << " spawning processLink()...");
   int expected = -1;
@@ -132,4 +132,4 @@ LinkReaderDAQModule::processLink()
 }
 } // namespace dunedaq::readout
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::LinkReaderDAQModule)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::ElinkReader)

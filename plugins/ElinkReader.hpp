@@ -1,12 +1,12 @@
 /**
- * @file LinkReaderDAQModule.hpp FELIX FULLMODE Link reader module
+ * @file ElinkReader.hpp FELIX FULLMODE Link reader module
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_LINKREADERDAQMODULE_HPP_
-#define UDAQ_READOUT_SRC_LINKREADERDAQMODULE_HPP_
+#ifndef UDAQ_READOUT_SRC_ELINKREADER_HPP_
+#define UDAQ_READOUT_SRC_ELINKREADER_HPP_
 
 #include "appfwk/DAQModule.hpp"
 
@@ -25,23 +25,23 @@
 namespace dunedaq {
 namespace readout {
 
-class LinkReaderDAQModule : public dunedaq::appfwk::DAQModule
+class ElinkReader : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-  * @brief LinkReaderDAQModule Constructor
-  * @param name Instance name for this LinkReaderDAQModule instance
+  * @brief ElinkReader Constructor
+  * @param name Instance name for this ElinkReader instance
   */
-  explicit LinkReaderDAQModule(const std::string& name);
+  explicit ElinkReader(const std::string& name);
 
-  LinkReaderDAQModule(const LinkReaderDAQModule&) =
-    delete; ///< LinkReaderDAQModule is not copy-constructible
-  LinkReaderDAQModule& operator=(const LinkReaderDAQModule&) =
-    delete; ///< LinkReaderDAQModule is not copy-assignable
-  LinkReaderDAQModule(LinkReaderDAQModule&&) =
-    delete; ///< LinkReaderDAQModule is not move-constructible
-  LinkReaderDAQModule& operator=(LinkReaderDAQModule&&) =
-    delete; ///< LinkReaderDAQModule is not move-assignable
+  ElinkReader(const ElinkReader&) =
+    delete; ///< ElinkReader is not copy-constructible
+  ElinkReader& operator=(const ElinkReader&) =
+    delete; ///< ElinkReader is not copy-assignable
+  ElinkReader(ElinkReader&&) =
+    delete; ///< ElinkReader is not move-constructible
+  ElinkReader& operator=(ElinkReader&&) =
+    delete; ///< ElinkReader is not move-assignable
 
   void init(const data_t&) override;
 
@@ -79,4 +79,4 @@ private:
 } // namespace dunedaq::readout
 }
 
-#endif // UDAQ_READOUT_SRC_LINKREADERDAQMODULE_HPP_
+#endif // UDAQ_READOUT_SRC_ELINKREADER_HPP_
