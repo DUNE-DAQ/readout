@@ -59,7 +59,7 @@ private:
 
   // Configuration
   bool configured_;
-  std::map<uint8_t, UniqueBlockPtrSink> block_ptr_sinks_;
+  std::map<uint8_t, types::UniqueBlockPtrSink> block_ptr_sinks_;
 
   // Card control
   typedef std::unique_ptr<FlxCard> UniqueFlxCard;
