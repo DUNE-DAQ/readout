@@ -10,8 +10,10 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FAKELINKREADER_HPP_
-#define UDAQ_READOUT_SRC_FAKELINKREADER_HPP_
+#ifndef UDAQ_READOUT_SRC_FAKEELINKREADER_HPP_
+#define UDAQ_READOUT_SRC_FAKEELINKREADER_HPP_
+
+#include "readout/fakeelinkreader/Structs.hpp"
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
@@ -61,15 +63,13 @@ private:
 
   // Configuration
   bool configured_;
-  int input_limit_;
-  std::string raw_type_;
-  int rate_;
-  stats::counter_t packet_count_;
-  std::string data_filename_;
+  using module_conf_t = fakeelinkreader::Conf;
+  module_conf_t cfg_;
 
   // appfwk Queues
   std::chrono::milliseconds queue_timeout_ms_;
-  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>> output_queue_;
+  using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+  std::unique_ptr<sink_t> output_queue_;
 
   // Internals
   std::unique_ptr<FileSourceBuffer> source_buffer_;
@@ -81,6 +81,9 @@ private:
 
   // Threading
   std::atomic<bool> run_marker_;
+
+  // Stats
+  stats::counter_t packet_count_;
   ReusableThread stats_thread_;
   void run_stats();
 
@@ -89,4 +92,4 @@ private:
 } // namespace dunedaq::readout
 }
 
-#endif // UDAQ_READOUT_SRC_FAKELINKREADER_HPP_
+#endif // UDAQ_READOUT_SRC_FAKEELINKREADER_HPP_

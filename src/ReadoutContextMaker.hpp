@@ -1,14 +1,14 @@
 /**
-* @file LatencyBufferMaker.hpp Glue between raw processor, latency buffer 
-* and request handler.
+* @file LatencyBufferMaker.hpp Specific latency buffer and request
+* handler maker functions.
 * Thanks for Brett and Phil for the idea
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_LATENCYBUFFERMAKER_HPP_
-#define UDAQ_READOUT_SRC_LATENCYBUFFERMAKER_HPP_
+#ifndef UDAQ_READOUT_SRC_READOUTCONTEXTBASEMAKER_HPP_
+#define UDAQ_READOUT_SRC_READOUTCONTEXTBASEMAKER_HPP_
 
 #include "ReadoutTypes.hpp"
 #include "ReadoutIssues.hpp"
@@ -49,4 +49,4 @@ RequestHandlerBaseMaker(const std::string& rawtype)
 }
 } // namespace dunedaq::readout
 
-#endif // UDAQ_READOUT_SRC_LATENCYBUFFERMAKER_HPP_
+#endif // UDAQ_READOUT_SRC_READOUTCONTEXTBASEMAKER_HPP_

@@ -5,9 +5,14 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
+
+#include "readout/fakeelinkreader/Nljs.hpp"
+
 #include "FakeElinkReader.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
+
+#include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
 #include <iomanip>
@@ -28,14 +33,11 @@ namespace readout {
 FakeElinkReader::FakeElinkReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
-  , rate_(0)
-  , packet_count_{0}
-  , data_filename_("")
-  , queue_timeout_ms_(std::chrono::milliseconds(0))
   , output_queue_(nullptr)
   , rate_limiter_(nullptr)
   , worker_thread_(std::bind(&FakeElinkReader::do_work, this, std::placeholders::_1))
   , run_marker_{false}
+  , packet_count_{0}
   , stats_thread_(0)
 {
   register_command("conf", &FakeElinkReader::do_conf);
@@ -44,31 +46,37 @@ FakeElinkReader::FakeElinkReader(const std::string& name)
 }
 
 void
-FakeElinkReader::init(const data_t& /*args*/)
+FakeElinkReader::init(const data_t& args)
 {
   ERS_INFO("Resetting queue fakelink-out");
-  output_queue_.reset(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>("fakelink-out"));
+  auto ini = args.get<appfwk::cmd::ModInit>();
+  for (const auto& qi : ini.qinfos) {
+    if (qi.dir != "output") {
+      continue;
+    }
+    try {
+      output_queue_.reset(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+    }
+    catch (const ers::Issue& excpt) {
+      throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
+    }
+  }
 }
 
 void 
-FakeElinkReader::do_conf(const data_t& /*args*/)
+FakeElinkReader::do_conf(const data_t& args)
 {
   if (configured_) {
     ers::error(ConfigurationError(ERS_HERE, "This module is already configured!"));
   } else {
-    // These should come from args
-    auto input_limit = 10*1024*1024;
-    rate_ = 166; // 166 khz
-    raw_type_ = std::string("wib");
-    data_filename_ = std::string("/tmp/frames.bin");
-    queue_timeout_ms_ = std::chrono::milliseconds(2000);
+    cfg_ = args.get<fakeelinkreader::Conf>();
 
     // Read input
-    source_buffer_ = std::make_unique<FileSourceBuffer>(input_limit, constant::WIB_SUPERCHUNK_SIZE);
-    source_buffer_->read(data_filename_);
+    source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
+    source_buffer_->read(cfg_.data_filename);
 
     // Prepare ratelimiter
-    rate_limiter_ = std::make_unique<RateLimiter>(rate_);
+    rate_limiter_ = std::make_unique<RateLimiter>(cfg_.rate_khz);
 
     // Mark configured
     configured_ = true;

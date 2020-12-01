@@ -4,7 +4,7 @@
     queue: "fake-elink"
 
     // Make a conf object for cardreader
-    conf(lid, inplim, rate, rawtype, datfile, qtms) :: {
+    conf(lid=0, inplim=10485100, rate=166, rawtype="wib", datfile="/tmp/frames.bin", qtms=2000) :: {
         link_id: lid,
         input_limit: inplim, 
         rate_khz: rate, 

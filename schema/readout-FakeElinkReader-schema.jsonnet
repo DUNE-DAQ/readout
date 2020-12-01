@@ -26,7 +26,7 @@ local fakeelinkreader = {
         s.field("link_id", self.count, 0,
                 doc="Link ID"),
 
-        s.field("input_limit", self.size, 0,
+        s.field("input_limit", self.size, 10485100,
                 doc="Maximum allowed file size"),
 
         s.field("rate_khz", self.count, 166,
@@ -35,10 +35,10 @@ local fakeelinkreader = {
         s.field("raw_type", self.str, "wib",
                 doc="User payload type"),
 
-        s.field("data_filename", self.str, "",
+        s.field("data_filename", self.str, "/tmp/frames.bin",
                 doc="Data file that contains user payloads"),
 
-        s.field("queue_timeout_ms", self.count, 0,
+        s.field("queue_timeout_ms", self.count, 2000,
                 doc="Queue timeout in milliseconds"),
 
     ], doc="Fake Elink reader module configuration"),
