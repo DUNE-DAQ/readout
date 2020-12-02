@@ -28,7 +28,7 @@ daq_add_library(DefaultParserImpl.cpp
 daq_add_plugin(FelixCardReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout ${FLXCARD_DEPENDENCIES})
 daq_add_plugin(FakeElinkReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(ElinkReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(ReadoutElement duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(ReadoutElement duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests
