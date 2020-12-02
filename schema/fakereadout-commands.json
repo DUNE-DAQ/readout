@@ -7,20 +7,33 @@
                         "qinfos": [
                             {
                                 "dir": "output",
-                                "inst": "fakelink-out",
+                                "inst": "fakelink-0",
                                 "name": "output"
                             }
                         ]
                     },
-                    "inst": "fake-elink0",
-                    "plugin": "FakeLinkDAQModule"
-                } 
+                    "inst": "fake-source",
+                    "plugin": "FakeElinkReader"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "fakelink-0",
+                                "name": "input"
+                            }
+                        ]
+                    },
+                    "inst": "fake-readout",
+                    "plugin": "ReadoutElement"
+                }
             ],
             "queues": [
                 {
                     "capacity": 600000,
-                    "inst": "fakelink-out",
-                    "kind": "StdDeQueue"
+                    "inst": "fakelink-0",
+                    "kind": "FollySPSCQueue"
                 }
             ]
         },
@@ -31,8 +44,20 @@
             "modules": [
                 {
                     "data": {
+                      "link_id": 0,
+                      "input_limit": 10485100,
+                      "rate_khz": 166,
+                      "raw_type": "wib",
+                      "data_filename": "/tmp/frames.bin",
+                      "queue_timeout_ms": 2000
                     },
-                    "match": ""
+                    "match": "fake-source"
+                },
+                {
+                    "data": {
+                      "raw_type": "wib"
+                    },
+                    "match": "fake-readout"
                 }
             ]
         },
@@ -56,7 +81,7 @@
             "modules": [
                 {
                     "data": {},
-                    "match": "fake-elink0"
+                    "match": ""
                 } 
             ]
         },
