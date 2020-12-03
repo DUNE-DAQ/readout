@@ -1,5 +1,6 @@
 /**
  * @file ReadoutElement.hpp Generic readout element module
+ * Owns appfwk queue references and a ReadoutContext implementation.
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -8,11 +9,13 @@
 #ifndef UDAQ_READOUT_SRC_READOUTELEMENT_HPP_
 #define UDAQ_READOUT_SRC_READOUTELEMENT_HPP_
 
+#include "readout/readoutelement/Structs.hpp"
+
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
 
 #include "ReadoutTypes.hpp"
-#include "ReadoutContext.hpp"
+#include "ReadoutContextMaker.hpp"
 
 #include <string>
 #include <chrono>
@@ -47,15 +50,17 @@ private:
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
 
-  // appfwk Queues
-  std::chrono::milliseconds queue_timeout_ms_;
-  std::unique_ptr<appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>> input_queue_;
-
   // Configuration
   bool configured_;
+  using module_conf_t = readoutelement::Conf;
+  module_conf_t cfg_;
+
+  // appfwk queues
+  types::UniqueWIBFramePtrSource input_queue_;
+  std::chrono::milliseconds queue_timeout_ms_;
 
   // Internal
-  std::unique_ptr<ReadoutContext> readout_element_;
+  std::unique_ptr<ReadoutContextBase> readout_context_impl_;
 
   // Threading
   std::atomic<bool> run_marker_;

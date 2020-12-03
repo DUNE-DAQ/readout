@@ -23,7 +23,7 @@ namespace readout {
 
 ReadoutElement::ReadoutElement(const std::string& name)
   : DAQModule(name)
-  , queue_timeout_ms_(0)
+//  , queue_timeout_ms_(0)
   , input_queue_(nullptr)
   , configured_(false)
   , run_marker_{false}
@@ -36,29 +36,30 @@ ReadoutElement::ReadoutElement(const std::string& name)
 void
 ReadoutElement::init(const data_t& /*args*/)
 {
-  readout_element_ = std::make_unique<ReadoutContext>(run_marker_);
+
 }
 
 void
-ReadoutElement::do_conf(const data_t& /*args*/)
+ReadoutElement::do_conf(const data_t& args)
 {
   queue_timeout_ms_ = std::chrono::milliseconds(1000);
   std::string rawtype("wib");
-  readout_element_->do_conf(rawtype, 10000);
+  readout_context_impl_ = ReadoutContextMaker(rawtype, run_marker_);
+  readout_context_impl_->conf(args);
 }
 
 void 
-ReadoutElement::do_start(const data_t& /*args*/)
+ReadoutElement::do_start(const data_t& args)
 {
   run_marker_.store(true);
-  readout_element_->start();
+  readout_context_impl_->start(args);
 }
 
 void 
-ReadoutElement::do_stop(const data_t& /*args*/)
+ReadoutElement::do_stop(const data_t& args)
 {
   run_marker_.store(false);
-  readout_element_->stop();
+  readout_context_impl_->stop(args);
 }
 
 }
