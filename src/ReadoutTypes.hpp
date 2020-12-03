@@ -11,12 +11,16 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include "nlohmann/json.hpp"
+
 #include <cstdint> // uint_t types
 #include <memory> // unique_ptr
 
 namespace dunedaq {
 namespace readout {
 namespace types {
+
+using cfg_data_t = nlohmann::json;
 
 /**
  * @brief A FULLMODE Elink is identified by the following: 
@@ -47,9 +51,13 @@ typedef std::unique_ptr<BlockPtrSource> UniqueBlockPtrSource;
 
 typedef dunedaq::appfwk::DAQSink<WIB_SUPERCHUNK_STRUCT> WIBFrameSink;
 typedef std::unique_ptr<WIBFrameSink> UniqueWIBFrameSink;
+using WIBFramePtrSink = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+using UniqueWIBFramePtrSink = std::unique_ptr<WIBFramePtrSink>;
 
 typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
 typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
+using WIBFramePtrSource = std::unique_ptr<appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>>;
+using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
 
 } // namespace types
 } // namespace readout
