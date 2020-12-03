@@ -19,7 +19,6 @@ set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat Folly::folly ${TBB} ${T
 # Main library
 daq_add_library(DefaultParserImpl.cpp
                 RequestHandler.cpp
-                ContinousLatencyBuffer.cpp
   LINK_LIBRARIES appfwk::appfwk ${FLXUTIL_DEPENDENCIES}
 )
 
