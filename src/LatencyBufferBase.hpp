@@ -5,21 +5,21 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_LATENCYBUFFERINTERFACE_HPP_
-#define UDAQ_READOUT_SRC_LATENCYBUFFERINTERFACE_HPP_
+#ifndef UDAQ_READOUT_SRC_LATENCYBUFFERBASE_HPP_
+#define UDAQ_READOUT_SRC_LATENCYBUFFERBASE_HPP_
 
 namespace dunedaq {
 namespace readout {
 
 class LatencyBufferBase {
 
-  public:
+public:
 
-private
-  :
+private:
+  
 };
 
 }
 } // namespace dunedaq::readout
 
-#endif // UDAQ_READOUT_SRC_LATENCYBUFFERINTERFACE_HPP_
+#endif // UDAQ_READOUT_SRC_LATENCYBUFFERBASE_HPP_

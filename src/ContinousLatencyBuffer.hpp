@@ -11,36 +11,33 @@
 #ifndef UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFER_HPP_
 #define UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFER_HPP_
 
+#include "ReadoutIssues.hpp"
 #include "LatencyBufferBase.hpp"
-#include "DefaultParserImpl.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
-
-#include <typeinfo>
 
 namespace dunedaq {
 namespace readout {
 
-template<class RawDataType>
+template<class RawType>
 class ContinousLatencyBuffer : public LatencyBufferBase,
-                               public folly::ProducerConsumerQueue<RawDataType> {
+                               public folly::ProducerConsumerQueue<RawType> {
 public:
-  ContinousLatencyBuffer(const size_t qsize)
-  : folly::ProducerConsumerQueue<RawDataType>(qsize)
+  ContinousLatencyBuffer(const size_t qsize, std::function<void(RawType&&)>& write_override)
+  : folly::ProducerConsumerQueue<RawType>(qsize)
+  , write_override_(write_override)
   {
-
-    // need to implement from POP from Source and push to Folly....
-    
-
     // Bind custom post process of data
-    //parser_impl_.post_process_chunk_func =
-    //  std::bind(&ContinousLatencyBuffer<RawDataType>::write_data_to_buffer, this, std::placeholders::_1);
+    write_override_ = std::bind(&ContinousLatencyBuffer<RawType>::write_data_to_buffer, this, std::placeholders::_1);
   }
 
-  // LatencyBuffer implements type conversion from felix chunk to RawType (store type)
-  //void write_data_to_buffer(const felix::packetformat::chunk& chunk);
+  // For the continous buffer, the data is moved into the Folly queue.
+  void write_data_to_buffer(RawType&& new_element) {
+    this->write( std::move(new_element) );
+  }
 
 private:
+  std::function<void(RawType&&)>& write_override_;
 
 };
 
