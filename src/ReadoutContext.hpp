@@ -1,6 +1,6 @@
 /**
-* @file ReadoutContext.hpp Glue between raw processor, latency buffer 
-* and request handler.
+* @file ReadoutContext.hpp Glue between data source, payload raw processor, 
+* latency buffer and request handler.
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
@@ -10,60 +10,72 @@
 #define UDAQ_READOUT_SRC_READOUTCONTEXT_HPP_
 
 #include "ReadoutIssues.hpp"
-#include "ReadoutContextMaker.hpp"
+#include "RawProcessorMaker.hpp"
+#include "LatencyBufferMaker.hpp"
 #include "ReusableThread.hpp"
 //#include "RequestHandler.hpp"
 
+#include <functional>
 
 namespace dunedaq {
 namespace readout {
 
-class ReadoutContext {
+template<class RawType>
+class ReadoutContext : public ReadoutContextBase {
 public:
 
-  explicit ReadoutContext(std::atomic<bool>& run_marker)
-  : run_marker_(run_marker)
-  //, parser_impl_()
-  //, producer_(parser_impl_)
-  { 
+  explicit ReadoutContext(const std::string& rawtype, std::atomic<bool>& run_marker)
+  : raw_type_name_(rawtype)
+  , run_marker_(run_marker)
+  , process_callback_(nullptr)
+  , write_callback_(nullptr)
+  {
+    ERS_INFO("ReadoutContext created for raw type: " << rawtype);
   }
 
-  ReadoutContext(const ReadoutContext&) 
-    = delete; ///< ReadoutContext is not copy-constructible
-  ReadoutContext& operator=(const ReadoutContext&) 
-    = delete; ///< ReadoutContext is not copy-assginable
-  ReadoutContext(ReadoutContext&&) 
-    = delete; ///< ReadoutContext is not move-constructible
-  ReadoutContext& operator=(ReadoutContext&&) 
-    = delete; ///< ReadoutContext is not move-assignable
-
-  void do_conf(const std::string& rawtype, int size=0) {
-    latency_buffer_impl_ = LatencyBufferBaseMaker(rawtype, size);
+  void conf(const nlohmann::json& cfg) {
+    raw_processor_impl_ = RawProcessorMaker<RawType>(raw_type_name_, process_callback_);
+    raw_processor_impl_->conf(cfg);
+    latency_buffer_impl_ = LatencyBufferMaker<RawType>(raw_type_name_, 100000, write_callback_);
     if(latency_buffer_impl_.get() == nullptr) {
       throw std::runtime_error("No Implementation available for raw type");
     }
   }
 
-  void start() {
+  void start(const nlohmann::json& args) {
+    while(run_marker_.load()) {
+      types::WIB_SUPERCHUNK_STRUCT payload;
+      ERS_INFO("Try processing...");
+      process_callback_( &payload );
+      ERS_INFO("Try writing...");
+      write_callback_( std::move(payload) );
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
+
+  void stop(const nlohmann::json& args) {
 
   }
 
-  void stop() {
-
-  }
 
 private:
+  std::string raw_type_name_;
   std::atomic<bool>& run_marker_;
 
-  // Producer: Mutabe parser operation and the producer itself
-  //DefaultParserImpl parser_impl_; // this can be exposed anywhere to add things to preproc pipeline.
-  //felix::packetformat::BlockParser<DefaultParserImpl> producer_;
+  // PRODUCER:
+  //ReusableThread producer_;
+  //std::function<void()> producer_;
 
-  // Latency buffer: Continous and lookup tables
+  // RAW PROCESSING:
+  std::unique_ptr<RawProcessorBase> raw_processor_impl_;
+  std::function<void(RawType*)> process_callback_;
+
+  // LATENCY BUFFER:
   std::unique_ptr<LatencyBufferBase> latency_buffer_impl_;
+  std::function<void(RawType&&)> write_callback_;
 
   // Consumers: Request handlers
-  //std::unique_ptr<RequestHandler> request_handler_;
+  //std::unique_ptr<RequestHandlerBase> request_handler_impl_;
 
 };
 

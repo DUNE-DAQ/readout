@@ -12,39 +12,21 @@
 
 #include "ReadoutTypes.hpp"
 #include "ReadoutIssues.hpp"
-#include "LatencyBufferBase.hpp"
-#include "ContinousLatencyBuffer.hpp"
-#include "DefaultParserImpl.hpp"
+#include "ReadoutContextBase.hpp"
+#include "ReadoutContext.hpp"
 
 namespace dunedaq {
 namespace readout {
 
-std::unique_ptr<LatencyBufferBase> 
-LatencyBufferBaseMaker(const std::string& rawtype, int qsize)
+std::unique_ptr<ReadoutContextBase> 
+ReadoutContextMaker(const std::string& rawtype, std::atomic<bool>& run_marker)
 {
   if (rawtype == "wib") {
-    return std::make_unique<ContinousLatencyBuffer<types::WIB_SUPERCHUNK_STRUCT>>(qsize);
+    return std::make_unique<ReadoutContext<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, run_marker);
   }
 
-  if (rawtype == "pd") {
-    //return std::make_unique<LookupTableLatencyBuffer<types::PD_STRUCT??>>(qsize);
-  }
-
-  if (rawtype == "byte") {
-    return std::make_unique<ContinousLatencyBuffer<std::vector<uint8_t>>>(qsize);
-  }
-
-  //ers::error()
-  return nullptr;      
+  return nullptr;
 }
-
-/*
-std::unique_ptr<RequestHandlerBase>
-RequestHandlerBaseMaker(const std::string& rawtype)
-{
-  //if 
-}
-*/
 
 }
 } // namespace dunedaq::readout
