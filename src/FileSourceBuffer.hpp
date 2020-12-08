@@ -69,7 +69,7 @@ public:
     return std::ref(element_count_);
   }
 
-  const std::vector<std::uint8_t>& get() {
+  std::vector<std::uint8_t>& get() {
     return std::ref(input_buffer_);
   }
 
