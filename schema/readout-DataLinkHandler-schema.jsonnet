@@ -8,11 +8,11 @@
 local moo = import "moo.jsonnet";
 
 // A schema builder in the given path (namespace)
-local ns = "dunedaq.readout.readoutelement";
+local ns = "dunedaq.readout.datalinkhandler";
 local s = moo.oschema.schema(ns);
 
 // Object structure used by the test/fake producer module
-local readoutelement = {
+local datalinkhandler = {
     size: s.number("Size", "u8",
                    doc="A count of very many things"),
 
@@ -29,5 +29,5 @@ local readoutelement = {
 
 };
 
-moo.oschema.sort_select(readoutelement, ns)
+moo.oschema.sort_select(datalinkhandler, ns)
 

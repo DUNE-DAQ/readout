@@ -27,7 +27,7 @@ daq_add_library(DefaultParserImpl.cpp
 # Plugins
 daq_add_plugin(FelixCardReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout ${FLXCARD_DEPENDENCIES})
 daq_add_plugin(FakeCardReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(ReadoutElement duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(DataLinkHandler duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests
@@ -36,7 +36,7 @@ daq_add_application(readout_test_ratelimiter test_ratelimiter_app.cxx TEST LINK_
 ##############################################################################
 # Test configurations
 file(COPY test/felix_readout_card0_app.json DESTINATION test)
-file(COPY schema/fakereadout-commands.json DESTINATION test)
+file(COPY test/fakereadout-commands.json DESTINATION test)
 
 ##############################################################################
 # Installation

@@ -1,5 +1,5 @@
 /**
- * @file ReadoutElement.cpp ReadoutElement class implementation
+ * @file DataLinkHandler.cpp DataLinkHandler class implementation
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -7,7 +7,7 @@
 */
 #include "readout/readoutelement/Nljs.hpp"
 
-#include "ReadoutElement.hpp"
+#include "DataLinkHandler.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
 
@@ -20,29 +20,29 @@
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
-#define TRACE_NAME "ReadoutElement" // NOLINT
+#define TRACE_NAME "DataLinkHandler" // NOLINT
 
 namespace dunedaq {
 namespace readout { 
 
-ReadoutElement::ReadoutElement(const std::string& name)
+DataLinkHandler::DataLinkHandler(const std::string& name)
   : DAQModule(name)
   , configured_(false)
   , queue_timeout_ms_(2000)
-  , worker_thread_(std::bind(&ReadoutElement::do_work, this, std::placeholders::_1))
+  , worker_thread_(std::bind(&DataLinkHandler::do_work, this, std::placeholders::_1))
   , input_queue_(nullptr)
   , readout_context_impl_(nullptr)
   , run_marker_{false}
   , packet_count_{0}
   , stats_thread_(0)
 {
-  register_command("conf", &ReadoutElement::do_conf);
-  register_command("start", &ReadoutElement::do_start);
-  register_command("stop", &ReadoutElement::do_stop);
+  register_command("conf", &DataLinkHandler::do_conf);
+  register_command("start", &DataLinkHandler::do_start);
+  register_command("stop", &DataLinkHandler::do_stop);
 }
 
 void
-ReadoutElement::init(const data_t& args)
+DataLinkHandler::init(const data_t& args)
 {
   auto ini = args.get<appfwk::cmd::ModInit>();
   for (const auto& qi : ini.qinfos) {
@@ -60,7 +60,7 @@ ReadoutElement::init(const data_t& args)
 }
 
 void
-ReadoutElement::do_conf(const data_t& args)
+DataLinkHandler::do_conf(const data_t& args)
 {
   queue_timeout_ms_ = std::chrono::milliseconds(2000);
   std::string rawtype("wib");
@@ -70,16 +70,16 @@ ReadoutElement::do_conf(const data_t& args)
 }
 
 void 
-ReadoutElement::do_start(const data_t& args)
+DataLinkHandler::do_start(const data_t& args)
 {
   run_marker_.store(true);
-  stats_thread_.set_work(&ReadoutElement::run_stats, this);
+  stats_thread_.set_work(&DataLinkHandler::run_stats, this);
   readout_context_impl_->start(args);
   worker_thread_.start_working_thread();
 }
 
 void 
-ReadoutElement::do_stop(const data_t& args)
+DataLinkHandler::do_stop(const data_t& args)
 {
   run_marker_.store(false);
   readout_context_impl_->stop(args);
@@ -90,7 +90,7 @@ ReadoutElement::do_stop(const data_t& args)
 }
 
 void
-ReadoutElement::do_work(std::atomic<bool>& working_flag)
+DataLinkHandler::do_work(std::atomic<bool>& working_flag)
 {
   while (working_flag.load()) {
     std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr;
@@ -106,7 +106,7 @@ ReadoutElement::do_work(std::atomic<bool>& working_flag)
 }
 
 void
-ReadoutElement::run_stats()
+DataLinkHandler::run_stats()
 {
   // Temporarily, for debugging, a rate checker thread...
   int new_packets = 0;
@@ -124,4 +124,4 @@ ReadoutElement::run_stats()
 }
 } // namespace dunedaq::readout
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::ReadoutElement)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::DataLinkHandler)

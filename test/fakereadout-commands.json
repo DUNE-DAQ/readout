@@ -25,8 +25,8 @@
                             }
                         ]
                     },
-                    "inst": "fake-readout",
-                    "plugin": "ReadoutElement"
+                    "inst": "fake-handler",
+                    "plugin": "DataLinkHandler"
                 }
             ],
             "queues": [
@@ -57,7 +57,7 @@
                     "data": {
                       "raw_type": "wib"
                     },
-                    "match": "fake-readout"
+                    "match": "fake-handler"
                 }
             ]
         },
@@ -76,7 +76,7 @@
                     "data": {
                       "run": 42
                     },
-                    "match": "fake-readout"
+                    "match": "fake-handler"
                 }
             ]
         },
