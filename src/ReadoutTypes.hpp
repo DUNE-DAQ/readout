@@ -56,7 +56,7 @@ using UniqueWIBFramePtrSink = std::unique_ptr<WIBFramePtrSink>;
 
 typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
 typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
-using WIBFramePtrSource = std::unique_ptr<appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>>;
+using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
 using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
 
 } // namespace types
