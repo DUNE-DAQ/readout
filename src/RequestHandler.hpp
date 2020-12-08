@@ -13,7 +13,7 @@
 
 #include "ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
-#include "ContinousLatencyBuffer.hpp"
+#include "ContinousLatencyBufferModel.hpp"
 #include "DefaultParserImpl.hpp"
 
 #include <tbb/concurrent_queue.h>
@@ -32,7 +32,7 @@ class RequestHandlerBase {
 
 class RequestHandler { // : appfwk::RequestReceiver ??
 public:
-  explicit RequestHandler(std::unique_ptr<ContinousLatencyBuffer<types::WIB_SUPERCHUNK_STRUCT>>& lbuffer,
+  explicit RequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& lbuffer,
                           std::atomic<bool>& marker)
   : pop_limit_pct_(0.0f)
   , pop_size_pct_(0.0f)
@@ -80,7 +80,7 @@ private:
   DefaultParserImpl parser_impl_;
 
   // Latency buffer to work on
-  std::unique_ptr<ContinousLatencyBuffer<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer_;
+  std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer_;
 
   // Internals
   typedef tbb::concurrent_queue<std::future<void>> RequestQueue;
