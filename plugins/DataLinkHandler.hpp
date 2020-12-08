@@ -17,7 +17,7 @@
 
 #include "ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
-#include "ReadoutContextMaker.hpp"
+#include "CreateReadout.hpp"
 
 #include <string>
 #include <chrono>
@@ -67,7 +67,7 @@ private:
   std::unique_ptr<source_t> input_queue_;
 
   // Internal
-  std::unique_ptr<ReadoutContext<types::WIB_SUPERCHUNK_STRUCT>> readout_context_impl_;
+  std::unique_ptr<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>> readout_model_;
 
   // Threading
   std::atomic<bool> run_marker_;

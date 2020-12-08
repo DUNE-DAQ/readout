@@ -31,7 +31,7 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
   , queue_timeout_ms_(2000)
   , worker_thread_(std::bind(&DataLinkHandler::do_work, this, std::placeholders::_1))
   , input_queue_(nullptr)
-  , readout_context_impl_(nullptr)
+  , readout_model_(nullptr)
   , run_marker_{false}
   , packet_count_{0}
   , stats_thread_(0)
@@ -64,9 +64,8 @@ DataLinkHandler::do_conf(const data_t& args)
 {
   queue_timeout_ms_ = std::chrono::milliseconds(2000);
   std::string rawtype("wib");
-  //readout_context_impl_ = ReadoutContextMaker(rawtype, run_marker_);
-  readout_context_impl_ = std::make_unique<ReadoutContext<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, run_marker_);
-  readout_context_impl_->conf(args);
+  readout_model_ = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, run_marker_);
+  readout_model_->conf(args);
 }
 
 void 
@@ -74,7 +73,7 @@ DataLinkHandler::do_start(const data_t& args)
 {
   run_marker_.store(true);
   stats_thread_.set_work(&DataLinkHandler::run_stats, this);
-  readout_context_impl_->start(args);
+  readout_model_->start(args);
   worker_thread_.start_working_thread();
 }
 
@@ -82,7 +81,7 @@ void
 DataLinkHandler::do_stop(const data_t& args)
 {
   run_marker_.store(false);
-  readout_context_impl_->stop(args);
+  readout_model_->stop(args);
   worker_thread_.stop_working_thread();
   while (!stats_thread_.get_readiness()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));          
@@ -100,7 +99,7 @@ DataLinkHandler::do_work(std::atomic<bool>& working_flag)
     catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
       std::runtime_error("Queue Source timed out...");
     }
-    readout_context_impl_->handle(std::move(payload_ptr));
+    readout_model_->handle(std::move(payload_ptr));
     ++packet_count_;
   }
 }
