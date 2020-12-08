@@ -1,5 +1,5 @@
 /**
- * @file FakeElinkReader.hpp FELIX FULLMODE WIB Fake Link
+ * @file FakeCardReader.hpp FELIX FULLMODE Fake Links
  * Generates user payloads at a given rate, from WIB to FELIX binary captures
  * This implementation is purely software based, no FELIX card and tools
  * are needed to use this module.
@@ -10,10 +10,10 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FAKEELINKREADER_HPP_
-#define UDAQ_READOUT_SRC_FAKEELINKREADER_HPP_
+#ifndef UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
+#define UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
 
-#include "readout/fakeelinkreader/Structs.hpp"
+#include "readout/fakecardreader/Structs.hpp"
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
@@ -35,23 +35,23 @@
 namespace dunedaq {
 namespace readout {
 
-class FakeElinkReader : public dunedaq::appfwk::DAQModule
+class FakeCardReader : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-  * @brief FakeElinkReader Constructor
-  * @param name Instance name for this FakeElinkReader instance
+  * @brief FakeCardReader Constructor
+  * @param name Instance name for this FakeCardReader instance
   */
-  explicit FakeElinkReader(const std::string& name);
+  explicit FakeCardReader(const std::string& name);
 
-  FakeElinkReader(const FakeElinkReader&) =
-    delete; ///< FakeElinkReader is not copy-constructible
-  FakeElinkReader& operator=(const FakeElinkReader&) =
-    delete; ///< FakeElinkReader is not copy-assignable
-  FakeElinkReader(FakeElinkReader&&) =
-    delete; ///< FakeElinkReader is not move-constructible
-  FakeElinkReader& operator=(FakeElinkReader&&) =
-    delete; ///< FakeElinkReader is not move-assignable
+  FakeCardReader(const FakeCardReader&) =
+    delete; ///< FakeCardReader is not copy-constructible
+  FakeCardReader& operator=(const FakeCardReader&) =
+    delete; ///< FakeCardReader is not copy-assignable
+  FakeCardReader(FakeCardReader&&) =
+    delete; ///< FakeCardReader is not move-constructible
+  FakeCardReader& operator=(FakeCardReader&&) =
+    delete; ///< FakeCardReader is not move-assignable
 
   void init(const data_t&) override;
 
@@ -63,7 +63,7 @@ private:
 
   // Configuration
   bool configured_;
-  using module_conf_t = fakeelinkreader::Conf;
+  using module_conf_t = fakecardreader::Conf;
   module_conf_t cfg_;
 
   // appfwk Queues
@@ -92,4 +92,4 @@ private:
 } // namespace dunedaq::readout
 }
 
-#endif // UDAQ_READOUT_SRC_FAKEELINKREADER_HPP_
+#endif // UDAQ_READOUT_SRC_FAKECARDREADER_HPP_

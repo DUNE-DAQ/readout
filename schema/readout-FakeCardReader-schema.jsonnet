@@ -8,11 +8,11 @@
 local moo = import "moo.jsonnet";
 
 // A schema builder in the given path (namespace)
-local ns = "dunedaq.readout.fakeelinkreader";
+local ns = "dunedaq.readout.fakecardreader";
 local s = moo.oschema.schema(ns);
 
 // Object structure used by the test/fake producer module
-local fakeelinkreader = {
+local fakecardreader = {
     size  : s.number("Size", "u8",
                      doc="A count of very many things"),
 
@@ -45,4 +45,4 @@ local fakeelinkreader = {
 
 };
 
-moo.oschema.sort_select(fakeelinkreader, ns)
+moo.oschema.sort_select(fakecardreader, ns)

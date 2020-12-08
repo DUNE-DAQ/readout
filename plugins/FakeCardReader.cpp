@@ -1,17 +1,18 @@
 /**
- * @file FakeElinkReader.cpp FakeElinkReader class implementation
+ * @file FakeCardReader.cpp FakeCardReader class implementation
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
 
-#include "readout/fakeelinkreader/Nljs.hpp"
+#include "readout/fakecardreader/Nljs.hpp"
 
-#include "FakeElinkReader.hpp"
+#include "FakeCardReader.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
+#include "daq-rawdata/wib/WIBFrame.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -25,36 +26,37 @@
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
-#define TRACE_NAME "FakeElinkReader" // NOLINT
+#define TRACE_NAME "FakeCardReader" // NOLINT
 
 namespace dunedaq {
 namespace readout { 
 
-FakeElinkReader::FakeElinkReader(const std::string& name)
+FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
   , output_queue_(nullptr)
   , rate_limiter_(nullptr)
-  , worker_thread_(std::bind(&FakeElinkReader::do_work, this, std::placeholders::_1))
+  , worker_thread_(std::bind(&FakeCardReader::do_work, this, std::placeholders::_1))
   , run_marker_{false}
   , packet_count_{0}
   , stats_thread_(0)
 {
-  register_command("conf", &FakeElinkReader::do_conf);
-  register_command("start", &FakeElinkReader::do_start);
-  register_command("stop", &FakeElinkReader::do_stop);
+  register_command("conf", &FakeCardReader::do_conf);
+  register_command("start", &FakeCardReader::do_start);
+  register_command("stop", &FakeCardReader::do_stop);
 }
 
 void
-FakeElinkReader::init(const data_t& args)
+FakeCardReader::init(const data_t& args)
 {
-  ERS_INFO("Resetting queue fakelink-out");
+
   auto ini = args.get<appfwk::cmd::ModInit>();
   for (const auto& qi : ini.qinfos) {
     if (qi.dir != "output") {
       continue;
     }
     try {
+      ERS_INFO("Resetting queue: " << qi.inst);
       output_queue_.reset(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
     }
     catch (const ers::Issue& excpt) {
@@ -64,12 +66,12 @@ FakeElinkReader::init(const data_t& args)
 }
 
 void 
-FakeElinkReader::do_conf(const data_t& args)
+FakeCardReader::do_conf(const data_t& args)
 {
   if (configured_) {
     ers::error(ConfigurationError(ERS_HERE, "This module is already configured!"));
   } else {
-    cfg_ = args.get<fakeelinkreader::Conf>();
+    cfg_ = args.get<fakecardreader::Conf>();
 
     // Read input
     source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
@@ -84,15 +86,15 @@ FakeElinkReader::do_conf(const data_t& args)
 }
 
 void 
-FakeElinkReader::do_start(const data_t& /*args*/)
+FakeCardReader::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
-  stats_thread_.set_work(&FakeElinkReader::run_stats, this);
+  stats_thread_.set_work(&FakeCardReader::run_stats, this);
   worker_thread_.start_working_thread();
 }
 
 void 
-FakeElinkReader::do_stop(const data_t& /*args*/)
+FakeCardReader::do_stop(const data_t& /*args*/)
 {
   run_marker_.store(false);
   worker_thread_.stop_working_thread();
@@ -102,12 +104,18 @@ FakeElinkReader::do_stop(const data_t& /*args*/)
 }
 
 void 
-FakeElinkReader::do_work(std::atomic<bool>& running_flag)
+FakeCardReader::do_work(std::atomic<bool>& running_flag)
 {
   // Init ratelimiter, element offset and source buffer ref
   rate_limiter_->init();
   int offset = 0;
-  const auto& source = source_buffer_->get();
+  auto& source = source_buffer_->get();
+
+  // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
+  unsigned num_frames = source_buffer_->num_elements() * 12;
+  uint64_t ts_0 = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(source.data())->wib_header()->timestamp();
+  ERS_INFO("First timestamp in the source file: " << ts_0);
+  uint64_t ts_next = ts_0;
 
   // Run until stop marker
   while (running_flag.load()) {
@@ -121,6 +129,15 @@ FakeElinkReader::do_work(std::atomic<bool>& running_flag)
     std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
     // Memcpy from file buffer to flat char array
     ::memcpy(&payload_ptr->data, source.data()+offset*constant::WIB_SUPERCHUNK_SIZE, constant::WIB_SUPERCHUNK_SIZE);
+
+    // fake the timestamp
+    for (unsigned int i=0; i<12; ++i) {
+      auto* wf = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
+      auto* wfh = const_cast<dunedaq::rawdata::WIBHeader*>(wf->wib_header()); 
+      wfh->set_timestamp(ts_next);
+      ts_next += 25;
+    }
+
     // queue in to actual DAQSink
     try {
       output_queue_->push(std::move(payload_ptr), queue_timeout_ms_);
@@ -134,7 +151,7 @@ FakeElinkReader::do_work(std::atomic<bool>& running_flag)
 }
 
 void
-FakeElinkReader::run_stats()
+FakeCardReader::run_stats()
 {
   // Temporarily, for debugging, a rate checker thread...
   int new_packets = 0;
@@ -152,4 +169,4 @@ FakeElinkReader::run_stats()
 }
 } // namespace dunedaq::readout
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FakeElinkReader)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FakeCardReader)

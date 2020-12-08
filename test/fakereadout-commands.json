@@ -13,7 +13,7 @@
                         ]
                     },
                     "inst": "fake-source",
-                    "plugin": "FakeElinkReader"
+                    "plugin": "FakeCardReader"
                 },
                 {
                     "data": {
@@ -31,7 +31,7 @@
             ],
             "queues": [
                 {
-                    "capacity": 600000,
+                    "capacity": 100000,
                     "inst": "fakelink-0",
                     "kind": "FollySPSCQueue"
                 }
@@ -68,9 +68,15 @@
             "modules": [
                 {
                     "data": {
-                        "run": 42
+                      "run": 42                      
                     },
-                    "match": ""
+                    "match": "fake-source"
+                },
+                {
+                    "data": {
+                      "run": 42
+                    },
+                    "match": "fake-readout"
                 }
             ]
         },
