@@ -19,10 +19,10 @@ namespace time {
  * */
 typedef std::uint64_t timestamp_t;
 
-static const timestamp_t ns = 1;
-static const timestamp_t us = 1000 * ns;
-static const timestamp_t ms = 1000 * us;
-static const timestamp_t s = 1000 * ms;
+static constexpr timestamp_t ns = 1;
+static constexpr timestamp_t us = 1000 * ns;
+static constexpr timestamp_t ms = 1000 * us;
+static constexpr timestamp_t s = 1000 * ms;
 
 } // namespace time
 } // namespace readout
