@@ -6,6 +6,7 @@ find_package(daq-cmake REQUIRED)
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
+find_package(daq-rawdata REQUIRED)
 find_package(udaq_readout_deps REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
@@ -13,7 +14,7 @@ find_package(TBB REQUIRED)
 ##############################################################################
 # Dependency sets
 set(FLXCARD_DEPENDENCIES udaq_readout_deps::FlxCard udaq_readout_deps::cmem_rcc)
-set(FLXUTIL_DEPENDENCIES udaq_readout_deps::packetformat Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS})
+set(FLXUTIL_DEPENDENCIES daq-rawdata udaq_readout_deps::packetformat Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS})
 
 ##############################################################################
 # Main library
@@ -25,8 +26,7 @@ daq_add_library(DefaultParserImpl.cpp
 ##############################################################################
 # Plugins
 daq_add_plugin(FelixCardReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout ${FLXCARD_DEPENDENCIES})
-daq_add_plugin(FakeElinkReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(ElinkReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(FakeCardReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(ReadoutElement duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
