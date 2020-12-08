@@ -9,65 +9,56 @@
 #ifndef UDAQ_READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
 #define UDAQ_READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
 
-#include "GraphRawProcessor.hpp"
+#include "TaskRawDataProcessorModel.hpp"
+#include "ReadoutStatistics.hpp"
+#include "Time.hpp"
+
+#include "daq-rawdata/wib/WIBFrame.hpp"
 
 #include <functional>
+#include <atomic>
 
 #include "tbb/flow_graph.h"
 
 namespace dunedaq {
 namespace readout {
 
-class WIBFrameProcessor : public GraphRawProcessor<types::WIB_SUPERCHUNK_STRUCT> {
+class WIBFrameProcessor : public TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT> {
 
 public:
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
+  using wibframeptr = dunedaq::rawdata::WIBFrame*;
   using funcnode_t = tbb::flow::function_node<frameptr, frameptr>;
 
   explicit WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
-  : GraphRawProcessor<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
+  : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
   {
-    ERS_INFO("Creating WIB specific GraphRawProcessor workflow.");
+    //add_task(this->timestamp_check);
 
-    // We need to alter parallel tasks
-    parallel_task_nodes_.emplace_back(funcnode_t(task_graph_, tbb::flow::unlimited, ptask1()));
-    tbb::flow::make_edge(parallel_task_nodes_.back(), tbb::flow::get<0>( join_node_.input_ports() ));
-    parallel_task_nodes_.emplace_back(funcnode_t(task_graph_, tbb::flow::unlimited, ptask2()));
-    tbb::flow::make_edge(parallel_task_nodes_.back(), tbb::flow::get<1>( join_node_.input_ports() ));
+    tasklist_.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
+  } 
 
-    // And edit the pipeline
-    pipeline_task_nodes_.emplace_back(funcnode_t(task_graph_, tbb::flow::unlimited, pipeline1()));
-    pipeline_task_nodes_.emplace_back(funcnode_t(task_graph_, tbb::flow::unlimited, pipeline2()));
+protected:
+  
+  time::timestamp_t previous_ts_ = 0;
+  time::timestamp_t current_ts_ = 0;
+  bool first_ts_missmatch_ = true;
+  stats::counter_t ts_error_ctr_{0};
+
+  void timestamp_check(frameptr fp) {
+    auto* wfptr = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(fp);
+    current_ts_ = wfptr->timestamp();
+    if (current_ts_ - previous_ts_ != 300) {
+      ++ts_error_ctr_;
+      if (first_ts_missmatch_) {
+        wfptr->wib_header()->print();
+        std::cout << "First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_ << '\n';
+        first_ts_missmatch_ = false;
+      }
+      std::cout << "SCREAM | previous: " << previous_ts_ << " next: " << current_ts_ << '\n';
+    }
+    previous_ts_ = current_ts_;
   }
-
-  // task1
-  struct ptask1 {
-    frameptr operator()(frameptr fp) { 
-      std::cout << "Task1 run on: " << std::hex << static_cast<void*>(fp) << std::dec << '\n';
-      return fp;
-    }
-  };
-
-  struct ptask2 {
-    frameptr operator()(frameptr fp) { 
-      std::cout << "Task2 run on: " << std::hex << static_cast<void*>(fp) << std::dec << '\n';
-      return fp;
-    }
-  };
-
-  struct pipeline1 {
-    frameptr operator()(frameptr fp) { 
-      std::cout << "Pipeline1 run on: " << std::hex << static_cast<void*>(fp) << std::dec << '\n';
-      return fp;
-    }
-  };
-
-  struct pipeline2 {
-    frameptr operator()(frameptr fp) { 
-      std::cout << "Pipeline2 run on: " << std::hex << static_cast<void*>(fp) << std::dec << '\n';
-      return fp;
-    }
-  };
 
 private:
 
