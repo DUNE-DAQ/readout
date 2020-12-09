@@ -58,7 +58,7 @@ private:
 
   // Configuration
   bool configured_;
-  using module_conf_t = readoutelement::Conf;
+  using module_conf_t = datalinkhandler::Conf;
   module_conf_t cfg_;
 
   // appfwk Queues

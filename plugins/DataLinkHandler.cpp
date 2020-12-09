@@ -5,7 +5,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#include "readout/readoutelement/Nljs.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 
 #include "DataLinkHandler.hpp"
 
