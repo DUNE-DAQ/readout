@@ -15,17 +15,24 @@
 namespace dunedaq {
 
     ERS_DECLARE_ISSUE(readout, FelixError,
-                      "FELIX Error: " << flxerror,
+                      " FELIX Error: " << flxerror,
                       ((std::string)flxerror))
 
     ERS_DECLARE_ISSUE(readout, ConfigurationError,
-                      "Readout Configuration Error: " << conferror,
+                      " Readout Configuration Error: " << conferror,
                       ((std::string)conferror)) 
+
+    ERS_DECLARE_ISSUE_BASE(readout,
+                           NoImplementationAvailableError,
+                           readout::ConfigurationError,
+                           " No " << impl << " implementation available for raw type: " << rawt << ' ',
+                           ((std::string)impl),
+                           ((std::string)rawt))
 
     ERS_DECLARE_ISSUE_BASE(readout,
                            ResourceQueueError,
                            readout::ConfigurationError,
-                           "The " << queueType << " queue was not successfully created.",
+                           " The " << queueType << " queue was not successfully created. ",
                            ((std::string)name),
                            ((std::string)queueType))
 
