@@ -18,13 +18,9 @@ namespace dunedaq {
 namespace readout {
 
 std::unique_ptr<ReadoutConcept> 
-createReadout(const std::string& rawtype, std::atomic<bool>& run_marker)
+createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 {
-  if (rawtype == "wib") {
-    return std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, run_marker);
-  }
-
-  return nullptr;
+  return std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>>(args, run_marker);
 }
 
 }

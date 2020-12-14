@@ -23,6 +23,8 @@ createRawDataProcessor(const std::string& rawtype, std::function<void(RawType*)>
   if (rawtype == "wib") {
     return std::make_unique<WIBFrameProcessor>(rawtype, process_function);
   }
+
+  return nullptr;
 }
 
 }
