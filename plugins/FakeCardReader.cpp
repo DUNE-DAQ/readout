@@ -104,7 +104,7 @@ FakeCardReader::do_stop(const data_t& /*args*/)
 }
 
 void 
-FakeCardReader::do_work(std::atomic<bool>& running_flag)
+FakeCardReader::do_work(std::atomic<bool>& running_flag) 
 {
   // Init ratelimiter, element offset and source buffer ref
   rate_limiter_->init();
@@ -112,7 +112,8 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
   auto& source = source_buffer_->get();
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
-  unsigned num_frames = source_buffer_->num_elements() * 12;
+  unsigned num_elem = source_buffer_->num_elements();
+  unsigned num_frames = num_elem * 12;
   uint64_t ts_0 = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(source.data())->wib_header()->timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0);
   uint64_t ts_next = ts_0;
@@ -120,15 +121,13 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
   // Run until stop marker
   while (running_flag.load()) {
     // Which element to push to the buffer
-    if (offset == source_buffer_->num_elements()) {
+    if (offset == num_elem) {
       offset = 0;
-    } else {
-      offset++;
-    }
+    } 
     // Create next superchunk
     std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
     // Memcpy from file buffer to flat char array
-    ::memcpy(&payload_ptr->data, source.data()+offset*constant::WIB_SUPERCHUNK_SIZE, constant::WIB_SUPERCHUNK_SIZE);
+    ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::WIB_SUPERCHUNK_SIZE), constant::WIB_SUPERCHUNK_SIZE);
 
     // fake the timestamp
     for (unsigned int i=0; i<12; ++i) {
@@ -145,6 +144,7 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
       std::runtime_error("Queue timed out...");
     }
     // Count packet and limit rate if needed.
+    ++offset;
     ++packet_count_;
     rate_limiter_->limit();
   }
