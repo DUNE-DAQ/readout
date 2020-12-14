@@ -25,6 +25,8 @@ local datalinkhandler = {
     conf: s.record("Conf", [
         s.field("raw_type", self.str, "wib",
                 doc="Raw type"),
+        s.field("source_queue_timeout_ms", self.count, 2000,
+                doc="Timeout for source queue"),
     ], doc="Generic readout element configuration"),
 
 };

@@ -4,8 +4,9 @@
     queue: "input",
 
     // Make a conf object for FDP
-    conf(rtype) :: {
-        raw_type: rtype
+    conf(rtype, sqtms) :: {
+        raw_type: rtype,
+        source_queue_timeout_ms: sqtms
     },
 }
 
