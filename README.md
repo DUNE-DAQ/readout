@@ -18,6 +18,12 @@ And add the `udaq_readout_deps` package to your `dune_products` set:
 
 ## Examples
 
-Then after building, one can run the application like:
+After succesfully building the package, from another terminal go to your `workarea` directory and set up the runtime environment:
 
-    daq_application --commandFacility rest://localhost:12345
+    setup_runtime_environment
+    
+After that, launch a readout emaulation via:
+
+    daq_application -c stdin://sourcecode/readout/test/fakereadout-commands.json
+    
+Then start typing commands as follows:
