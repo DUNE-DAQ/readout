@@ -11,6 +11,7 @@
 
 #include "TaskRawDataProcessorModel.hpp"
 #include "ReadoutStatistics.hpp"
+#include "ReadoutIssues.hpp"
 #include "Time.hpp"
 
 #include "daq-rawdata/wib/WIBFrame.hpp"
@@ -33,8 +34,6 @@ public:
   explicit WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
   : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
   {
-    //add_task(this->timestamp_check);
-
     tasklist_.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
   } 
 
@@ -52,10 +51,10 @@ protected:
       ++ts_error_ctr_;
       if (first_ts_missmatch_) {
         wfptr->wib_header()->print();
-        std::cout << "First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_ << '\n';
+        ERS_INFO("First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_);
         first_ts_missmatch_ = false;
       }
-      std::cout << "SCREAM | previous: " << previous_ts_ << " next: " << current_ts_ << '\n';
+      ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
     }
     previous_ts_ = current_ts_;
   }
