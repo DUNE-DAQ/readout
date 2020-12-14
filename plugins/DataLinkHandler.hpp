@@ -12,11 +12,7 @@
 #include "readout/datalinkhandler/Structs.hpp"
 
 #include "appfwk/DAQModule.hpp"
-#include "appfwk/DAQSource.hpp"
-#include "appfwk/ThreadHelper.hpp"
 
-#include "ReadoutTypes.hpp"
-#include "ReadoutStatistics.hpp"
 #include "CreateReadout.hpp"
 
 #include <string>
@@ -52,31 +48,16 @@ private:
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
 
-  // Threading
-  dunedaq::appfwk::ThreadHelper worker_thread_;
-  void do_work(std::atomic<bool>& run_marker);
-
   // Configuration
   bool configured_;
   using module_conf_t = datalinkhandler::Conf;
   module_conf_t cfg_;
-
-  // appfwk Queues
-  //std::chrono::milliseconds queue_timeout_ms_;
-  //using source_t = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
-  //std::unique_ptr<source_t> input_queue_;
 
   // Internal
   std::unique_ptr<ReadoutConcept> readout_impl_;
 
   // Threading
   std::atomic<bool> run_marker_;
-
-  // Stats
-  //stats::counter_t packet_count_;
-  //ReusableThread stats_thread_;
-  //void run_stats();
-
 };
 
 } // namespace dunedaq::readout
