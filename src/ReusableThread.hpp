@@ -62,6 +62,7 @@ public:
 
   // Set name for pthread handle
   void set_name(const std::string& name, int tid) {
+    set_thread_id(tid);
     char tname[16];
     snprintf(tname, 16, "%s-%d", name.c_str(), tid); // NOLINT 
     auto handle = thread_.native_handle();
