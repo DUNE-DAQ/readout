@@ -9,6 +9,7 @@
 #define UDAQ_READOUT_SRC_TIME_HPP_
 
 #include <cstdint> // uint64_t
+#include <chrono>
 
 namespace dunedaq {
 namespace readout {
@@ -23,6 +24,13 @@ static constexpr timestamp_t ns = 1;
 static constexpr timestamp_t us = 1000 * ns;
 static constexpr timestamp_t ms = 1000 * us;
 static constexpr timestamp_t s = 1000 * ms;
+
+template<typename ChronoType>
+inline int64_t now_as() { // NOLINT
+  auto now = std::chrono::system_clock::now();
+  auto duration = now.time_since_epoch();
+  return std::chrono::duration_cast<ChronoType>(duration).count();
+}
 
 } // namespace time
 } // namespace readout

@@ -1,6 +1,7 @@
 // From Module
 #include "RequestHandler.hpp"
 #include "ReadoutIssues.hpp"
+#include "Time.hpp"
 
 #include <ers/ers.h>
 
@@ -62,6 +63,7 @@ RequestHandler::issue_request(/*appfwk::Request ?*/)
 void
 RequestHandler::auto_pop() 
 {
+  auto now_s = time::now_as<std::chrono::seconds>();
   auto size_guess = latency_buffer_->sizeGuess();
   if (size_guess > pop_limit_size_) {
     auto to_pop = pop_size_pct_ * latency_buffer_->sizeGuess();
