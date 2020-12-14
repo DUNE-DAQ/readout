@@ -24,9 +24,11 @@ public:
   ReadoutConcept& operator=(ReadoutConcept&&)
     = delete; ///< ReadoutConcept is not move-assignable
 
-  virtual void conf(const nlohmann::json& cfg) = 0;
+  virtual void conf(const nlohmann::json& args) = 0;
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
+
+  virtual void consume() = 0;
 
 private:
 
