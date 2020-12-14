@@ -58,24 +58,24 @@ private:
 
   // Configuration
   bool configured_;
-  using module_conf_t = readoutelement::Conf;
+  using module_conf_t = datalinkhandler::Conf;
   module_conf_t cfg_;
 
   // appfwk Queues
-  std::chrono::milliseconds queue_timeout_ms_;
-  using source_t = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
-  std::unique_ptr<source_t> input_queue_;
+  //std::chrono::milliseconds queue_timeout_ms_;
+  //using source_t = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+  //std::unique_ptr<source_t> input_queue_;
 
   // Internal
-  std::unique_ptr<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>> readout_model_;
+  std::unique_ptr<ReadoutConcept> readout_impl_;
 
   // Threading
   std::atomic<bool> run_marker_;
 
   // Stats
-  stats::counter_t packet_count_;
-  ReusableThread stats_thread_;
-  void run_stats();
+  //stats::counter_t packet_count_;
+  //ReusableThread stats_thread_;
+  //void run_stats();
 
 };
 
