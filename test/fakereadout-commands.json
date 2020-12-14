@@ -56,7 +56,8 @@
                 {
                     "data": {
                       "raw_type": "wib",
-                      "source_queue_timeout_ms": 2000
+                      "source_queue_timeout_ms": 2000,
+                      "latency_buffer_size": 100000
                     },
                     "match": "fake-handler"
                 }

@@ -4,9 +4,10 @@
     queue: "input",
 
     // Make a conf object for FDP
-    conf(rtype, sqtms) :: {
+    conf(rtype, sqtms, lbs) :: {
         raw_type: rtype,
-        source_queue_timeout_ms: sqtms
+        source_queue_timeout_ms: sqtms,
+        latency_buffer_size: lbs
     },
 }
 

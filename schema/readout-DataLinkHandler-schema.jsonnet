@@ -27,6 +27,8 @@ local datalinkhandler = {
                 doc="Raw type"),
         s.field("source_queue_timeout_ms", self.count, 2000,
                 doc="Timeout for source queue"),
+        s.field("latency_buffer_size", self.size, 100000,
+                doc="Size of latency buffer"),
     ], doc="Generic readout element configuration"),
 
 };

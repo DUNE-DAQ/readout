@@ -38,7 +38,10 @@ public:
   , source_queue_timeout_ms_(0)
   , run_marker_(run_marker)
   , raw_data_source_(nullptr)
+  , raw_processor_impl_(nullptr)
   , process_callback_(nullptr)
+  , latency_buffer_size_(0)
+  , latency_buffer_impl_(nullptr)
   , write_callback_(nullptr)
   {
     // Queue specs are in ModInit structs.
@@ -49,6 +52,7 @@ public:
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
     raw_type_name_ = conf.raw_type;
+    latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
 
@@ -69,7 +73,7 @@ public:
 
     // Instantiate functionalities
     raw_processor_impl_ = createRawDataProcessor<RawType>(raw_type_name_, process_callback_);
-    latency_buffer_impl_ = createLatencyBuffer<RawType>(raw_type_name_, 100000, write_callback_);
+    latency_buffer_impl_ = createLatencyBuffer<RawType>(raw_type_name_, latency_buffer_size_, write_callback_);
     if( latency_buffer_impl_.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Latency Buffer", raw_type_name_));
     }
@@ -79,26 +83,34 @@ public:
 
     // Configure implementations:
     raw_processor_impl_->conf(args);
+
+    // Configure threads:
+    stats_thread_.set_name("stats", 0);
+    consumer_thread_.set_name("consumer", 0);
   }
 
   void start(const nlohmann::json& args) {
+    ERS_INFO("Starting threads...");
     stats_thread_.set_work(&ReadoutModel<RawType>::run_stats, this);
     consumer_thread_.set_work(&ReadoutModel<RawType>::consume, this);
   }
 
   void stop(const nlohmann::json& args) {    
+    ERS_INFO("Stoppping threads...");
     while (!consumer_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));        
     }
     while (!stats_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
     }
+#warning RS FIXME -> Handle leftover items in queue?
+    /* When and where to flush? Producer/Consumer should have the "logic"? */
   }
 
 private:
 
   void consume() {
-    std::cout << "Consumer starts with run_marker value: " << run_marker_.load() << '\n';
+    ERS_INFO("Consumer thread started...");
     while (run_marker_.load()) {
       std::unique_ptr<RawType> payload_ptr;
       bool cp = raw_data_source_->can_pop();
@@ -112,10 +124,12 @@ private:
       write_callback_(std::move(payload_ptr));;
       ++packet_count_;                   
     }
+    ERS_INFO("Consumer thread stopped...");
   }   
 
   void run_stats() {
     // Temporarily, for debugging, a rate checker thread...
+    ERS_INFO("Statistics thread started...");
     int new_packets = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
     while (run_marker_.load()) {
@@ -126,13 +140,14 @@ private:
       std::this_thread::sleep_for(std::chrono::seconds(2));
       t0 = now;
     }
+    ERS_INFO("Statistics thread stopped...");
   } 
 
   // Constuctor params
   std::string raw_type_name_;
   std::atomic<bool>& run_marker_;
 
-  // INIT args
+  // CONFIGURATION
   appfwk::cmd::ModInit queue_config_;
 
   // STATS
@@ -152,6 +167,7 @@ private:
   std::function<void(RawType*)> process_callback_;
 
   // LATENCY BUFFER:
+  size_t latency_buffer_size_;
   std::unique_ptr<LatencyBufferConcept> latency_buffer_impl_;
   std::function<void(std::unique_ptr<RawType>)> write_callback_;
 
