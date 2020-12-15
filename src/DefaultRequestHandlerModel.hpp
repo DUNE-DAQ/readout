@@ -8,11 +8,12 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_REQUESTHANDLERMODEL_HPP_
-#define UDAQ_READOUT_SRC_REQUESTHANDLERMODEL_HPP_
+#ifndef UDAQ_READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
+#define UDAQ_READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "RequestHandlerConcept.hpp"
+#include "ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
 
@@ -47,6 +48,10 @@ public:
   , pop_limit_size_(0)
   , pop_counter_{0}
   , buffer_capacity_(0)
+  , pop_reqs_(0)
+  , pops_count_(0)
+  , occupancy_(0)
+  , stats_thread_(0)
   {
     ERS_INFO("DefaultRequestHandlerModel created...");
     auto_pop_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::auto_pop, this);
@@ -73,12 +78,16 @@ public:
 
   void start(const nlohmann::json& args)
   {
+    stats_thread_.set_work(&DefaultRequestHandlerModel<RawType>::run_stats, this);
     executor_ = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
   }
 
   void stop(const nlohmann::json& args)
   {
     executor_.join();
+    while (!stats_thread_.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
+    }
   }
  
   void auto_pop_check()
@@ -102,11 +111,12 @@ protected:
     auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = occupancy_callback_();
     if (size_guess > pop_limit_size_) {
+      ++pop_reqs_;
       unsigned to_pop = pop_size_pct_ * occupancy_callback_();
+      pops_count_ += to_pop;
       pop_callback_(to_pop);
-      pop_counter_.store(pop_counter_.load()+to_pop);
-      ERS_INFO("Popped " << to_pop << " elements. Total: " << pop_counter_.load() 
-          << " occup: " << occupancy_callback_());
+      occupancy_ = occupancy_callback_();
+      pops_count_.store(pops_count_.load()+to_pop);
     }
   }
 
@@ -127,16 +137,42 @@ protected:
    }
   }
 
+  void run_stats() {
+    ERS_INFO("Statistics thread started...");
+    int new_pop_reqs = 0;
+    int new_pop_count = 0;
+    int new_occupancy = 0;
+    auto t0 = std::chrono::high_resolution_clock::now();
+    while (run_marker_.load()) {
+      auto now = std::chrono::high_resolution_clock::now();
+      new_pop_reqs = pop_reqs_.exchange(0);
+      new_pop_count = pops_count_.exchange(0);
+      new_occupancy = occupancy_;
+      double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
+      ERS_INFO("Pop request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+          << " Dropped: " << new_pop_count
+          << " Occupancy: " << new_occupancy);
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+      t0 = now;
+    }
+    ERS_INFO("Statistics thread stopped...");
+  }
+
 private:
   // Configuration
   std::string raw_type_name_;
   bool configured_;
-
   float pop_limit_pct_; // buffer occupancy percentage to issue a pop request
-  float pop_size_pct_; // buffer percentage to pop
-  int pop_limit_size_;   // pop_limit_pct
+  float pop_size_pct_;  // buffer percentage to pop
+  int pop_limit_size_;  // pop_limit_pct * buffer_capacity
   stats::counter_t pop_counter_;
   size_t buffer_capacity_;
+
+  // Stats
+  stats::counter_t pop_reqs_;
+  stats::counter_t pops_count_;
+  stats::counter_t occupancy_;
+  ReusableThread stats_thread_;
 
   // Data access (LB interfaces)
   std::function<size_t()>& occupancy_callback_;
@@ -160,4 +196,4 @@ private:
 }
 } // namespace dunedaq::readout
 
-#endif // UDAQ_READOUT_SRC_REQUESTHANDLERMODEL_HPP_
+#endif // UDAQ_READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
