@@ -19,7 +19,6 @@ set(FLXUTIL_DEPENDENCIES daq-rawdata udaq_readout_deps::packetformat Folly::foll
 ##############################################################################
 # Main library
 daq_add_library(DefaultParserImpl.cpp
-                RequestHandler.cpp
   LINK_LIBRARIES appfwk::appfwk ${FLXUTIL_DEPENDENCIES}
 )
 
