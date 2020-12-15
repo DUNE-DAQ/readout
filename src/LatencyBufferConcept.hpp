@@ -24,8 +24,10 @@ public:
   LatencyBufferConcept& operator=(LatencyBufferConcept&&)
     = delete; ///< LatencyBufferConcept is not move-assignable
 
+  virtual size_t occupancy_of_buffer() = 0;   
+
 private:
-  
+
 };
 
 }

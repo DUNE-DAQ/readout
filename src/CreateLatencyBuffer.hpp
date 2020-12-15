@@ -18,10 +18,16 @@ namespace readout {
 
 template <class RawType>
 std::unique_ptr<LatencyBufferConcept> 
-createLatencyBuffer(const std::string& rawtype, int qsize, std::function<void(std::unique_ptr<RawType>)>& write_override) 
+createLatencyBuffer(const std::string& rawtype, int qsize,
+                    std::function<size_t()>& occupancy_override,
+                    std::function<void(std::unique_ptr<RawType>)>& write_override,
+                    std::function<bool(RawType&)>& read_override,
+                    std::function<void(unsigned)>& pop_override,
+                    std::function<RawType*()>& front_override) 
 {
   if (rawtype == "wib") {
-    return std::make_unique<ContinousLatencyBufferModel<RawType>>(qsize, write_override);
+    return std::make_unique<ContinousLatencyBufferModel<RawType>>(qsize, 
+        occupancy_override, write_override, read_override, pop_override, front_override);
   }
 
   if (rawtype == "pd") {
