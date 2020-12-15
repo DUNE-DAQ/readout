@@ -20,8 +20,8 @@
 #include "ReadoutIssues.hpp"
 #include "CreateRawDataProcessor.hpp"
 #include "CreateLatencyBuffer.hpp"
+#include "CreateRequestHandler.hpp"
 #include "ReusableThread.hpp"
-//#include "RequestHandler.hpp"
 
 #include <functional>
 
@@ -43,6 +43,9 @@ public:
   , latency_buffer_size_(0)
   , latency_buffer_impl_(nullptr)
   , write_callback_(nullptr)
+  , read_callback_(nullptr)
+  , pop_callback_(nullptr)
+  , front_callback_(nullptr)
   {
     // Queue specs are in ModInit structs.
     ERS_INFO("Generic ReaoutModel initialized with queue config, but no resets yet.");
@@ -72,17 +75,26 @@ public:
     }
 
     // Instantiate functionalities
-    raw_processor_impl_ = createRawDataProcessor<RawType>(raw_type_name_, process_callback_);
-    latency_buffer_impl_ = createLatencyBuffer<RawType>(raw_type_name_, latency_buffer_size_, write_callback_);
+    latency_buffer_impl_ = createLatencyBuffer<RawType>(raw_type_name_, latency_buffer_size_, 
+        occupancy_callback_, write_callback_, read_callback_, pop_callback_, front_callback_);
     if( latency_buffer_impl_.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Latency Buffer", raw_type_name_));
     }
+
+    raw_processor_impl_ = createRawDataProcessor<RawType>(raw_type_name_, process_callback_);
     if(raw_processor_impl_.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Raw Processor", raw_type_name_));
     }
 
+    request_handler_impl_ = createRequestHandler<RawType>(raw_type_name_, run_marker_, 
+        occupancy_callback_,  read_callback_, pop_callback_, front_callback_);
+    if( request_handler_impl_.get() == nullptr) {
+      ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", raw_type_name_));
+    }
+
     // Configure implementations:
     raw_processor_impl_->conf(args);
+    request_handler_impl_->conf(args);
 
     // Configure threads:
     stats_thread_.set_name("stats", 0);
@@ -91,12 +103,14 @@ public:
 
   void start(const nlohmann::json& args) {
     ERS_INFO("Starting threads...");
+    request_handler_impl_->start(args);
     stats_thread_.set_work(&ReadoutModel<RawType>::run_stats, this);
     consumer_thread_.set_work(&ReadoutModel<RawType>::consume, this);
   }
 
   void stop(const nlohmann::json& args) {    
     ERS_INFO("Stoppping threads...");
+    request_handler_impl_->stop(args);
     while (!consumer_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));        
     }
@@ -121,7 +135,8 @@ private:
         std::runtime_error("Queue Source timed out...");
       }
       process_callback_(payload_ptr.get());
-      write_callback_(std::move(payload_ptr));;
+      write_callback_(std::move(payload_ptr));
+      request_handler_impl_->auto_pop_check();
       ++packet_count_;                   
     }
     ERS_INFO("Consumer thread stopped...");
@@ -162,17 +177,21 @@ private:
   using source_t = appfwk::DAQSource<std::unique_ptr<RawType>>;
   std::unique_ptr<source_t> raw_data_source_;
 
+  // LATENCY BUFFER:
+  size_t latency_buffer_size_;
+  std::unique_ptr<LatencyBufferConcept> latency_buffer_impl_;
+  std::function<size_t()> occupancy_callback_;
+  std::function<void(std::unique_ptr<RawType>)> write_callback_;
+  std::function<bool(RawType&)> read_callback_;
+  std::function<void(unsigned)> pop_callback_;
+  std::function<RawType*()> front_callback_;
+
   // RAW PROCESSING:
   std::unique_ptr<RawDataProcessorConcept> raw_processor_impl_;
   std::function<void(RawType*)> process_callback_;
 
-  // LATENCY BUFFER:
-  size_t latency_buffer_size_;
-  std::unique_ptr<LatencyBufferConcept> latency_buffer_impl_;
-  std::function<void(std::unique_ptr<RawType>)> write_callback_;
-
-  // Consumers: Request handlers
-  //std::unique_ptr<RequestHandlerBase> request_handler_impl_;
+  // REQUEST HANDLER:
+  std::unique_ptr<RequestHandlerConcept> request_handler_impl_;
 
 };
 
