@@ -19,6 +19,9 @@ local datalinkhandler = {
     count : s.number("Count", "i4",
                      doc="A count of not too many things"),
 
+    pct : s.number("Percent", "f4",
+                   doc="Testing float number"),
+
     str : s.string("Str", "string",
                    doc="A string field"),
 
@@ -29,6 +32,10 @@ local datalinkhandler = {
                 doc="Timeout for source queue"),
         s.field("latency_buffer_size", self.size, 100000,
                 doc="Size of latency buffer"),
+        s.field("pop_limit_pct", self.pct, 0.5,
+                doc="Latency buffer occupancy percentage to issue an auto-pop"),
+        s.field("pop_size_pct", self.pct, 0.8,
+                doc="Percentage of current occupancy to pop from the latency buffer")
     ], doc="Generic readout element configuration"),
 
 };
