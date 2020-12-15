@@ -1,4 +1,4 @@
-/**
+/*
 * @file LatencyBuffer.hpp Buffers objects for some time
 * Software defined latency buffer to temporarily store objects from the
 * frontend apparatus. It wraps a bounded SPSC queue from Folly for
@@ -28,14 +28,14 @@ namespace dunedaq {
 namespace readout {
 
 template<class RawType>
-class RequestHandlerModel : public RequestHandlerConcept {
+class DefaultRequestHandlerModel : public RequestHandlerConcept {
 public:
-  explicit RequestHandlerModel(const std::string& rawtype,
-                               std::atomic<bool>& marker,
-                               std::function<size_t()>& occupancy_callback,
-                               std::function<bool(RawType&)>& read_callback,
-                               std::function<void(unsigned)>& pop_callback,
-                               std::function<RawType*()>& front_callback)
+  explicit DefaultRequestHandlerModel(const std::string& rawtype,
+                                      std::atomic<bool>& marker,
+                                      std::function<size_t()>& occupancy_callback,
+                                      std::function<bool(RawType&)>& read_callback,
+                                      std::function<void(unsigned)>& pop_callback,
+                                      std::function<RawType*()>& front_callback)
   : raw_type_name_(rawtype)
   , run_marker_(marker)
   , occupancy_callback_(occupancy_callback)
@@ -48,8 +48,8 @@ public:
   , pop_counter_{0}
   , buffer_capacity_(0)
   {
-    ERS_INFO("RequestHandlerModel created...");
-    auto_pop_callback_ = std::bind(&RequestHandlerModel<RawType>::auto_pop, this);
+    ERS_INFO("DefaultRequestHandlerModel created...");
+    auto_pop_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::auto_pop, this);
   }
 
   void conf(const nlohmann::json& args)
@@ -73,7 +73,7 @@ public:
 
   void start(const nlohmann::json& args)
   {
-    executor_ = std::thread(&RequestHandlerModel<RawType>::executor, this);
+    executor_ = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
   }
 
   void stop(const nlohmann::json& args)
@@ -102,7 +102,7 @@ protected:
     auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = occupancy_callback_();
     if (size_guess > pop_limit_size_) {
-      auto to_pop = pop_size_pct_ * occupancy_callback_();
+      unsigned to_pop = pop_size_pct_ * occupancy_callback_();
       pop_callback_(to_pop);
       pop_counter_.store(pop_counter_.load()+to_pop);
       ERS_INFO("Popped " << to_pop << " elements. Total: " << pop_counter_.load() 

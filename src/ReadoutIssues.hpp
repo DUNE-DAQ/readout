@@ -22,6 +22,10 @@ namespace dunedaq {
                       " Readout Configuration Error: " << conferror,
                       ((std::string)conferror)) 
 
+    ERS_DECLARE_ISSUE(readout, QueueTimeoutError,
+                      " Readout queue timed out: " << queuename,
+                      ((std::string)queuename))
+
     ERS_DECLARE_ISSUE_BASE(readout,
                            NoImplementationAvailableError,
                            readout::ConfigurationError,

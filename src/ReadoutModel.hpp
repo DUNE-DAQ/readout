@@ -132,7 +132,7 @@ private:
         raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        std::runtime_error("Queue Source timed out...");
+        ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
       process_callback_(payload_ptr.get());
       write_callback_(std::move(payload_ptr));
