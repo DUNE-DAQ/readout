@@ -6,7 +6,6 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-
 #include "FelixCardReader.hpp"
 #include "ReadoutIssues.hpp"
 
@@ -39,17 +38,17 @@ FelixCardReader::FelixCardReader(const std::string& name)
 }
 
 void
-FelixCardReader::init(const data_t& /*args*/)
+FelixCardReader::init(const data_t& args)
 {
-/*
-  auto ini = args.get<cmd::ModInit>();
+  auto ini = args.get<appfwk::cmd::ModInit>();
   for (const auto& qi : ini.qinfos) {
     if (qi.name == "output") {
       ERS_INFO("CardReader output queue is " << qi.inst);
-      
+    } else {
+      ers::error(InitializationError(ERS_HERE, "Only output queues are supported in this module!"));
     }
   }
-*/
+  std::vector<std::string> queue_names; // = get_config()["outputs"].get<std::vector<std::string>>();
 
   card_id_ = 0; //init_data.get<uint8_t>("card_id", 0);
   card_offset_ = 0; //get_config().value<uint8_t>("card_offset", 0);
@@ -57,7 +56,7 @@ FelixCardReader::init(const data_t& /*args*/)
   numa_id_ = 0; //get_config().value<uint8_t>("numa_id", 0);
   num_sources_ = 1; //get_config().value<uint8_t>("num_sources", 1);
   num_links_ = 6; //get_config().value<uint8_t>("num_links", M_MAX_LINKS_PER_CARD);
-  std::vector<std::string> queue_names; // = get_config()["outputs"].get<std::vector<std::string>>();
+
   //ERS_INFO("Base parameters initialized: " << get_config().dump()); 
 
 /*

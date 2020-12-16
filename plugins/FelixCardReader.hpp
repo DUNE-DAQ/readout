@@ -1,9 +1,11 @@
 /**
  * @file FelixCardReader.hpp
  */
-
 #ifndef APPFWK_UDAQ_READOUT_FELIXCARDREADER_HPP_
 #define APPFWK_UDAQ_READOUT_FELIXCARDREADER_HPP_
+
+#include "appfwk/cmd/Structs.hpp"
+#include "appfwk/cmd/Nljs.hpp"
 
 #include "readout/felixcardreader/Structs.hpp"
 
