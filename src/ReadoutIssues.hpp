@@ -18,6 +18,10 @@ namespace dunedaq {
                       " FELIX Error: " << flxerror,
                       ((std::string)flxerror))
 
+    ERS_DECLARE_ISSUE(readout, InitializationError,
+                      " Readout Initialization Error: " << initerror,
+                      ((std::string)initerror)) 
+
     ERS_DECLARE_ISSUE(readout, ConfigurationError,
                       " Readout Configuration Error: " << conferror,
                       ((std::string)conferror)) 
