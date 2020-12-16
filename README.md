@@ -17,6 +17,7 @@ And add the `udaq_readout_deps` package to your `dune_products` set:
 
 
 ## Examples
+Before running the application, please download a small binary files that contains 120 WIB Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download). Please update the path of the source file in the configuration that you will use below. 
 
 After succesfully building the package, from another terminal go to your `workarea` directory and set up the runtime environment:
 
