@@ -9,7 +9,7 @@
            "blocks-320"
 
     // Make a conf object for cardreader
-    conf(cid, coff, did, nid, nums, numl) :: {
+    conf(cid=0, coff=0, did=0, nid=0, nums=1, numl=6) :: {
         card_id: cid, 
         card_offset: coff, 
         dma_id: did, 
