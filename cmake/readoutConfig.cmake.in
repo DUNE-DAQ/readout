@@ -4,7 +4,7 @@
 include(CMakeFindDependencyMacro)
 
 find_dependency(appfwk)
-find_dependency(daq-rawdata)
+find_dependency(dataformats)
 find_dependency(udaq_readout_deps)
 find_dependency(folly)
 find_dependency(TBB)

@@ -14,7 +14,7 @@
 #include "ReadoutIssues.hpp"
 #include "Time.hpp"
 
-#include "daq-rawdata/wib/WIBFrame.hpp"
+#include "dataformats/wib/WIBFrame.hpp"
 
 #include <functional>
 #include <atomic>
@@ -28,7 +28,7 @@ class WIBFrameProcessor : public TaskRawDataProcessorModel<types::WIB_SUPERCHUNK
 
 public:
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
-  using wibframeptr = dunedaq::rawdata::WIBFrame*;
+  using wibframeptr = dunedaq::dataformats::WIBFrame*;
   using funcnode_t = tbb::flow::function_node<frameptr, frameptr>;
 
   explicit WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
@@ -45,7 +45,7 @@ protected:
   stats::counter_t ts_error_ctr_{0};
 
   void timestamp_check(frameptr fp) {
-    auto* wfptr = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(fp);
+    auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
     current_ts_ = wfptr->timestamp();
     if (current_ts_ - previous_ts_ != 300) {
       ++ts_error_ctr_;

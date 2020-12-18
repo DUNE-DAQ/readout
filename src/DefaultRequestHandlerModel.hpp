@@ -152,11 +152,37 @@ protected:
       ERS_INFO("Pop request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
           << " Occupancy: " << new_occupancy);
+
+#warning RS -> TBR just testing timesync callback. 
+      time_sync_callback_();
+
       std::this_thread::sleep_for(std::chrono::seconds(5));
       t0 = now;
     }
     ERS_INFO("Statistics thread stopped...");
   }
+
+  // Data access (LB interfaces)
+  std::function<size_t()>& occupancy_callback_;
+  std::function<bool(RawType&)>& read_callback_; 
+  std::function<void(unsigned)>& pop_callback_;
+  std::function<RawType*()>& front_callback_;
+
+  // Internals
+  typedef tbb::concurrent_queue<std::future<void>> RequestQueue;
+  RequestQueue request_queue_;
+
+  // Pop on buffer is a special request
+  typedef std::function<void()> AutoPopCallback;
+  AutoPopCallback auto_pop_callback_;
+
+  // Time sync is a special request
+  typedef std::function<void()> TimeSyncCallback;
+  TimeSyncCallback time_sync_callback_;
+
+  // Data request
+  typedef std::function<void()> DataRequestCallback;
+  DataRequestCallback data_request_callback_;
 
 private:
   // Configuration
@@ -173,20 +199,6 @@ private:
   stats::counter_t pops_count_;
   stats::counter_t occupancy_;
   ReusableThread stats_thread_;
-
-  // Data access (LB interfaces)
-  std::function<size_t()>& occupancy_callback_;
-  std::function<bool(RawType&)>& read_callback_; 
-  std::function<void(unsigned)>& pop_callback_;
-  std::function<RawType*()>& front_callback_;
-
-  // Internals
-  typedef tbb::concurrent_queue<std::future<void>> RequestQueue;
-  RequestQueue request_queue_;
-
-  // Pop on buffer is a special request
-  typedef std::function<void()> AutoPopCallback;
-  AutoPopCallback auto_pop_callback_;
 
   // Executor
   std::thread executor_;

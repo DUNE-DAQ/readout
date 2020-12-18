@@ -15,6 +15,12 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include "dataformats/ComponentRequest.hpp"
+#include "dataformats/Fragment.hpp"
+
+#include "dfmessages/TimeSync.hpp"
+#include "dfmessages/DataRequest.hpp"
+
 #include "readout/datalinkhandler/Structs.hpp"
 
 #include "ReadoutIssues.hpp"
@@ -67,7 +73,7 @@ public:
       }
       ERS_INFO("Resetting queue: " << qi.inst);
       try {
-        raw_data_source_.reset(new source_t(qi.inst));
+        raw_data_source_.reset(new raw_source_qt(qi.inst));
       }
       catch (const ers::Issue& excpt) {
         ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
@@ -172,10 +178,20 @@ private:
   // CONSUMER
   ReusableThread consumer_thread_;
 
-  // SOURCE
+  // RAW SOURCE
   std::chrono::milliseconds source_queue_timeout_ms_;
-  using source_t = appfwk::DAQSource<std::unique_ptr<RawType>>;
-  std::unique_ptr<source_t> raw_data_source_;
+  using raw_source_qt = appfwk::DAQSource<std::unique_ptr<RawType>>;
+  std::unique_ptr<raw_source_qt> raw_data_source_;
+
+  // REQUEST SOURCE
+  std::chrono::milliseconds request_queue_timeout_ms_;
+  using requests_source_qt = appfwk::DAQSource<std::unique_ptr<dfmessages::DataRequest>>;
+  std::unique_ptr<requests_source_qt> requests_source_;
+
+  // TIME-SYNC SOURCE
+  std::chrono::milliseconds timesync_queue_timeout_ms_;
+  using timesync_source_qt = appfwk::DAQSource<std::unique_ptr<dfmessages::TimeSync>>;
+  std::unique_ptr<timesync_source_qt> timesync_source_;
 
   // LATENCY BUFFER:
   size_t latency_buffer_size_;

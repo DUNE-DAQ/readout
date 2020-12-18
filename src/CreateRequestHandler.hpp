@@ -10,7 +10,7 @@
 
 #include "ReadoutIssues.hpp"
 #include "RequestHandlerConcept.hpp"
-#include "DefaultRequestHandlerModel.hpp"
+#include "WIBRequestHandler.hpp"
 
 namespace dunedaq {
 namespace readout {
@@ -25,7 +25,7 @@ createRequestHandler(const std::string& rawtype,
                      std::function<RawType*()>& front_callback)
 {
   if (rawtype == "wib") {
-    return std::make_unique<DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, run_marker,
+    return std::make_unique<WIBRequestHandler>(rawtype, run_marker,
       occupancy_callback, read_callback, pop_callback, front_callback);
   }
 

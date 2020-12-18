@@ -12,7 +12,7 @@
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
-#include "daq-rawdata/wib/WIBFrame.hpp"
+#include "dataformats/wib/WIBFrame.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -114,7 +114,7 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   unsigned num_elem = source_buffer_->num_elements();
   unsigned num_frames = num_elem * 12;
-  uint64_t ts_0 = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(source.data())->wib_header()->timestamp();
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data())->wib_header()->timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0);
   uint64_t ts_next = ts_0;
 
@@ -131,8 +131,8 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
 
     // fake the timestamp
     for (unsigned int i=0; i<12; ++i) {
-      auto* wf = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
-      auto* wfh = const_cast<dunedaq::rawdata::WIBHeader*>(wf->wib_header()); 
+      auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
+      auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
       wfh->set_timestamp(ts_next);
       ts_next += 25;
     }
