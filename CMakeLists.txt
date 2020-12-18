@@ -6,7 +6,7 @@ find_package(daq-cmake REQUIRED)
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
-find_package(daq-rawdata REQUIRED)
+find_package(dataformats REQUIRED)
 find_package(udaq_readout_deps REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
@@ -14,7 +14,7 @@ find_package(TBB REQUIRED)
 ##############################################################################
 # Dependency sets
 set(FLXCARD_DEPENDENCIES udaq_readout_deps::FlxCard udaq_readout_deps::cmem_rcc)
-set(FLXUTIL_DEPENDENCIES daq-rawdata udaq_readout_deps::packetformat Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS})
+set(FLXUTIL_DEPENDENCIES dataformats::dataformats udaq_readout_deps::packetformat Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS})
 
 ##############################################################################
 # Main library

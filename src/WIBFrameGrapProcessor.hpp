@@ -11,7 +11,7 @@
 
 #include "GraphRawProcessor.hpp"
 
-#include "daq-rawdata/wib/WIBFrame.hpp"
+#include "dataformats/wib/WIBFrame.hpp"
 
 #include <functional>
 #include <atomic>
@@ -25,7 +25,7 @@ class WIBFrameGraphProcessor : public GraphRawProcessor<types::WIB_SUPERCHUNK_ST
 
 public:
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
-  using wibframeptr = dunedaq::rawdata::WIBFrame*;
+  using wibframeptr = dunedaq::dataformats::WIBFrame*;
   using funcnode_t = tbb::flow::function_node<frameptr, frameptr>;
 
   explicit WIBFrameGraphProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
@@ -51,7 +51,7 @@ public:
     uint64_t counter = 0;
     bool first = true;
     frameptr operator()(frameptr fp) {
-      auto* wfptr = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(fp);
+      auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
       ts_next = wfptr->timestamp();
       //std::cout << " TS: " << wfptr->timestamp() << " stored: " << ts_next << '\n'; 
       if (ts_next - ts_prev != 300) {
@@ -72,7 +72,7 @@ public:
     uint8_t s1err = 0;
     uint8_t s2err = 0;
     frameptr operator()(frameptr fp) {
-      auto* wfptr = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(fp);
+      auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
       ;
       return fp;
     }
