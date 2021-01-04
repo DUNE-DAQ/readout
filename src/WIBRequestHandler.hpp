@@ -45,7 +45,7 @@ protected:
   void time_sync_handle() {
     if (occupancy_callback_() > 0) {
       auto *wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(front_callback_());
-      wfptr->wib_header()->print();
+      //wfptr->wib_header()->print();
     }
   }
 
