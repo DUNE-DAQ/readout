@@ -14,7 +14,6 @@
 #include "ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
 #include "ContinousLatencyBufferModel.hpp"
-#include "DefaultParserImpl.hpp"
 
 #include <tbb/concurrent_queue.h>
 
@@ -75,9 +74,6 @@ private:
   int pop_limit_size_;   // pop_limit_pct
   stats::counter_t pop_counter_;
   int buffer_capacity_;
-
-  // TO BE REMOVED
-  DefaultParserImpl parser_impl_;
 
   // Latency buffer to work on
   std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer_;
