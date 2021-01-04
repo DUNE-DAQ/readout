@@ -123,8 +123,8 @@ public:
     while (!stats_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
     }
-#warning RS FIXME -> Handle leftover items in queue?
-    /* When and where to flush? Producer/Consumer should have the "logic"? */
+    ERS_INFO("Flushing latency buffer with occupancy: " << occupancy_callback_());
+    pop_callback_(occupancy_callback_()); 
   }
 
 private:
@@ -133,7 +133,7 @@ private:
     ERS_INFO("Consumer thread started...");
     while (run_marker_.load()) {
       std::unique_ptr<RawType> payload_ptr;
-      bool cp = raw_data_source_->can_pop();
+      //bool cp = raw_data_source_->can_pop();
       try {
         raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
       }
