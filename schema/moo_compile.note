@@ -1,0 +1,9 @@
+# 21-Dec-2020, KAB (modified by PAR)
+# This file simply has a few notes on running the 'moo compile' command to
+# generate the demo JSON files from the corresponding jsonnet files.
+#
+# Please note that these instructions assume that the appfwk repo has been
+# added to your software development environment.  If that has not already been
+# done, then you'll need to do that.
+
+moo -M "`pwd`/../../appfwk/schema" compile fakereadout-app.jsonnet > ../test/fakereadout-commands.json

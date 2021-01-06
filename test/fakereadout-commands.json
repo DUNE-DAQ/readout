@@ -44,22 +44,22 @@
             "modules": [
                 {
                     "data": {
-                      "link_id": 0,
-                      "input_limit": 10485100,
-                      "rate_khz": 166,
-                      "raw_type": "wib",
-                      "data_filename": "/tmp/frames.bin",
-                      "queue_timeout_ms": 2000
+                        "data_filename": "/tmp/frames.bin",
+                        "input_limit": 10485100,
+                        "link_id": 0,
+                        "queue_timeout_ms": 2000,
+                        "rate_khz": 166,
+                        "raw_type": "wib"
                     },
                     "match": "fake-source"
                 },
                 {
                     "data": {
-                      "raw_type": "wib",
-                      "source_queue_timeout_ms": 2000,
-                      "latency_buffer_size": 100000,
-                      "pop_limit_pct": 0.8,
-                      "pop_size_pct": 0.3
+                        "latency_buffer_size": 100000,
+                        "pop_limit_pct": 0.8,
+                        "pop_size_pct": 0.3,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 2000
                     },
                     "match": "fake-handler"
                 }
@@ -72,15 +72,9 @@
             "modules": [
                 {
                     "data": {
-                      "run": 42                      
+                        "run": 42
                     },
-                    "match": "fake-source"
-                },
-                {
-                    "data": {
-                      "run": 42
-                    },
-                    "match": "fake-handler"
+                    "match": ""
                 }
             ]
         },
@@ -92,7 +86,7 @@
                 {
                     "data": {},
                     "match": ""
-                } 
+                }
             ]
         },
         "id": "stop"
