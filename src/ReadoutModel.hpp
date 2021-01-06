@@ -40,6 +40,7 @@ public:
   explicit ReadoutModel(const nlohmann::json& args, std::atomic<bool>& run_marker)
   : raw_type_name_("")
   , stats_thread_(0)
+  , timesync_thread_(0)
   , consumer_thread_(0)
   , source_queue_timeout_ms_(0)
   , run_marker_(run_marker)
@@ -108,6 +109,8 @@ public:
     raw_processor_impl_->conf(args);
     request_handler_impl_->conf(args);
 
+    // 
+
     // Configure threads:
     stats_thread_.set_name("stats", 0);
     consumer_thread_.set_name("consumer", 0);
@@ -118,11 +121,15 @@ public:
     request_handler_impl_->start(args);
     stats_thread_.set_work(&ReadoutModel<RawType>::run_stats, this);
     consumer_thread_.set_work(&ReadoutModel<RawType>::consume, this);
+    timesync_thread_.set_work(&ReadoutModel<RawType>::run_timesync, this);
   }
 
   void stop(const nlohmann::json& args) {    
     ERS_INFO("Stoppping threads...");
     request_handler_impl_->stop(args);
+    while (!timesync_thread_.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));         
+    } 
     while (!consumer_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));        
     }
@@ -167,6 +174,22 @@ private:
       t0 = now;
     }
     ERS_INFO("Statistics thread joins...");
+  }
+
+  void run_timesync() {
+    ERS_INFO("TimeSync thread started...");
+    while (run_marker_.load()) {
+      try {
+        auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
+        ERS_INFO("New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
+        timesync_sink_->push(std::move(timesyncmsg));
+      }
+      catch (...) { // RS FIXME
+        std::runtime_error("TimeSync queue timed out...");
+      }
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    ERS_INFO("TimeSync thread joins...");
   } 
 
   // Constuctor params
@@ -191,12 +214,7 @@ private:
   // REQUEST SOURCE
   std::chrono::milliseconds request_queue_timeout_ms_;
   using requests_source_qt = appfwk::DAQSource<std::unique_ptr<dfmessages::DataRequest>>;
-  std::unique_ptr<requests_source_qt> requests_source_;
-
-  // TIME-SYNC SINK
-  std::chrono::milliseconds timesync_queue_timeout_ms_;
-  using timesync_sink_qt = appfwk::DAQSink<std::unique_ptr<dfmessages::TimeSync>>;
-  std::unique_ptr<timesync_sink_qt> timesync_sink_;
+  std::unique_ptr<requests_source_qt> requests_source_; 
 
   // LATENCY BUFFER:
   size_t latency_buffer_size_;
@@ -213,6 +231,12 @@ private:
 
   // REQUEST HANDLER:
   std::unique_ptr<RequestHandlerConcept> request_handler_impl_;
+
+  // TIME-SYNC
+  std::chrono::milliseconds timesync_queue_timeout_ms_;
+  using timesync_sink_qt = appfwk::DAQSink<dfmessages::TimeSync>;
+  std::unique_ptr<timesync_sink_qt> timesync_sink_;
+  ReusableThread timesync_thread_;
 
 };
 

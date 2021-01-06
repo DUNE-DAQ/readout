@@ -57,6 +57,7 @@ protected:
       ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
     }
     previous_ts_ = current_ts_;
+    last_processed_daq_ts_ = current_ts_;
   }
 
 private:

@@ -8,6 +8,8 @@
 #ifndef UDAQ_READOUT_SRC_RAWDATAPROCESSORCONCEPT_HPP_
 #define UDAQ_READOUT_SRC_RAWDATAPROCESSORCONCEPT_HPP_
 
+#include "Time.hpp"
+
 namespace dunedaq {
 namespace readout {
 
@@ -28,6 +30,10 @@ public:
     = delete; ///< RawDataProcessorConcept is not move-assignable
 
   virtual void conf(const nlohmann::json& cfg) = 0;
+  uint64_t get_last_daq_time() { return last_processed_daq_ts_.load(); }
+
+protected:
+  std::atomic<time::timestamp_t> last_processed_daq_ts_{0};
 
 private:
   std::string raw_type_name_;
