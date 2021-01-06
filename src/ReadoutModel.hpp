@@ -67,16 +67,22 @@ public:
 
     // Reset queues
     for (const auto& qi : queue_config_.qinfos) { 
-#warning RS -> also set up sinks for requesthandler
-      if (qi.dir != "input") { // Wrong logic, need to setup also OUT queues.
-        continue;
-      }
-      ERS_INFO("Resetting queue: " << qi.inst);
-      try {
-        raw_data_source_.reset(new raw_source_qt(qi.inst));
-      }
-      catch (const ers::Issue& excpt) {
-        ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
+      if (qi.dir == "output") {
+        ERS_INFO("Resetting output queues...");
+        try {
+          timesync_sink_.reset(new timesync_sink_qt(qi.inst));
+        }
+        catch (const ers::Issue& excpt) {
+          ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
+        }
+      } else if (qi.dir == "input") {
+        ERS_INFO("Resetting queue: " << qi.inst);
+        try {
+          raw_data_source_.reset(new raw_source_qt(qi.inst));
+        }
+        catch (const ers::Issue& excpt) {
+          ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
+        }
       }
     }
 
@@ -133,7 +139,6 @@ private:
     ERS_INFO("Consumer thread started...");
     while (run_marker_.load()) {
       std::unique_ptr<RawType> payload_ptr;
-      //bool cp = raw_data_source_->can_pop();
       try {
         raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
       }
@@ -145,7 +150,7 @@ private:
       request_handler_impl_->auto_pop_check();
       ++packet_count_;                   
     }
-    ERS_INFO("Consumer thread stopped...");
+    ERS_INFO("Consumer thread joins...");
   }   
 
   void run_stats() {
@@ -161,7 +166,7 @@ private:
       std::this_thread::sleep_for(std::chrono::seconds(5));
       t0 = now;
     }
-    ERS_INFO("Statistics thread stopped...");
+    ERS_INFO("Statistics thread joins...");
   } 
 
   // Constuctor params
@@ -188,10 +193,10 @@ private:
   using requests_source_qt = appfwk::DAQSource<std::unique_ptr<dfmessages::DataRequest>>;
   std::unique_ptr<requests_source_qt> requests_source_;
 
-  // TIME-SYNC SOURCE
+  // TIME-SYNC SINK
   std::chrono::milliseconds timesync_queue_timeout_ms_;
-  using timesync_source_qt = appfwk::DAQSource<std::unique_ptr<dfmessages::TimeSync>>;
-  std::unique_ptr<timesync_source_qt> timesync_source_;
+  using timesync_sink_qt = appfwk::DAQSink<std::unique_ptr<dfmessages::TimeSync>>;
+  std::unique_ptr<timesync_sink_qt> timesync_sink_;
 
   // LATENCY BUFFER:
   size_t latency_buffer_size_;
