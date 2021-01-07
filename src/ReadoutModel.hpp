@@ -70,25 +70,23 @@ public:
     ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
 
     // Reset queues
+    ERS_INFO("Resetting queues...");
     for (const auto& qi : queue_config_.qinfos) { 
-      if (qi.dir == "output") {
-        ERS_INFO("Resetting output queues...");
-        try {
-          timesync_sink_.reset(new timesync_sink_qt(qi.inst));
-          fragment_sink_.reset(new fragment_sink_qt("frags-out"));
-        }
-        catch (const ers::Issue& excpt) {
-          ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
-        }
-      } else if (qi.dir == "input") {
-        ERS_INFO("Resetting queue: " << qi.inst);
-        try {
+      try {
+        if (qi.name == "raw-input") {
           raw_data_source_.reset(new raw_source_qt(qi.inst));
-          request_source_.reset(new request_source_qt("requests-in"));
+        } else if (qi.name == "requests") {
+          request_source_.reset(new request_source_qt(qi.inst));
+        } else if (qi.name == "timesync") {
+          timesync_sink_.reset(new timesync_sink_qt(qi.inst));
+        } else if (qi.name == "fragments") {
+          fragment_sink_.reset(new fragment_sink_qt(qi.inst));
+        } else {
+          // throw error
         }
-        catch (const ers::Issue& excpt) {
-          ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
-        }
+      }
+      catch (const ers::Issue& excpt) {
+        ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
       }
     }
 

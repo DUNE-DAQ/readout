@@ -21,12 +21,22 @@
                             {
                                 "dir": "input",
                                 "inst": "fakelink-0",
-                                "name": "input"
+                                "name": "raw-input"
                             },
                             {
                                 "dir": "output",
                                 "inst": "ts-sync-out",
                                 "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "requests-in",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "frags-out",
+                                "name": "fragments"
                             }
                         ]
                     },
