@@ -34,7 +34,6 @@ namespace readout {
 FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
-  , output_queue_(nullptr)
   , rate_limiter_(nullptr)
   , worker_thread_(std::bind(&FakeCardReader::do_work, this, std::placeholders::_1))
   , run_marker_{false}
@@ -56,8 +55,8 @@ FakeCardReader::init(const data_t& args)
       continue;
     }
     try {
-      ERS_INFO("Resetting queue: " << qi.inst);
-      output_queue_.reset(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+      ERS_LOG("Setting up queue: " << qi.inst);
+      output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
     }
     catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
@@ -117,32 +116,40 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
   uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data())->wib_header()->timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0);
   uint64_t ts_next = ts_0;
-
+  uint64_t ts_nextlink = ts_0;
   // Run until stop marker
   while (running_flag.load()) {
-    // Which element to push to the buffer
-    if (offset == num_elem) {
-      offset = 0;
-    } 
-    // Create next superchunk
-    std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
-    // Memcpy from file buffer to flat char array
-    ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::WIB_SUPERCHUNK_SIZE), constant::WIB_SUPERCHUNK_SIZE);
 
-    // fake the timestamp
-    for (unsigned int i=0; i<12; ++i) {
-      auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
-      auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
-      wfh->set_timestamp(ts_next);
-      ts_next += 25;
-    }
+   for (auto myqueue : output_queues_) {
 
-    // queue in to actual DAQSink
-    try {
-      output_queue_->push(std::move(payload_ptr), queue_timeout_ms_);
-    } catch (...) { // RS TODO: ERS issues
-      std::runtime_error("Queue timed out...");
+      // Which element to push to the buffer
+      if (offset == num_elem) {
+        offset = 0;
+      } 
+      // Create next superchunk
+      std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
+      // Memcpy from file buffer to flat char array
+      ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::WIB_SUPERCHUNK_SIZE), constant::WIB_SUPERCHUNK_SIZE);
+
+      // fake the timestamp
+      uint64_t ts_next = ts_nextlink;
+      for (unsigned int i=0; i<12; ++i) {
+        auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
+        auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
+        wfh->set_timestamp(ts_next);
+        ts_next += 25;
+      }  
+
+      // queue in to actual DAQSink
+      try {
+        myqueue->push(std::move(payload_ptr), queue_timeout_ms_);
+      } catch (...) { // RS TODO: ERS issues
+        std::runtime_error("Queue timed out...");
+      }
+
     }
+    ts_nextlink = ts_next; // set timestamp for next iteration
+
     // Count packet and limit rate if needed.
     ++offset;
     ++packet_count_;

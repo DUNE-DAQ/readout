@@ -69,7 +69,8 @@ private:
   // appfwk Queues
   std::chrono::milliseconds queue_timeout_ms_;
   using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
-  std::unique_ptr<sink_t> output_queue_;
+  //std::vector<std::unique_ptr<sink_t>> output_queues_;
+  std::vector<sink_t*> output_queues_;
 
   // Internals
   std::unique_ptr<FileSourceBuffer> source_buffer_;
