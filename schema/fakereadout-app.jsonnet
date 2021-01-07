@@ -3,6 +3,7 @@ local cmd = import "appfwk-cmd-make.jsonnet";
 
 local qdict = {
   fake_link: cmd.qspec("fakelink-0", "FollySPSCQueue",  100000),
+  time_sync: cmd.qspec("ts-sync-out", "FollyMPMCQueue",  1000),
 };
 
 local qspec_list = [
@@ -15,8 +16,10 @@ local qspec_list = [
     [cmd.mspec("fake-source", "FakeCardReader",
       cmd.qinfo("output", qdict.fake_link.inst, cmd.qdir.output)),
 
-      cmd.mspec("fake-handler", "DataLinkHandler",
-        cmd.qinfo("input", qdict.fake_link.inst, cmd.qdir.input)),
+      cmd.mspec("fake-handler", "DataLinkHandler", [
+        cmd.qinfo("input", qdict.fake_link.inst, cmd.qdir.input),
+        cmd.qinfo("timesync", qdict.time_sync.inst, cmd.qdir.output)
+        ]),
     ]
   ) {},
   
