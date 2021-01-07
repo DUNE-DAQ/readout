@@ -42,6 +42,7 @@ public:
   , stats_thread_(0)
   , timesync_thread_(0)
   , consumer_thread_(0)
+  , requester_thread_(0)
   , source_queue_timeout_ms_(0)
   , run_marker_(run_marker)
   , raw_data_source_(nullptr)
@@ -72,6 +73,7 @@ public:
         ERS_INFO("Resetting output queues...");
         try {
           timesync_sink_.reset(new timesync_sink_qt(qi.inst));
+          fragment_sink_.reset(new fragment_sink_qt("frags-out"));
         }
         catch (const ers::Issue& excpt) {
           ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
@@ -80,6 +82,7 @@ public:
         ERS_INFO("Resetting queue: " << qi.inst);
         try {
           raw_data_source_.reset(new raw_source_qt(qi.inst));
+          request_source_.reset(new request_source_qt("requests-in"));
         }
         catch (const ers::Issue& excpt) {
           ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
@@ -100,8 +103,9 @@ public:
     }
 
     request_handler_impl_ = createRequestHandler<RawType>(raw_type_name_, run_marker_, 
-        occupancy_callback_,  read_callback_, pop_callback_, front_callback_);
-    if( request_handler_impl_.get() == nullptr) {
+        occupancy_callback_,  read_callback_, pop_callback_, front_callback_,
+        request_source_, fragment_sink_);
+    if(request_handler_impl_.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", raw_type_name_));
     }
 
@@ -113,13 +117,15 @@ public:
     stats_thread_.set_name("stats", 0);
     consumer_thread_.set_name("consumer", 0);
     timesync_thread_.set_name("timesync", 0);
+    requester_thread_.set_name("requests", 0);
   }
 
   void start(const nlohmann::json& args) {
     ERS_INFO("Starting threads...");
     request_handler_impl_->start(args);
     stats_thread_.set_work(&ReadoutModel<RawType>::run_stats, this);
-    consumer_thread_.set_work(&ReadoutModel<RawType>::consume, this);
+    consumer_thread_.set_work(&ReadoutModel<RawType>::run_consume, this);
+    requester_thread_.set_work(&ReadoutModel<RawType>::run_requests, this);
     timesync_thread_.set_work(&ReadoutModel<RawType>::run_timesync, this);
   }
 
@@ -132,6 +138,9 @@ public:
     while (!consumer_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));        
     }
+    while (!requester_thread_.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));        
+    }
     while (!stats_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
     }
@@ -141,7 +150,7 @@ public:
 
 private:
 
-  void consume() {
+  void run_consume() {
     ERS_INFO("Consumer thread started...");
     while (run_marker_.load()) {
       std::unique_ptr<RawType> payload_ptr;
@@ -153,27 +162,11 @@ private:
       }
       process_callback_(payload_ptr.get());
       write_callback_(std::move(payload_ptr));
-      request_handler_impl_->auto_pop_check();
-      ++packet_count_;                   
+      request_handler_impl_->auto_cleanup_check();
+      ++packet_count_;           
     }
     ERS_INFO("Consumer thread joins...");
   }   
-
-  void run_stats() {
-    // Temporarily, for debugging, a rate checker thread...
-    ERS_INFO("Statistics thread started...");
-    int new_packets = 0;
-    auto t0 = std::chrono::high_resolution_clock::now();
-    while (run_marker_.load()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      new_packets = packet_count_.exchange(0);
-      double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz]");
-      std::this_thread::sleep_for(std::chrono::seconds(5));
-      t0 = now;
-    }
-    ERS_INFO("Statistics thread joins...");
-  }
 
   void run_timesync() {
     ERS_INFO("TimeSync thread started...");
@@ -181,7 +174,18 @@ private:
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
         ERS_INFO("New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
-        timesync_sink_->push(std::move(timesyncmsg));
+        if (timesyncmsg.DAQ_time != 0) {
+          timesync_sink_->push(std::move(timesyncmsg));
+          if (true) { //  if fake trigger
+            dfmessages::DataRequest dr;
+            dr.trigger_timestamp = timesyncmsg.DAQ_time;
+            dr.window_offset = 100;
+            request_handler_impl_->issue_request(dr);
+            ++request_count_;
+          }
+        } else {
+          ERS_INFO("Timesync with DAQ time 0 won't be sent out as it's an invalid sync.");
+        }
       }
       catch (...) { // RS FIXME
         std::runtime_error("TimeSync queue timed out...");
@@ -190,6 +194,41 @@ private:
     }
     ERS_INFO("TimeSync thread joins...");
   } 
+
+  void run_requests() {
+    ERS_INFO("Requester thread started...");
+    while (run_marker_.load()) {
+      dfmessages::DataRequest data_request;
+      try {
+        request_source_->pop(data_request, source_queue_timeout_ms_);
+        request_handler_impl_->issue_request(data_request);
+        ++request_count_;
+      }
+      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        ers::error(QueueTimeoutError(ERS_HERE, " data request source "));
+      }
+    }
+    ERS_INFO("Consumer thread joins...");
+  }
+
+  void run_stats() {
+    // Temporarily, for debugging, a rate checker thread...
+    ERS_INFO("Statistics thread started...");
+    int new_packets = 0;
+    int new_requests = 0;
+    auto t0 = std::chrono::high_resolution_clock::now();
+    while (run_marker_.load()) {
+      auto now = std::chrono::high_resolution_clock::now();
+      new_packets = packet_count_.exchange(0);
+      new_requests = request_count_.exchange(0);
+      double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
+      ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz] "
+        << "Consumed DataRequests: " << new_requests);
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+      t0 = now;
+    }
+    ERS_INFO("Statistics thread joins...");
+  }
 
   // Constuctor params
   std::string raw_type_name_;
@@ -200,10 +239,12 @@ private:
 
   // STATS
   stats::counter_t packet_count_;
+  stats::counter_t request_count_;
   ReusableThread stats_thread_;
 
   // CONSUMER
   ReusableThread consumer_thread_;
+  ReusableThread requester_thread_;
 
   // RAW SOURCE
   std::chrono::milliseconds source_queue_timeout_ms_;

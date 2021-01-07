@@ -28,7 +28,9 @@ public:
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
 
-  virtual void consume() = 0;
+  virtual void run_consume() = 0;
+  virtual void run_timesync() = 0;
+  virtual void run_requests() = 0;
 
 private:
 

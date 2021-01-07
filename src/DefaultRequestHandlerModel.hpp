@@ -39,13 +39,17 @@ public:
                                       std::function<size_t()>& occupancy_callback,
                                       std::function<bool(RawType&)>& read_callback,
                                       std::function<void(unsigned)>& pop_callback,
-                                      std::function<RawType*()>& front_callback)
+                                      std::function<RawType*()>& front_callback,
+                                      std::unique_ptr<appfwk::DAQSource<dfmessages::DataRequest>>& request_source,
+                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
   : raw_type_name_(rawtype)
   , run_marker_(marker)
   , occupancy_callback_(occupancy_callback)
   , read_callback_(read_callback)
   , pop_callback_(pop_callback)
   , front_callback_(front_callback)
+  , request_source_(request_source)
+  , fragment_sink_(fragment_sink)
   , pop_limit_pct_(0.0f)
   , pop_size_pct_(0.0f)
   , pop_limit_size_(0)
@@ -57,8 +61,8 @@ public:
   , stats_thread_(0)
   {
     ERS_INFO("DefaultRequestHandlerModel created...");
-    auto_pop_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::auto_pop, this);
-    //data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::
+    cleanup_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, this, std::placeholders::_1);
+    data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::data_request, this, std::placeholders::_1);
   }
 
   void conf(const nlohmann::json& args)
@@ -94,23 +98,25 @@ public:
     }
   }
  
-  void auto_pop_check()
+  void auto_cleanup_check()
   {
     auto size_guess = occupancy_callback_();
     if (size_guess > pop_limit_size_) {
-      auto execfut = std::async(std::launch::deferred, auto_pop_callback_);
-      request_queue_.push(std::move(execfut));              
+      dfmessages::DataRequest dr;
+      auto execfut = std::async(std::launch::deferred, cleanup_request_callback_, dr);
+      completion_queue_.push(std::move(execfut));              
     }
   }
 
   // DataRequest struct!?
-  void issue_request() 
+  void issue_request(dfmessages::DataRequest datarequest) 
   {
-    //request_queue_.push( 
+    auto reqfut = std::async(std::launch::async, data_request_callback_, datarequest);
+    completion_queue_.push(std::move(reqfut));
   }
 
 protected:
-  void auto_pop()
+  void cleanup_request(dfmessages::DataRequest /*dr*/)
   {
     auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = occupancy_callback_();
@@ -124,14 +130,19 @@ protected:
     }
   }
 
+  void data_request(dfmessages::DataRequest dr)
+  {
+    // TODO: ers::error (DefaultImplementation)
+  }
+
   void executor()
   {
     std::future<void> fut;
     while (run_marker_.load()) {
-      if (request_queue_.empty()) {
+      if (completion_queue_.empty()) {
         std::this_thread::sleep_for(std::chrono::microseconds(50));
       } else {
-        bool success = request_queue_.try_pop(fut);
+        bool success = completion_queue_.try_pop(fut);
         if (!success) {
           //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
         } else {
@@ -153,7 +164,7 @@ protected:
       new_pop_count = pops_count_.exchange(0);
       new_occupancy = occupancy_;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_INFO("Pop request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+      ERS_INFO("Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
           << " Occupancy: " << new_occupancy);
       std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -168,17 +179,21 @@ protected:
   std::function<void(unsigned)>& pop_callback_;
   std::function<RawType*()>& front_callback_;
 
-  // Internals
-  typedef tbb::concurrent_queue<std::future<void>> RequestQueue;
-  RequestQueue request_queue_;
+  // Request source and Fragment sink
+  std::unique_ptr<appfwk::DAQSource<dfmessages::DataRequest>>& request_source_;
+  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink_;
 
-  // Pop on buffer is a special request
-  typedef std::function<void()> AutoPopCallback;
-  AutoPopCallback auto_pop_callback_;
+  // Requests
+  typedef std::function<void(dfmessages::DataRequest)> RequestCallback;
+  RequestCallback cleanup_request_callback_;
+  RequestCallback data_request_callback_;
 
-  // Data request
-  typedef std::function<void()> DataRequestCallback;
-  DataRequestCallback data_request_callback_;
+  // Completion of requests requests
+  typedef tbb::concurrent_queue<std::future<void>> CompletionQueue;
+  CompletionQueue completion_queue_;
+
+  //typedef std::function<void()> CleanupRequestCallback;
+  //CleanupRequestCallback cleanup_request_callback_;
 
 private:
   // Configuration
