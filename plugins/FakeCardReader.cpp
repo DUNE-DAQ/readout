@@ -114,10 +114,11 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
   unsigned num_elem = source_buffer_->num_elements();
   unsigned num_frames = num_elem * 12;
   uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data())->wib_header()->timestamp();
-  ERS_INFO("First timestamp in the source file: " << ts_0);
+  ERS_INFO("First timestamp in the source file: " << ts_0 << "; number of links is: " << output_queues_.size());
   uint64_t ts_next = ts_0;
   uint64_t ts_nextlink = ts_0;
   // Run until stop marker
+  
   while (running_flag.load()) {
 
    for (auto myqueue : output_queues_) {
@@ -132,7 +133,7 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
       ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::WIB_SUPERCHUNK_SIZE), constant::WIB_SUPERCHUNK_SIZE);
 
       // fake the timestamp
-      uint64_t ts_next = ts_nextlink;
+      ts_next = ts_nextlink;
       for (unsigned int i=0; i<12; ++i) {
         auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
         auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
