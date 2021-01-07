@@ -109,11 +109,10 @@ public:
     raw_processor_impl_->conf(args);
     request_handler_impl_->conf(args);
 
-    // 
-
     // Configure threads:
     stats_thread_.set_name("stats", 0);
     consumer_thread_.set_name("consumer", 0);
+    timesync_thread_.set_name("timesync", 0);
   }
 
   void start(const nlohmann::json& args) {
@@ -213,8 +212,13 @@ private:
 
   // REQUEST SOURCE
   std::chrono::milliseconds request_queue_timeout_ms_;
-  using requests_source_qt = appfwk::DAQSource<std::unique_ptr<dfmessages::DataRequest>>;
-  std::unique_ptr<requests_source_qt> requests_source_; 
+  using request_source_qt = appfwk::DAQSource<dfmessages::DataRequest>;
+  std::unique_ptr<request_source_qt> request_source_; 
+
+  // FRAGMENT SINK
+  std::chrono::milliseconds fragment_queue_timeout_ms_;
+  using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
+  std::unique_ptr<fragment_sink_qt> fragment_sink_;
 
   // LATENCY BUFFER:
   size_t latency_buffer_size_;

@@ -8,6 +8,9 @@
 #ifndef UDAQ_READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
 #define UDAQ_READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
 
+#include "dfmessages/DataRequest.hpp"
+#include "dataformats/Fragment.hpp"
+
 namespace dunedaq {
 namespace readout {
 
@@ -30,7 +33,7 @@ public:
 
   // requests
   virtual void auto_pop_check() = 0;
-  //virtual void issue_request() = 0;
+  virtual void issue_request() = 0;
 
 protected:
   virtual void auto_pop() = 0;

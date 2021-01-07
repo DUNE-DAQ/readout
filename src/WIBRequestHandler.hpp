@@ -37,17 +37,10 @@ public:
       occupancy_callback, read_callback, pop_callback, front_callback)
   {
     ERS_INFO("WIBRequestHandler created...");
-    time_sync_callback_ = std::bind(&WIBRequestHandler::time_sync_handle, this);
     data_request_callback_ = std::bind(&WIBRequestHandler::data_request_handle, this);
   } 
 
 protected:
-  void time_sync_handle() {
-    if (occupancy_callback_() > 0) {
-      auto *wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(front_callback_());
-      //wfptr->wib_header()->print();
-    }
-  }
 
   void data_request_handle() {
   

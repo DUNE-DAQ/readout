@@ -17,6 +17,9 @@
 
 #include "readout/datalinkhandler/Structs.hpp"
 
+#include "dfmessages/DataRequest.hpp"
+#include "dataformats/Fragment.hpp"
+
 #include <tbb/concurrent_queue.h>
 
 #include <atomic>
@@ -55,6 +58,7 @@ public:
   {
     ERS_INFO("DefaultRequestHandlerModel created...");
     auto_pop_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::auto_pop, this);
+    //data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::
   }
 
   void conf(const nlohmann::json& args)
@@ -102,7 +106,7 @@ public:
   // DataRequest struct!?
   void issue_request() 
   {
-  
+    //request_queue_.push( 
   }
 
 protected:
@@ -122,19 +126,19 @@ protected:
 
   void executor()
   {
-   std::future<void> fut;
-   while (run_marker_.load()) {
-     if (request_queue_.empty()) {
-       std::this_thread::sleep_for(std::chrono::microseconds(50));
-     } else {
-       bool success = request_queue_.try_pop(fut);
-       if (!success) {
-         //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
-       } else {
-         fut.wait(); // trigger execution
-       }
-     }
-   }
+    std::future<void> fut;
+    while (run_marker_.load()) {
+      if (request_queue_.empty()) {
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+      } else {
+        bool success = request_queue_.try_pop(fut);
+        if (!success) {
+          //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
+        } else {
+          fut.wait(); // trigger execution
+        }
+      }
+    }
   }
 
   void run_stats() {
@@ -152,10 +156,6 @@ protected:
       ERS_INFO("Pop request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
           << " Occupancy: " << new_occupancy);
-
-#warning RS -> TBR just testing timesync callback. 
-      time_sync_callback_();
-
       std::this_thread::sleep_for(std::chrono::seconds(5));
       t0 = now;
     }
@@ -175,10 +175,6 @@ protected:
   // Pop on buffer is a special request
   typedef std::function<void()> AutoPopCallback;
   AutoPopCallback auto_pop_callback_;
-
-  // Time sync is a special request
-  typedef std::function<void()> TimeSyncCallback;
-  TimeSyncCallback time_sync_callback_;
 
   // Data request
   typedef std::function<void()> DataRequestCallback;
