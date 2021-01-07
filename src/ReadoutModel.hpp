@@ -103,8 +103,7 @@ public:
     }
 
     request_handler_impl_ = createRequestHandler<RawType>(raw_type_name_, run_marker_, 
-        occupancy_callback_,  read_callback_, pop_callback_, front_callback_,
-        request_source_, fragment_sink_);
+        occupancy_callback_,  read_callback_, pop_callback_, front_callback_, fragment_sink_);
     if(request_handler_impl_.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", raw_type_name_));
     }
@@ -274,7 +273,7 @@ private:
   std::function<void(std::unique_ptr<RawType>)> write_callback_;
   std::function<bool(RawType&)> read_callback_;
   std::function<void(unsigned)> pop_callback_;
-  std::function<RawType*()> front_callback_;
+  std::function<RawType*(unsigned)> front_callback_;
 
   // RAW PROCESSING:
   std::unique_ptr<RawDataProcessorConcept> raw_processor_impl_;

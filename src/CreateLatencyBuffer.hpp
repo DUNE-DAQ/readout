@@ -23,7 +23,7 @@ createLatencyBuffer(const std::string& rawtype, int qsize,
                     std::function<void(std::unique_ptr<RawType>)>& write_override,
                     std::function<bool(RawType&)>& read_override,
                     std::function<void(unsigned)>& pop_override,
-                    std::function<RawType*()>& front_override) 
+                    std::function<RawType*(unsigned)>& front_override) 
 {
   if (rawtype == "wib") {
     return std::make_unique<ContinousLatencyBufferModel<RawType>>(qsize, 

@@ -39,8 +39,7 @@ public:
                                       std::function<size_t()>& occupancy_callback,
                                       std::function<bool(RawType&)>& read_callback,
                                       std::function<void(unsigned)>& pop_callback,
-                                      std::function<RawType*()>& front_callback,
-                                      std::unique_ptr<appfwk::DAQSource<dfmessages::DataRequest>>& request_source,
+                                      std::function<RawType*(unsigned)>& front_callback,
                                       std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
   : raw_type_name_(rawtype)
   , run_marker_(marker)
@@ -48,7 +47,6 @@ public:
   , read_callback_(read_callback)
   , pop_callback_(pop_callback)
   , front_callback_(front_callback)
-  , request_source_(request_source)
   , fragment_sink_(fragment_sink)
   , pop_limit_pct_(0.0f)
   , pop_size_pct_(0.0f)
@@ -177,10 +175,9 @@ protected:
   std::function<size_t()>& occupancy_callback_;
   std::function<bool(RawType&)>& read_callback_; 
   std::function<void(unsigned)>& pop_callback_;
-  std::function<RawType*()>& front_callback_;
+  std::function<RawType*(unsigned)>& front_callback_;
 
   // Request source and Fragment sink
-  std::unique_ptr<appfwk::DAQSource<dfmessages::DataRequest>>& request_source_;
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink_;
 
   // Requests
