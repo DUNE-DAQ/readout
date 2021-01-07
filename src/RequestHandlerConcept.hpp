@@ -32,11 +32,12 @@ public:
   virtual void stop(const nlohmann::json& args) = 0;
 
   // requests
-  virtual void auto_pop_check() = 0;
-  virtual void issue_request() = 0;
+  virtual void auto_cleanup_check() = 0;
+  virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:
-  virtual void auto_pop() = 0;
+  virtual void cleanup_request(dfmessages::DataRequest /*dr*/) = 0;
+  virtual void data_request(dfmessages::DataRequest /*dr*/) = 0;
   virtual void executor() = 0;
 
 private:
