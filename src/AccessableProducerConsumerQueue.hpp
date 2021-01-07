@@ -132,6 +132,7 @@ template <class T> struct AccessableProducerConsumerQueue {
   T *readPtr(size_t index) {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
     if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
+      // RS FIXME -> not enough assumption. More strict check on writeIndex is needed
       // queue is empty
       return nullptr;
     }
