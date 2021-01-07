@@ -39,6 +39,7 @@ class ReadoutModel : public ReadoutConcept {
 public:
   explicit ReadoutModel(const nlohmann::json& args, std::atomic<bool>& run_marker)
   : raw_type_name_("")
+  , fake_trigger_(false)
   , stats_thread_(0)
   , timesync_thread_(0)
   , consumer_thread_(0)
@@ -63,6 +64,7 @@ public:
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
     raw_type_name_ = conf.raw_type;
+    fake_trigger_ = true; //conf.fake_trigger;
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
@@ -176,10 +178,15 @@ private:
         ERS_INFO("New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
         if (timesyncmsg.DAQ_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
-          if (true) { //  if fake trigger
+          if (fake_trigger_) {
             dfmessages::DataRequest dr;
-            dr.trigger_timestamp = timesyncmsg.DAQ_time;
+            dr.trigger_timestamp = timesyncmsg.DAQ_time - 500*time::us;
+            dr.window_width = 1000;
             dr.window_offset = 100;
+            ERS_INFO("Issuing fake trigger based on timesync. "
+              << " ts=" << dr.trigger_timestamp
+              << " window_width=" << dr.window_width
+              << " window_offset=" << dr.window_offset);
             request_handler_impl_->issue_request(dr);
             ++request_count_;
           }
@@ -208,7 +215,7 @@ private:
         ers::error(QueueTimeoutError(ERS_HERE, " data request source "));
       }
     }
-    ERS_INFO("Consumer thread joins...");
+    ERS_INFO("Requester thread joins...");
   }
 
   void run_stats() {
@@ -236,6 +243,7 @@ private:
 
   // CONFIGURATION
   appfwk::cmd::ModInit queue_config_;
+  bool fake_trigger_;
 
   // STATS
   stats::counter_t packet_count_;
