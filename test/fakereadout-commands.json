@@ -76,7 +76,7 @@
                     "data": {
                         "data_filename": "/tmp/frames.bin",
                         "input_limit": 10485100,
-                        "link_id": 0,
+                        "link_ids": [0],
                         "queue_timeout_ms": 2000,
                         "rate_khz": 166,
                         "raw_type": "wib"
