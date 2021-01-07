@@ -60,6 +60,26 @@ protected:
           << "MinNumElements=" << min_num_elements << " "
           << "Occupancy=" << occupancy_guess
     );
+#warning RS FIXME -> replying with empty fragment.
+    dataformats::FragmentHeader fraghead;
+    fraghead.size = 0;
+    fraghead.trigger_number = dr.trigger_number;
+    fraghead.trigger_timestamp = dr.trigger_timestamp;
+    fraghead.window_offset = dr.window_offset;
+    fraghead.window_width = dr.window_width;
+    fraghead.run_number = dr.run_number;
+
+    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+    frag->set_header(fraghead);
+    try {
+        fragment_sink_->push( std::move(std::make_unique<dataformats::Fragment>(frag_pieces)) );
+    } 
+    catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
+    }    
+    return;
+
+/*
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) { // RS FIXME -> timestamp boundary
       ERS_INFO("Out of bound reqested timestamp based on latency buffer occupancy!");
 
@@ -73,15 +93,14 @@ protected:
       return;
     } else {
       //auto neededheader = *(reinterpret_cast<const dataformats::WIBHeader*>( (char*)(front_callback_())-(num_element_offset*element_size_) ));
-      /*
       size_t frag_size = wib_frame_size_ * num_elements_in_window;
       for (unsigned i=0; i<num_elements_in_window; ++i) {
         char* start_ptr = (char*)front_callback_() + (i*element_size)
         frag_pieces.emplace_back( 
           std::make_pair<void*, size_t>( front_callback_()
       }
-      */
     }
+*/
   }
 
 private:
