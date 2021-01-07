@@ -4,6 +4,8 @@ local cmd = import "appfwk-cmd-make.jsonnet";
 local qdict = {
   fake_link: cmd.qspec("fakelink-0", "FollySPSCQueue",  100000),
   time_sync: cmd.qspec("ts-sync-out", "FollyMPMCQueue",  1000),
+  requests_in: cmd.qspec("requests-in", "FollyMPMCQueue",  1000),
+  frags_out: cmd.qspec("frags-out", "FollyMPMCQueue",  1000),
 };
 
 local qspec_list = [

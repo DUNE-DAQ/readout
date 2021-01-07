@@ -42,17 +42,17 @@
                 },
                 {
                     "capacity": 1000,
-                    "inst": "ts-sync-out",
-                    "kind": "FollyMPMCQueue"
-                },
-                {
-                    "capacity": 1000,
                     "inst": "frags-out",
                     "kind": "FollyMPMCQueue"
                 },
                 {
                     "capacity": 1000,
                     "inst": "requests-in",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "ts-sync-out",
                     "kind": "FollyMPMCQueue"
                 }
             ]
