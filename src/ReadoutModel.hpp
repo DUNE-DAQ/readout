@@ -243,8 +243,8 @@ private:
   bool fake_trigger_;
 
   // STATS
-  stats::counter_t packet_count_;
-  stats::counter_t request_count_;
+  stats::counter_t packet_count_{0};
+  stats::counter_t request_count_{0};
   ReusableThread stats_thread_;
 
   // CONSUMER

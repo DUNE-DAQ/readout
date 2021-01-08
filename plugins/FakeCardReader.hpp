@@ -84,7 +84,7 @@ private:
   std::atomic<bool> run_marker_;
 
   // Stats
-  stats::counter_t packet_count_;
+  stats::counter_t packet_count_{0};
   ReusableThread stats_thread_;
   void run_stats();
 
