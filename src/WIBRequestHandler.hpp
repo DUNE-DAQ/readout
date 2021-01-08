@@ -87,7 +87,7 @@ protected:
       ++bad_requested_count_;
     } else {
       auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
-      fromheader.print();
+      //fromheader.print();
       size_t piecesize = element_size_;
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
         frag_pieces.emplace_back( 
