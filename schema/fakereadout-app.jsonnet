@@ -19,8 +19,10 @@ local qspec_list = [
       cmd.qinfo("output", qdict.fake_link.inst, cmd.qdir.output)),
 
       cmd.mspec("fake-handler", "DataLinkHandler", [
-        cmd.qinfo("input", qdict.fake_link.inst, cmd.qdir.input),
-        cmd.qinfo("timesync", qdict.time_sync.inst, cmd.qdir.output)
+        cmd.qinfo("raw-input", qdict.fake_link.inst,   cmd.qdir.input),
+        cmd.qinfo("timesync",  qdict.time_sync.inst,   cmd.qdir.output),
+        cmd.qinfo("requests",  qdict.requests_in.inst, cmd.qdir.input),
+        cmd.qinfo("fragments", qdict.frags_out.inst,   cmd.qdir.output)
         ]),
     ]
   ) {},
@@ -41,7 +43,9 @@ local qspec_list = [
         "source_queue_timeout_ms": 2000,
         "latency_buffer_size": 100000,
         "pop_limit_pct": 0.8,
-        "pop_size_pct": 0.3
+        "pop_size_pct": 0.3,
+        "apa_number": 1,
+        "link_number": 2
       }
       )
     ]

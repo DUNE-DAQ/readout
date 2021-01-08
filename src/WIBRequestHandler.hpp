@@ -43,6 +43,15 @@ public:
     data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, this, std::placeholders::_1);
   } 
 
+  void conf(const nlohmann::json& args) override
+  {
+    // Call up to the base class, whose conf function does useful things
+    DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>::conf(args);
+    auto config = args.get<datalinkhandler::Conf>();
+    apa_number_ = config.apa_number;
+    link_number_ = config.link_number;
+  }
+  
 protected:
 
   inline dataformats::FragmentHeader 
@@ -55,6 +64,7 @@ protected:
     fh.window_offset = dr.window_offset;
     fh.window_width = dr.window_width;
     fh.run_number = dr.run_number;
+    fh.link_ID = { apa_number_, link_number_ };
     return std::move(fh);
   }
 
@@ -122,6 +132,9 @@ private:
   // Stats
   stats::counter_t found_requested_count_{0};
   stats::counter_t bad_requested_count_{0};
+
+  uint32_t apa_number_;
+  uint32_t link_number_;
 
 };
 
