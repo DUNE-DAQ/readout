@@ -56,7 +56,8 @@ protected:
   create_fragment_header(const dfmessages::DataRequest& dr) 
   {
     dataformats::FragmentHeader fh;
-    fh.trigger_number = dr.trigger_number;
+    fh.size = sizeof(dataformats::FragmentHeader);
+    fh.trigger_number = dr.trigger_number;    
     fh.trigger_timestamp = dr.trigger_timestamp;
     fh.window_offset = dr.window_offset;
     fh.window_width = dr.window_width;
