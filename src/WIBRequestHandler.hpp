@@ -75,11 +75,14 @@ protected:
       << "Occupancy=" << occupancy_guess
     );
 
-    // Prepare Fragment pieces
-    std::vector<std::pair<void*, size_t>> frag_pieces;
-
-    // Prepare Fragment header
+    // Prepare FragmentHeader and empty Fragment
     auto frag_header = create_fragment_header(dr);
+    std::vector<std::pair<void*, size_t>> frag_pieces;
+    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+    frag->set_header(frag_header);
+    fragment_sink_->push( std::move(frag) );
+    return;
+
 #warning RS FIXME -> fix/enforce every timestamp boundary & occupancy checks
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
       ERS_INFO("Out of bound reqested timestamp based on latency buffer occupancy!");
