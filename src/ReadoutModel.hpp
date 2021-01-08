@@ -64,7 +64,7 @@ public:
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
     raw_type_name_ = conf.raw_type;
-    fake_trigger_ = true; //conf.fake_trigger;
+    fake_trigger_ = false; //conf.fake_trigger;
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
@@ -172,7 +172,7 @@ private:
     while (run_marker_.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
-        ERS_INFO("New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
+        //ERS_INFO("New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
         if (timesyncmsg.DAQ_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
           if (fake_trigger_) {
