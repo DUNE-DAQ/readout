@@ -16,6 +16,8 @@
 
 #include "dataformats/wib/WIBFrame.hpp"
 
+#include "ReadoutStatistics.hpp"
+
 #include <atomic>
 #include <thread>
 #include <functional>
@@ -56,9 +58,8 @@ protected:
     return std::move(fh);
   }
 
-  void tpc_data_request(dfmessages::DataRequest dr)
-  {
-    // every necessary info about data availability is calculated here
+  void tpc_data_request(dfmessages::DataRequest dr) {
+    // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
     uint_fast64_t start_win_ts = dr.trigger_timestamp - (uint_fast64_t)(dr.window_offset * tick_dist_);
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
@@ -75,46 +76,53 @@ protected:
       << "Occupancy=" << occupancy_guess
     );
 
-    // Prepare FragmentHeader and empty Fragment
+    // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
-    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
-    frag->set_header(frag_header);
-    fragment_sink_->push( std::move(frag) );
-    return;
 
-#warning RS FIXME -> fix/enforce every timestamp boundary & occupancy checks
+#warning RS FIXME -> fix/enforce every possible timestamp boundary & occupancy checks
+    // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
       ERS_INFO("Out of bound reqested timestamp based on latency buffer occupancy!");
-      try {
-        auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
-        frag->set_header(frag_header);
-        fragment_sink_->push( std::move(frag) );
-      } 
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
-      }
-      return;
+      ++bad_requested_count_;
     } else {
       auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
       fromheader.print();
-      
-      size_t frag_size = wib_frame_size_ * num_elements_in_window;
-      //for (unsigned i=0; i<num_elements_in_window; ++i) {
-        //char* start_ptr = (char*)front_callback_() + (i*element_size)
-        //frag_pieces.emplace_back( 
-        //  std::make_pair<void*, size_t>( front_callback_()
-      //}
+      size_t piecesize = element_size_;
+      for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
+        frag_pieces.emplace_back( 
+          std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
+        ); 
+      }
+      ++found_requested_count_;
     }
 
+    // Finish Request handling with Fragment creation
+    try {
+      // Create fragment from pieces
+      auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+      // Set header
+      frag->set_header(frag_header);
+      // Push to Fragment queue
+      fragment_sink_->push( std::move(frag) );
+    } 
+    catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
+    }
   }
 
 private:
+  // Constants
   const uint_fast64_t tick_dist_ = 25;
   const size_t wib_frame_size_ = 464;
   const uint_fast8_t frames_per_element_ = 12;
   const size_t element_size_ = wib_frame_size_ * frames_per_element_;
   const uint_fast64_t safe_num_elements_margin_ = 10;
+
+  // Stats
+  stats::counter_t found_requested_count_{0};
+  stats::counter_t bad_requested_count_{0};
+
 };
 
 }
