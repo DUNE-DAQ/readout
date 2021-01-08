@@ -16,6 +16,12 @@ local datalinkhandler = {
     size: s.number("Size", "u8",
                    doc="A count of very many things"),
 
+    apa_number: s.number("APANumber", "u4",
+                         doc="An APA number"),
+
+    link_number: s.number("LinkNumber", "u4",
+                        doc="A link number"),
+
     count : s.number("Count", "i4",
                      doc="A count of not too many things"),
 
@@ -35,7 +41,11 @@ local datalinkhandler = {
         s.field("pop_limit_pct", self.pct, 0.5,
                 doc="Latency buffer occupancy percentage to issue an auto-pop"),
         s.field("pop_size_pct", self.pct, 0.8,
-                doc="Percentage of current occupancy to pop from the latency buffer")
+                doc="Percentage of current occupancy to pop from the latency buffer"),
+        s.field("apa_number", self.apa_number, 0,
+                doc="The APA number of this link"),
+        s.field("link_number", self.link_number, 0,
+                doc="The link number of this link")
     ], doc="Generic readout element configuration"),
 
 };
