@@ -27,7 +27,7 @@ namespace readout {
  */
 class RateLimiter {
 public:
-  RateLimiter(unsigned long long kilohertz)
+  RateLimiter(double kilohertz)
   : kilohertz_(kilohertz)
   , max_overshoot_(10 * time::ms)
   , period_((1000./kilohertz_) * time::us)
@@ -59,7 +59,7 @@ protected:
   }
 
 private:
-  unsigned long long kilohertz_;
+  double kilohertz_;
   time::timestamp_t max_overshoot_;
   time::timestamp_t period_;
   time::timestamp_t now_;

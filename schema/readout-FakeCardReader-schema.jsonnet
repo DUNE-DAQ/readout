@@ -16,6 +16,9 @@ local fakecardreader = {
     uint4  : s.number("uint4", "u4",
                      doc="An unsigned of 4 bytes"),
 
+    khz  : s.number("khz", "f8",
+                     doc="A frequency in kHz"),
+  
     linkid : s.number("linkid", "i4",
                      doc="A count of not too many things"),
 
@@ -32,7 +35,7 @@ local fakecardreader = {
         s.field("input_limit", self.uint4, 10485100,
                 doc="Maximum allowed file size"),
 
-        s.field("rate_khz", self.uint4, 166,
+        s.field("rate_khz", self.khz, 166,
                 doc="Rate of ratelimiter"),
 
         s.field("raw_type", self.str, "wib",
