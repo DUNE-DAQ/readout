@@ -34,8 +34,6 @@ namespace readout {
 FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
-  , rate_limiter_(nullptr)
-  , worker_thread_(std::bind(&FakeCardReader::do_work, this, std::placeholders::_1))
   , run_marker_{false}
   , packet_count_{0}
   , stats_thread_(0)
@@ -76,9 +74,6 @@ FakeCardReader::do_conf(const data_t& args)
     source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
     source_buffer_->read(cfg_.data_filename);
 
-    // Prepare ratelimiter
-    rate_limiter_ = std::make_unique<RateLimiter>(cfg_.rate_khz);
-
     // Mark configured
     configured_ = true;
   }
@@ -89,24 +84,31 @@ FakeCardReader::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
   stats_thread_.set_work(&FakeCardReader::run_stats, this);
-  worker_thread_.start_working_thread();
+  int idx=0;
+  for (auto my_queue : output_queues_) {
+    worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
+    ++idx;
+  }
 }
 
 void 
 FakeCardReader::do_stop(const data_t& /*args*/)
 {
   run_marker_.store(false);
-  worker_thread_.stop_working_thread();
+  for (auto& work_thread : worker_threads_) {
+    work_thread.join();
+  }
   while (!stats_thread_.get_readiness()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));            
   }
 }
 
 void 
-FakeCardReader::do_work(std::atomic<bool>& running_flag) 
+FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
 {
   // Init ratelimiter, element offset and source buffer ref
-  rate_limiter_->init();
+  dunedaq::readout::RateLimiter rate_limiter(cfg_.rate_khz);
+  rate_limiter.init();
   int offset = 0;
   auto& source = source_buffer_->get();
 
@@ -114,15 +116,12 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
   unsigned num_elem = source_buffer_->num_elements();
   unsigned num_frames = num_elem * 12;
   uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data())->wib_header()->timestamp();
-  ERS_INFO("First timestamp in the source file: " << ts_0 << "; number of links is: " << output_queues_.size());
+  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
   uint64_t ts_next = ts_0;
-  uint64_t ts_nextlink = ts_0;
+
   // Run until stop marker
   
-  while (running_flag.load()) {
-
-   for (auto myqueue : output_queues_) {
-
+  while (run_marker_.load()) {
       // Which element to push to the buffer
       if (offset == num_elem) {
         offset = 0;
@@ -133,7 +132,6 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
       ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::WIB_SUPERCHUNK_SIZE), constant::WIB_SUPERCHUNK_SIZE);
 
       // fake the timestamp
-      ts_next = ts_nextlink;
       for (unsigned int i=0; i<12; ++i) {
         auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
         auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
@@ -148,13 +146,10 @@ FakeCardReader::do_work(std::atomic<bool>& running_flag)
         std::runtime_error("Queue timed out...");
       }
 
-    }
-    ts_nextlink = ts_next; // set timestamp for next iteration
-
     // Count packet and limit rate if needed.
     ++offset;
     ++packet_count_;
-    rate_limiter_->limit();
+    rate_limiter.limit();
   }
 }
 
