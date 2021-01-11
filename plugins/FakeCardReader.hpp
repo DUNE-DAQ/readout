@@ -18,7 +18,6 @@
 // appfwk
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSink.hpp"
-#include "appfwk/ThreadHelper.hpp"
 
 // package
 #include "ReadoutTypes.hpp"
@@ -56,10 +55,13 @@ public:
   void init(const data_t&) override;
 
 private:
+  using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
   // Commands
   void do_conf(const data_t& /*args*/);
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
+
+  void generate_data(sink_t* queue, int link_id);
 
   // Configuration
   bool configured_;
@@ -68,17 +70,14 @@ private:
 
   // appfwk Queues
   std::chrono::milliseconds queue_timeout_ms_;
-  using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
   //std::vector<std::unique_ptr<sink_t>> output_queues_;
   std::vector<sink_t*> output_queues_;
 
   // Internals
   std::unique_ptr<FileSourceBuffer> source_buffer_;
-  std::unique_ptr<RateLimiter> rate_limiter_;
 
   // Processor
-  dunedaq::appfwk::ThreadHelper worker_thread_;
-  void do_work(std::atomic<bool>& running_flag);
+  std::vector<std::thread> worker_threads_;
 
   // Threading
   std::atomic<bool> run_marker_;
