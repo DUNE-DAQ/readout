@@ -64,7 +64,7 @@ protected:
     fh.window_offset = dr.window_offset;
     fh.window_width = dr.window_width;
     fh.run_number = dr.run_number;
-    fh.link_ID = { apa_number_, link_number_ };
+    fh.link_id = { apa_number_, link_number_ };
     return std::move(fh);
   }
 
@@ -112,7 +112,7 @@ protected:
       // Create fragment from pieces
       auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
       // Set header
-      frag->set_header(frag_header);
+      frag->set_header_fields(frag_header);
       // Push to Fragment queue
       fragment_sink_->push( std::move(frag) );
     } 
