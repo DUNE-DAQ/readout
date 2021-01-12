@@ -51,10 +51,12 @@ protected:
       ++ts_error_ctr_;
       if (first_ts_missmatch_) {
         //wfptr->wib_header()->print();
-        ERS_INFO("First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_);
+        //ERS_INFO("First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_);
         first_ts_missmatch_ = false;
       }
-      ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
+      else {
+        ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
+      }
     }
     previous_ts_ = current_ts_;
     last_processed_daq_ts_ = current_ts_;

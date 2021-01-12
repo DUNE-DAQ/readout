@@ -164,7 +164,7 @@ FakeCardReader::run_stats()
     new_packets = packet_count_.exchange(0);
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
     ERS_INFO("Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]");
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(30));
     t0 = now;
   }
 }
