@@ -94,6 +94,10 @@ protected:
     // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
       ERS_INFO("Out of bound reqested timestamp based on latency buffer occupancy!");
+      // PAR 2021-01-12: At some point, the error bits will have
+      // well-defined meanings, but at time of writing they don't, so
+      // we just set an arbitrary error bit
+      frag_header.error_bits |= 0x1;
       ++bad_requested_count_;
     } else {
       auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
