@@ -43,6 +43,15 @@ public:
     data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, this, std::placeholders::_1);
   } 
 
+  void conf(const nlohmann::json& args) override
+  {
+    // Call up to the base class, whose conf function does useful things
+    DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>::conf(args);
+    auto config = args.get<datalinkhandler::Conf>();
+    apa_number_ = config.apa_number;
+    link_number_ = config.link_number;
+  }
+  
 protected:
 
   inline dataformats::FragmentHeader 
@@ -55,22 +64,25 @@ protected:
     fh.window_offset = dr.window_offset;
     fh.window_width = dr.window_width;
     fh.run_number = dr.run_number;
+    fh.link_id = { apa_number_, link_number_ };
     return std::move(fh);
   }
 
   void tpc_data_request(dfmessages::DataRequest dr) {
     // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
-    uint_fast64_t start_win_ts = dr.trigger_timestamp - (uint_fast64_t)(dr.window_offset * tick_dist_);
+    //uint_fast64_t start_win_ts = dr.trigger_timestamp - (uint_fast64_t)(dr.window_offset * tick_dist_);
+    uint_fast64_t start_win_ts = dr.trigger_timestamp - dr.window_offset;
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
     uint_fast64_t last_ts = front_wh.timestamp();
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = dr.window_width / frames_per_element_ + 1;
-    uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width) / frames_per_element_ + safe_num_elements_margin_;
-    ERS_INFO("TPC (WIB frame) data request for " 
+    uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_*frames_per_element_) + 1;
+    uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) / frames_per_element_ + safe_num_elements_margin_;
+    ERS_DEBUG(2,"TPC (WIB frame) data request for " 
+      << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
-      << "ElementOffset=" << num_element_offset << ".th "
+      << "ElementOffset=" << num_element_offset << " "
       << "ElementsInWindow=" << num_elements_in_window << " "
       << "MinNumElements=" << min_num_elements << " "
       << "Occupancy=" << occupancy_guess
@@ -83,7 +95,15 @@ protected:
 #warning RS FIXME -> fix/enforce every possible timestamp boundary & occupancy checks
     // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
-      ERS_INFO("Out of bound reqested timestamp based on latency buffer occupancy!");
+      ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! Triggered window first ts: " << start_win_ts << " "
+        << "Trigger TS=" << dr.trigger_timestamp << " " 
+        << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
+        << "ElementOffset=" << num_element_offset << ".th "
+        << "ElementsInWindow=" << num_elements_in_window << " "
+        << "MinNumElements=" << min_num_elements << " "
+        << "Occupancy=" << occupancy_guess
+      );
+      frag_header.error_bits |= 0x1; // error bit for not-found data
       ++bad_requested_count_;
     } else {
       auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
@@ -102,7 +122,7 @@ protected:
       // Create fragment from pieces
       auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
       // Set header
-      frag->set_header(frag_header);
+      frag->set_header_fields(frag_header);
       // Push to Fragment queue
       fragment_sink_->push( std::move(frag) );
     } 
@@ -113,7 +133,7 @@ protected:
 
 private:
   // Constants
-  const uint_fast64_t tick_dist_ = 25;
+  const uint_fast64_t tick_dist_ = 25; // 2 MHz@50MHz clock
   const size_t wib_frame_size_ = 464;
   const uint_fast8_t frames_per_element_ = 12;
   const size_t element_size_ = wib_frame_size_ * frames_per_element_;
@@ -122,6 +142,9 @@ private:
   // Stats
   stats::counter_t found_requested_count_{0};
   stats::counter_t bad_requested_count_{0};
+
+  uint32_t apa_number_;
+  uint32_t link_number_;
 
 };
 

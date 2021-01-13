@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -106,6 +107,9 @@ FakeCardReader::do_stop(const data_t& /*args*/)
 void 
 FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
 {
+  std::stringstream ss;
+  ss << "card-reader-" << linkid;
+  pthread_setname_np(pthread_self(), ss.str().c_str());
   // Init ratelimiter, element offset and source buffer ref
   dunedaq::readout::RateLimiter rate_limiter(cfg_.rate_khz);
   rate_limiter.init();
@@ -151,6 +155,7 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
     ++packet_count_;
     rate_limiter.limit();
   }
+  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
 }
 
 void
@@ -164,7 +169,9 @@ FakeCardReader::run_stats()
     new_packets = packet_count_.exchange(0);
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
     ERS_INFO("Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]");
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    for(int i=0; i<30*10 && run_marker_.load(); ++i){
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     t0 = now;
   }
 }

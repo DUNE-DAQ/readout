@@ -64,7 +64,7 @@ public:
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
     raw_type_name_ = conf.raw_type;
-    fake_trigger_ = true; //conf.fake_trigger;
+    fake_trigger_ = false; //conf.fake_trigger;
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
@@ -113,10 +113,10 @@ public:
     request_handler_impl_->conf(args);
 
     // Configure threads:
-    stats_thread_.set_name("stats", 0);
-    consumer_thread_.set_name("consumer", 0);
-    timesync_thread_.set_name("timesync", 0);
-    requester_thread_.set_name("requests", 0);
+    stats_thread_.set_name("stats", conf.link_number);
+    consumer_thread_.set_name("consumer", conf.link_number);
+    timesync_thread_.set_name("timesync", conf.link_number);
+    requester_thread_.set_name("requests", conf.link_number);
   }
 
   void start(const nlohmann::json& args) {
@@ -172,7 +172,7 @@ private:
     while (run_marker_.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
-        ERS_INFO("New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
+        //ERS_DEBUG(0,"New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
         if (timesyncmsg.DAQ_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
           if (fake_trigger_) {
@@ -194,7 +194,7 @@ private:
       catch (...) { // RS FIXME
         std::runtime_error("TimeSync queue timed out...");
       }
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     ERS_INFO("TimeSync thread joins...");
   } 
@@ -209,7 +209,8 @@ private:
         ++request_count_;
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(QueueTimeoutError(ERS_HERE, " data request source "));
+        continue;
+        // ers::error(QueueTimeoutError(ERS_HERE, " data request source "));
       }
     }
     ERS_INFO("Requester thread joins...");
@@ -228,7 +229,10 @@ private:
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
       ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz] "
         << "Consumed DataRequests: " << new_requests);
-      std::this_thread::sleep_for(std::chrono::seconds(5));
+
+      for(int i=0; i<30*10 && run_marker_.load(); ++i){
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
       t0 = now;
     }
     ERS_INFO("Statistics thread joins...");
