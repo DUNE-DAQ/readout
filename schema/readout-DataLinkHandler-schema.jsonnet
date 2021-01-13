@@ -36,6 +36,8 @@ local datalinkhandler = {
                 doc="Raw type"),
         s.field("source_queue_timeout_ms", self.count, 2000,
                 doc="Timeout for source queue"),
+        s.field("fake_trigger_flag", self.count, 0,
+                doc="flag indicating whether to generate fake triggers: 1=true, 0=false "),
         s.field("latency_buffer_size", self.size, 100000,
                 doc="Size of latency buffer"),
         s.field("pop_limit_pct", self.pct, 0.5,

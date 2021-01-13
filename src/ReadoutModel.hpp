@@ -65,7 +65,11 @@ public:
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
     raw_type_name_ = conf.raw_type;
-    fake_trigger_ = false; //conf.fake_trigger;
+    if (conf.fake_trigger_flag == 0) {
+      fake_trigger_ = false; 
+    } else {
+      fake_trigger_ = true; 
+   }
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
