@@ -49,7 +49,7 @@ public:
 
   //void start() {}
   //void stop() {}
-  void log_packet(bool isShort) { stats_.packet_ctr_++; }
+  void log_packet(bool /*is_short*/) { stats_.packet_ctr_++; }
 
   std::function<void(const felix::packetformat::chunk& chunk)> pre_process_chunk_func = nullptr;
   std::function<void(const felix::packetformat::chunk& chunk)> post_process_chunk_func = nullptr;

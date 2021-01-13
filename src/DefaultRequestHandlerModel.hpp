@@ -41,13 +41,13 @@ public:
                                       std::function<void(unsigned)>& pop_callback,
                                       std::function<RawType*(unsigned)>& front_callback,
                                       std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
-  : raw_type_name_(rawtype)
-  , run_marker_(marker)
-  , occupancy_callback_(occupancy_callback)
+  : occupancy_callback_(occupancy_callback)
   , read_callback_(read_callback)
   , pop_callback_(pop_callback)
   , front_callback_(front_callback)
   , fragment_sink_(fragment_sink)
+  , run_marker_(marker)
+  , raw_type_name_(rawtype)
   , pop_limit_pct_(0.0f)
   , pop_size_pct_(0.0f)
   , pop_limit_size_(0)
@@ -82,13 +82,13 @@ public:
           << "auto-pop size: " << pop_size_pct_*100.0f  << "%");
   }
 
-  void start(const nlohmann::json& args)
+  void start(const nlohmann::json& /*args*/)
   {
     stats_thread_.set_work(&DefaultRequestHandlerModel<RawType>::run_stats, this);
     executor_ = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
   }
 
-  void stop(const nlohmann::json& args)
+  void stop(const nlohmann::json& /*args*/)
   {
     executor_.join();
     while (!stats_thread_.get_readiness()) {
@@ -116,7 +116,7 @@ public:
 protected:
   void cleanup_request(dfmessages::DataRequest /*dr*/)
   {
-    auto now_s = time::now_as<std::chrono::seconds>();
+    //auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = occupancy_callback_();
     if (size_guess > pop_limit_size_) {
       ++pop_reqs_;
@@ -128,7 +128,7 @@ protected:
     }
   }
 
-  void data_request(dfmessages::DataRequest dr)
+  void data_request(dfmessages::DataRequest /*dr*/)
   {
     // TODO: ers::error (DefaultImplementation)
   }
@@ -195,12 +195,16 @@ protected:
   //CleanupRequestCallback cleanup_request_callback_;
 
 private:
+  // Executor
+  std::thread executor_;
+  std::atomic<bool>& run_marker_;
+
   // Configuration
   std::string raw_type_name_;
   bool configured_;
   float pop_limit_pct_; // buffer occupancy percentage to issue a pop request
   float pop_size_pct_;  // buffer percentage to pop
-  int pop_limit_size_;  // pop_limit_pct * buffer_capacity
+  unsigned pop_limit_size_;  // pop_limit_pct * buffer_capacity
   stats::counter_t pop_counter_;
   size_t buffer_capacity_;
 
@@ -210,9 +214,6 @@ private:
   stats::counter_t occupancy_;
   ReusableThread stats_thread_;
 
-  // Executor
-  std::thread executor_;
-  std::atomic<bool>& run_marker_;
 };
 
 }

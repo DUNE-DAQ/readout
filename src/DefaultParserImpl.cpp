@@ -58,49 +58,49 @@ DefaultParserImpl::~DefaultParserImpl()
 }
 
 void 
-DefaultParserImpl::pre_process_chunk(const felix::packetformat::chunk& chunk)
+DefaultParserImpl::pre_process_chunk(const felix::packetformat::chunk& /*chunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_shortchunk(const felix::packetformat::shortchunk& shortchunk)
+DefaultParserImpl::pre_process_shortchunk(const felix::packetformat::shortchunk& /*shortchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_subchunk(const felix::packetformat::subchunk& subchunk)
+DefaultParserImpl::pre_process_subchunk(const felix::packetformat::subchunk& /*subchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_block(const felix::packetformat::block& block)
+DefaultParserImpl::pre_process_block(const felix::packetformat::block& /*block*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_chunk_with_error(const felix::packetformat::chunk& chunk)
+DefaultParserImpl::pre_process_chunk_with_error(const felix::packetformat::chunk& /*chunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_subchunk_with_error(const felix::packetformat::subchunk& subchunk)
+DefaultParserImpl::pre_process_subchunk_with_error(const felix::packetformat::subchunk& /*subchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_shortchunk_with_error(const felix::packetformat::shortchunk& shortchunk)
+DefaultParserImpl::pre_process_shortchunk_with_error(const felix::packetformat::shortchunk& /*shortchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::pre_process_block_with_error(const felix::packetformat::block& block)
+DefaultParserImpl::pre_process_block_with_error(const felix::packetformat::block& /*block*/)
 {
 
 }
@@ -108,49 +108,49 @@ DefaultParserImpl::pre_process_block_with_error(const felix::packetformat::block
 //// POST PROCESS
 
 void 
-DefaultParserImpl::post_process_chunk(const felix::packetformat::chunk& chunk)
+DefaultParserImpl::post_process_chunk(const felix::packetformat::chunk& /*chunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_shortchunk(const felix::packetformat::shortchunk& shortchunk)
+DefaultParserImpl::post_process_shortchunk(const felix::packetformat::shortchunk& /*shortchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_subchunk(const felix::packetformat::subchunk& subchunk)
+DefaultParserImpl::post_process_subchunk(const felix::packetformat::subchunk& /*subchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_block(const felix::packetformat::block& block)
+DefaultParserImpl::post_process_block(const felix::packetformat::block& /*block*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_chunk_with_error(const felix::packetformat::chunk& chunk)
+DefaultParserImpl::post_process_chunk_with_error(const felix::packetformat::chunk& /*chunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_subchunk_with_error(const felix::packetformat::subchunk& subchunk)
+DefaultParserImpl::post_process_subchunk_with_error(const felix::packetformat::subchunk& /*subchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_shortchunk_with_error(const felix::packetformat::shortchunk& shortchunk)
+DefaultParserImpl::post_process_shortchunk_with_error(const felix::packetformat::shortchunk& /*shortchunk*/)
 {
 
 }
 
 void 
-DefaultParserImpl::post_process_block_with_error(const felix::packetformat::block& block)
+DefaultParserImpl::post_process_block_with_error(const felix::packetformat::block& /*block*/)
 {
 
 }

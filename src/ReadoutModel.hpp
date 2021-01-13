@@ -39,22 +39,23 @@ class ReadoutModel : public ReadoutConcept {
 public:
   explicit ReadoutModel(const nlohmann::json& args, std::atomic<bool>& run_marker)
   : raw_type_name_("")
+  , run_marker_(run_marker)
   , fake_trigger_(false)
   , stats_thread_(0)
-  , timesync_thread_(0)
   , consumer_thread_(0)
-  , requester_thread_(0)
   , source_queue_timeout_ms_(0)
-  , run_marker_(run_marker)
   , raw_data_source_(nullptr)
-  , raw_processor_impl_(nullptr)
-  , process_callback_(nullptr)
   , latency_buffer_size_(0)
   , latency_buffer_impl_(nullptr)
   , write_callback_(nullptr)
   , read_callback_(nullptr)
   , pop_callback_(nullptr)
   , front_callback_(nullptr)
+  , raw_processor_impl_(nullptr)
+  , process_callback_(nullptr)
+  , requester_thread_(0)
+  , timesync_queue_timeout_ms_(0)
+  , timesync_thread_(0)
   {
     // Queue specs are in ModInit structs.
     ERS_INFO("Generic ReaoutModel initialized with queue config, but no resets yet.");
@@ -91,9 +92,14 @@ public:
     }
 
     // Instantiate functionalities
-    latency_buffer_impl_ = createLatencyBuffer<RawType>(raw_type_name_, latency_buffer_size_, 
-        occupancy_callback_, write_callback_, read_callback_, pop_callback_, front_callback_);
-    if( latency_buffer_impl_.get() == nullptr) {
+    try {
+      latency_buffer_impl_ = createLatencyBuffer<RawType>(raw_type_name_, latency_buffer_size_, 
+          occupancy_callback_, write_callback_, read_callback_, pop_callback_, front_callback_);
+    }
+    catch (const std::bad_alloc& be) {
+      ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
+    }
+    if(latency_buffer_impl_.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Latency Buffer", raw_type_name_));
     }
 
@@ -209,8 +215,7 @@ private:
         ++request_count_;
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        continue;
-        // ers::error(QueueTimeoutError(ERS_HERE, " data request source "));
+        // not an error, safe to continue
       }
     }
     ERS_INFO("Requester thread joins...");
@@ -253,7 +258,6 @@ private:
 
   // CONSUMER
   ReusableThread consumer_thread_;
-  ReusableThread requester_thread_;
 
   // RAW SOURCE
   std::chrono::milliseconds source_queue_timeout_ms_;
@@ -285,6 +289,7 @@ private:
 
   // REQUEST HANDLER:
   std::unique_ptr<RequestHandlerConcept> request_handler_impl_;
+  ReusableThread requester_thread_;
 
   // TIME-SYNC
   std::chrono::milliseconds timesync_queue_timeout_ms_;
