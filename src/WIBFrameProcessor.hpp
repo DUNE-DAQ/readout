@@ -29,12 +29,12 @@ class WIBFrameProcessor : public TaskRawDataProcessorModel<types::WIB_SUPERCHUNK
 public:
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
-  using funcnode_t = tbb::flow::function_node<frameptr, frameptr>;
 
   explicit WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
   : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
   {
     tasklist_.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
+    //tasklist_.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   } 
 
 protected:
@@ -50,14 +50,20 @@ protected:
     if (current_ts_ - previous_ts_ != 300) {
       ++ts_error_ctr_;
       if (first_ts_missmatch_) {
-        wfptr->wib_header()->print();
-        ERS_INFO("First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_);
+        //wfptr->wib_header()->print();
+        //ERS_INFO("First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_);
         first_ts_missmatch_ = false;
       }
-      ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
+      else {
+        ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
+      }
     }
     previous_ts_ = current_ts_;
     last_processed_daq_ts_ = current_ts_;
+  }
+
+  void frame_error_check(frameptr fp) {
+    // check error fields
   }
 
 private:

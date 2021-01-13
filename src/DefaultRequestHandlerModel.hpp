@@ -162,10 +162,12 @@ protected:
       new_pop_count = pops_count_.exchange(0);
       new_occupancy = occupancy_;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_INFO("Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+      ERS_DEBUG(1,"Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
           << " Occupancy: " << new_occupancy);
-      std::this_thread::sleep_for(std::chrono::seconds(5));
+      for(int i=0; i<5*10 && run_marker_.load(); ++i){
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
       t0 = now;
     }
     ERS_INFO("Statistics thread stopped...");
