@@ -18,6 +18,10 @@ namespace dunedaq {
                       " FELIX Error: " << flxerror,
                       ((std::string)flxerror))
 
+    ERS_DECLARE_ISSUE(readout, InternalError,
+                      " Readout Internal Error: " << intererror,
+                      ((std::string)intererror))
+
     ERS_DECLARE_ISSUE(readout, InitializationError,
                       " Readout Initialization Error: " << initerror,
                       ((std::string)initerror)) 
@@ -36,6 +40,13 @@ namespace dunedaq {
                            " No " << impl << " implementation available for raw type: " << rawt << ' ',
                            ((std::string)impl),
                            ((std::string)rawt))
+
+    ERS_DECLARE_ISSUE_BASE(readout,
+                           DefaultImplementationCalled,
+                           readout::InternalError,
+                           " Default " << impl << " implementation called! Function: " << func << ' ',
+                           ((std::string)impl),
+                           ((std::string)func))
 
     ERS_DECLARE_ISSUE_BASE(readout,
                            ResourceQueueError,

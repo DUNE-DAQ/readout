@@ -36,8 +36,19 @@ public:
   virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:
-  virtual void cleanup_request(dfmessages::DataRequest /*dr*/) = 0;
-  virtual void data_request(dfmessages::DataRequest /*dr*/) = 0;
+
+  struct RequestResult {
+    RequestResult(int rc, dfmessages::DataRequest dr)
+    : response_code(rc)
+    , data_request(dr) 
+    {}
+
+    int response_code;
+    dfmessages::DataRequest data_request;
+  };
+
+  virtual RequestResult cleanup_request(dfmessages::DataRequest /*dr*/) = 0;
+  virtual RequestResult data_request(dfmessages::DataRequest /*dr*/) = 0;
   virtual void executor() = 0;
 
 private:

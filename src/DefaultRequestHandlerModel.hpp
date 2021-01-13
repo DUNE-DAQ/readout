@@ -114,7 +114,8 @@ public:
   }
 
 protected:
-  void cleanup_request(dfmessages::DataRequest /*dr*/)
+  RequestResult
+  cleanup_request(dfmessages::DataRequest dr)
   {
     //auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = occupancy_callback_();
@@ -126,16 +127,19 @@ protected:
       occupancy_ = occupancy_callback_();
       pops_count_.store(pops_count_.load()+to_pop);
     }
+    return RequestResult(0, dr);
   }
 
-  void data_request(dfmessages::DataRequest /*dr*/)
+  RequestResult 
+  data_request(dfmessages::DataRequest dr)
   {
-    // TODO: ers::error (DefaultImplementation)
+    ers::error(DefaultImplementationCalled(ERS_HERE, " DefaultRequestHandlerModel ", " data_request "));
+    return RequestResult(0, dr);
   }
 
   void executor()
   {
-    std::future<void> fut;
+    std::future<RequestResult> fut;
     while (run_marker_.load()) {
       if (completion_queue_.empty()) {
         std::this_thread::sleep_for(std::chrono::microseconds(50));
@@ -145,6 +149,9 @@ protected:
           //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
         } else {
           fut.wait(); // trigger execution
+          if (fut.get().response_code == 2) { // RS FIXME -> response codes or enum
+            issue_request(fut.get().data_request);
+          }
         }
       }
     }
@@ -183,12 +190,12 @@ protected:
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink_;
 
   // Requests
-  typedef std::function<void(dfmessages::DataRequest)> RequestCallback;
+  typedef std::function<RequestResult(dfmessages::DataRequest)> RequestCallback;
   RequestCallback cleanup_request_callback_;
   RequestCallback data_request_callback_;
 
   // Completion of requests requests
-  typedef tbb::concurrent_queue<std::future<void>> CompletionQueue;
+  typedef tbb::concurrent_queue<std::future<RequestResult>> CompletionQueue;
   CompletionQueue completion_queue_;
 
   //typedef std::function<void()> CleanupRequestCallback;

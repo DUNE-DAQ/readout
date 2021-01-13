@@ -65,7 +65,8 @@ protected:
     return std::move(fh);
   }
 
-  void tpc_data_request(dfmessages::DataRequest dr) {
+  RequestResult
+  tpc_data_request(dfmessages::DataRequest dr) {
     // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
     //uint_fast64_t start_win_ts = dr.trigger_timestamp - (uint_fast64_t)(dr.window_offset * tick_dist_);
@@ -86,6 +87,9 @@ protected:
       << "Occupancy=" << occupancy_guess
     );
 
+    // Prepare response
+    RequestResult rres(0, dr);
+
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
@@ -103,6 +107,10 @@ protected:
         << "Occupancy=" << occupancy_guess
       );
       frag_header.error_bits |= 0x1; // error bit for not-found data
+      rres.response_code = 1;
+      if (min_num_elements > occupancy_guess) { // data may arrive later, requeu
+        rres.response_code = 2; // give it another chance
+      }
       ++bad_requested_count_;
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
@@ -111,6 +119,7 @@ protected:
           std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
         ); 
       }
+      rres.response_code = 0;
       ++found_requested_count_;
     }
 
@@ -126,6 +135,7 @@ protected:
     catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
       ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
     }
+    return rres;
   }
 
 private:
