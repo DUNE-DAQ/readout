@@ -1,8 +1,5 @@
 /*
-* @file WIBRequestHandler.hpp Buffers objects for some time
-* Software defined latency buffer to temporarily store objects from the
-* frontend apparatus. It wraps a bounded SPSC queue from Folly for
-* aligned memory access, and convenient frontPtr loads.
+* @file WIBRequestHandler.hpp Trigger matching mechanism for WIB frames. 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
@@ -78,7 +75,8 @@ protected:
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
     uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_*frames_per_element_) + 1;
-    uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) / frames_per_element_ + safe_num_elements_margin_;
+    uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) 
+                                   / frames_per_element_ + safe_num_elements_margin_;
     ERS_DEBUG(2,"TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
