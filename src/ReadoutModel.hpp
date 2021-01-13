@@ -234,8 +234,7 @@ private:
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
       ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz] "
         << "Consumed DataRequests: " << new_requests);
-
-      for(int i=0; i<30*10 && run_marker_.load(); ++i){
+      for (int i=0; i<50 && run_marker_.load(); ++i) { // 50 x 100ms = 5s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
