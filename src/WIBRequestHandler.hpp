@@ -95,7 +95,8 @@ protected:
 #warning RS FIXME -> fix/enforce every possible timestamp boundary & occupancy checks
     // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
-      ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! Triggered window first ts: " << start_win_ts << " "
+      ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! "
+        << "Triggered window first ts: " << start_win_ts << " "
         << "Trigger TS=" << dr.trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
         << "ElementOffset=" << num_element_offset << ".th "
