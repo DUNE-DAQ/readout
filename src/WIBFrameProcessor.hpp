@@ -50,8 +50,6 @@ protected:
     if (current_ts_ - previous_ts_ != 300) {
       ++ts_error_ctr_;
       if (first_ts_missmatch_) {
-        //wfptr->wib_header()->print();
-        //ERS_INFO("First TS mismatch is fine | previous: " << previous_ts_ << " next: " << current_ts_);
         first_ts_missmatch_ = false;
       }
       else {
@@ -62,7 +60,7 @@ protected:
     last_processed_daq_ts_ = current_ts_;
   }
 
-  void frame_error_check(frameptr fp) {
+  void frame_error_check(frameptr /*fp*/) {
     // check error fields
   }
 

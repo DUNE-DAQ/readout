@@ -92,7 +92,7 @@ protected:
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
 
-#warning RS FIXME -> fix/enforce every possible timestamp boundary & occupancy checks
+#warning RS FIXME -> requeue requests for not yet present data 
     // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
       ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! "
@@ -107,9 +107,7 @@ protected:
       frag_header.error_bits |= 0x1; // error bit for not-found data
       ++bad_requested_count_;
     } else {
-      auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
-      //fromheader.print();
-      size_t piecesize = element_size_;
+      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
         frag_pieces.emplace_back( 
           std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
