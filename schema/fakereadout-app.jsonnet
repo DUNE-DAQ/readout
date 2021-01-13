@@ -30,7 +30,7 @@ local qspec_list = [
   cmd.conf(
     [
       cmd.mcmd("fake-source", {
-        "link_id": 0,
+        "link_ids": [0],
         "input_limit": 10485100,
         "rate_khz": 166,
         "raw_type": "wib",
@@ -40,6 +40,7 @@ local qspec_list = [
       ),
       cmd.mcmd("fake-handler", {
         "raw_type": "wib",
+        "fake_trigger_flag": 1,
         "source_queue_timeout_ms": 2000,
         "latency_buffer_size": 100000,
         "pop_limit_pct": 0.8,
