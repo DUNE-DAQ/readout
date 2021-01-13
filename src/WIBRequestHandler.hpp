@@ -96,13 +96,14 @@ protected:
     // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
       ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! Triggered window first ts: " << start_win_ts << " "
-      << "Trigger TS=" << dr.trigger_timestamp << " " 
-      << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
-      << "ElementOffset=" << num_element_offset << ".th "
-      << "ElementsInWindow=" << num_elements_in_window << " "
-      << "MinNumElements=" << min_num_elements << " "
-      << "Occupancy=" << occupancy_guess
-	);
+        << "Trigger TS=" << dr.trigger_timestamp << " " 
+        << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
+        << "ElementOffset=" << num_element_offset << ".th "
+        << "ElementsInWindow=" << num_elements_in_window << " "
+        << "MinNumElements=" << min_num_elements << " "
+        << "Occupancy=" << occupancy_guess
+      );
+      frag_header.error_bits |= 0x1; // error bit for not-found data
       ++bad_requested_count_;
     } else {
       auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
