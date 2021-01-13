@@ -36,7 +36,7 @@ public:
 
   }
 
-  void conf(const nlohmann::json& cfg) {
+  void conf(const nlohmann::json& /*cfg*/) {
     ERS_INFO("Setting up async task tree.");
   }
 
