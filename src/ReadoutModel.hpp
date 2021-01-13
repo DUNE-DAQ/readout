@@ -190,7 +190,7 @@ private:
             dr.trigger_timestamp = timesyncmsg.DAQ_time - 500*time::us;
             dr.window_width = 1000;
             dr.window_offset = 100;
-            ERS_INFO("Issuing fake trigger based on timesync. "
+            ERS_DEBUG(0, "Issuing fake trigger based on timesync. "
               << " ts=" << dr.trigger_timestamp
               << " window_width=" << dr.window_width
               << " window_offset=" << dr.window_offset);

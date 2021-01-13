@@ -127,14 +127,14 @@ protected:
       occupancy_ = occupancy_callback_();
       pops_count_.store(pops_count_.load()+to_pop);
     }
-    return RequestResult(0, dr);
+    return RequestResult(ResultCode::kPass, dr);
   }
 
   RequestResult 
   data_request(dfmessages::DataRequest dr)
   {
     ers::error(DefaultImplementationCalled(ERS_HERE, " DefaultRequestHandlerModel ", " data_request "));
-    return RequestResult(0, dr);
+    return RequestResult(ResultCode::kPass, dr);
   }
 
   void executor()
@@ -149,8 +149,10 @@ protected:
           //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
         } else {
           fut.wait(); // trigger execution
-          if (fut.get().response_code == 2) { // RS FIXME -> response codes or enum
-            issue_request(fut.get().data_request);
+          auto reqres = fut.get();
+          if (reqres.result_code == ResultCode::kNotYet) { // give it another chance
+            ERS_DEBUG(0, "Re-queue request with timestamp: " << reqres.data_request.trigger_timestamp); 
+            issue_request(reqres.data_request);
           }
         }
       }
@@ -169,10 +171,10 @@ protected:
       new_pop_count = pops_count_.exchange(0);
       new_occupancy = occupancy_;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_DEBUG(1,"Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+      ERS_DEBUG(1, "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
           << " Occupancy: " << new_occupancy);
-      for(int i=0; i<5*10 && run_marker_.load(); ++i){
+      for(int i=0; i<50 && run_marker_.load(); ++i){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;

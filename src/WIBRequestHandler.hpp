@@ -63,22 +63,24 @@ protected:
     fh.run_number = dr.run_number;
     fh.link_id = { apa_number_, link_number_ };
     return std::move(fh);
-  }
+  } 
 
   RequestResult
   tpc_data_request(dfmessages::DataRequest dr) {
+    // Prepare response
+    RequestResult rres(ResultCode::kUnknown, dr);
+
     // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
-    //uint_fast64_t start_win_ts = dr.trigger_timestamp - (uint_fast64_t)(dr.window_offset * tick_dist_);
-    uint_fast64_t start_win_ts = dr.trigger_timestamp - dr.window_offset;
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
+    uint_fast64_t start_win_ts = dr.trigger_timestamp - dr.window_offset;
     uint_fast64_t last_ts = front_wh.timestamp();
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
     uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_*frames_per_element_) + 1;
     uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
-    ERS_DEBUG(2,"TPC (WIB frame) data request for " 
+    ERS_DEBUG(0, "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
@@ -87,14 +89,10 @@ protected:
       << "Occupancy=" << occupancy_guess
     );
 
-    // Prepare response
-    RequestResult rres(0, dr);
-
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
 
-#warning RS FIXME -> requeue requests for not yet present data 
     // Find data in Latency Buffer
     if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
       ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! "
@@ -107,9 +105,9 @@ protected:
         << "Occupancy=" << occupancy_guess
       );
       frag_header.error_bits |= 0x1; // error bit for not-found data
-      rres.response_code = 1;
+      rres.result_code = ResultCode::kNotFound;
       if (min_num_elements > occupancy_guess) { // data may arrive later, requeu
-        rres.response_code = 2; // give it another chance
+        rres.result_code = ResultCode::kNotYet; // give it another chance
       }
       ++bad_requested_count_;
     } else {
@@ -119,7 +117,7 @@ protected:
           std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
         ); 
       }
-      rres.response_code = 0;
+      rres.result_code = ResultCode::kFound;
       ++found_requested_count_;
     }
 

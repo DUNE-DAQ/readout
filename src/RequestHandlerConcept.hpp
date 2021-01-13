@@ -36,16 +36,21 @@ public:
   virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:
+  // Result code of requests
+  enum ResultCode { kFound = 0, kNotFound, kTooOld, kNotYet, kPass, kUnknown };
 
+  // Request Result
   struct RequestResult {
-    RequestResult(int rc, dfmessages::DataRequest dr)
-    : response_code(rc)
-    , data_request(dr) 
-    {}
-
-    int response_code;
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr) 
+    : result_code(rc)
+    , data_request(dr)
+    { }
+    ResultCode result_code;
     dfmessages::DataRequest data_request;
   };
+
+  // Bookkeeping of OOB requests
+  std::map<dfmessages::DataRequest, int> request_counter_;
 
   virtual RequestResult cleanup_request(dfmessages::DataRequest /*dr*/) = 0;
   virtual RequestResult data_request(dfmessages::DataRequest /*dr*/) = 0;
