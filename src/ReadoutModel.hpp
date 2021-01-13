@@ -215,7 +215,7 @@ private:
         ++request_count_;
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(QueueTimeoutError(ERS_HERE, " data request source "));
+        // not an error, safe to continue
       }
     }
     ERS_INFO("Requester thread joins...");
