@@ -80,7 +80,7 @@ protected:
     uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_*frames_per_element_) + 1;
     uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
-    ERS_DEBUG(0, "TPC (WIB frame) data request for " 
+    ERS_DEBUG(2, "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
@@ -115,23 +115,25 @@ protected:
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
         frag_pieces.emplace_back( 
           std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
-        ); 
+        );
       }
       rres.result_code = ResultCode::kFound;
       ++found_requested_count_;
     }
 
     // Finish Request handling with Fragment creation
-    try {
-      // Create fragment from pieces
-      auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
-      // Set header
-      frag->set_header_fields(frag_header);
-      // Push to Fragment queue
-      fragment_sink_->push( std::move(frag) );
-    } 
-    catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-      ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
+    if (rres.result_code != ResultCode::kNotYet) { // Don't send out fragment for requeued request
+      try {
+        // Create fragment from pieces
+        auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+        // Set header
+        frag->set_header_fields(frag_header);
+        // Push to Fragment queue
+        fragment_sink_->push( std::move(frag) );
+      } 
+      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
+      }
     }
     return rres;
   }
