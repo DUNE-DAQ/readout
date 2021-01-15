@@ -33,11 +33,12 @@ public:
                              std::function<void(unsigned)>& pop_callback,
                              std::function<types::WIB_SUPERCHUNK_STRUCT*(unsigned)>& front_callback,
                              std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
-  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker, 
+  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
       occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
   {
     ERS_INFO("WIBRequestHandler created...");
-    data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, this, std::placeholders::_1);
+    data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, 
+      this, std::placeholders::_1, std::placeholders::_2);
   } 
 
   void conf(const nlohmann::json& args) override
@@ -66,7 +67,11 @@ protected:
   } 
 
   RequestResult
-  tpc_data_request(dfmessages::DataRequest dr) {
+  tpc_data_request(dfmessages::DataRequest dr, unsigned delay_us) {
+    if (delay_us > 0) {
+      std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+    }
+
     // Prepare response
     RequestResult rres(ResultCode::kUnknown, dr);
 
@@ -77,7 +82,7 @@ protected:
     uint_fast64_t last_ts = front_wh.timestamp();
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_*frames_per_element_) + 1;
+    uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_ * frames_per_element_);
     uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
     ERS_DEBUG(2, "TPC (WIB frame) data request for " 
@@ -93,9 +98,33 @@ protected:
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
 
+    // List of safe-extraction conditions
+    if ( num_elements_in_window > max_requested_elements_ ) {
+      frag_header.error_bits |= 0x2; // error bit too big window
+      rres.result_code = ResultCode::kPass;
+      ++bad_requested_count_;
+    } 
+    else if ( last_ts > start_win_ts ) { // data is gone.
+      frag_header.error_bits |= 0x1; // error bit for not-found data
+      rres.result_code = ResultCode::kNotFound;
+      ++bad_requested_count_;
+    } 
+    else if ( min_num_elements > occupancy_guess ) {
+      rres.result_code = ResultCode::kNotYet; // give it another chance
+      //rres.request_delay_us = 1000;
+      rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
+      if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
+        rres.request_delay_us = min_delay_us_; 
+      }
+    }
+    else {
+      rres.result_code = ResultCode::kFound;
+      ++found_requested_count_;
+    }
+
     // Find data in Latency Buffer
-    if ( last_ts > start_win_ts || min_num_elements > occupancy_guess ) {
-      ERS_INFO("***ERROR: Out of bound reqested timestamp based on latency buffer occupancy! "
+    if ( rres.result_code != ResultCode::kFound ) {
+      ERS_INFO("***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
         << "Trigger TS=" << dr.trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
@@ -104,12 +133,6 @@ protected:
         << "MinNumElements=" << min_num_elements << " "
         << "Occupancy=" << occupancy_guess
       );
-      frag_header.error_bits |= 0x1; // error bit for not-found data
-      rres.result_code = ResultCode::kNotFound;
-      if (min_num_elements > occupancy_guess) { // data may arrive later, requeu
-        rres.result_code = ResultCode::kNotYet; // give it another chance
-      }
-      ++bad_requested_count_;
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
@@ -117,8 +140,6 @@ protected:
           std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
         );
       }
-      rres.result_code = ResultCode::kFound;
-      ++found_requested_count_;
     }
 
     // Finish Request handling with Fragment creation
@@ -145,6 +166,8 @@ private:
   const uint_fast8_t frames_per_element_ = 12;
   const size_t element_size_ = wib_frame_size_ * frames_per_element_;
   const uint_fast64_t safe_num_elements_margin_ = 10;
+
+  const uint_fast32_t min_delay_us_ = 300000;
 
   // Stats
   stats::counter_t found_requested_count_{0};

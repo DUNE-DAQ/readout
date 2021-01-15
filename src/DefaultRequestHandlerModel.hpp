@@ -59,8 +59,10 @@ public:
   , stats_thread_(0)
   {
     ERS_INFO("DefaultRequestHandlerModel created...");
-    cleanup_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, this, std::placeholders::_1);
-    data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::data_request, this, std::placeholders::_1);
+    cleanup_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
+      this, std::placeholders::_1, std::placeholders::_2);
+    data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
+      this, std::placeholders::_1, std::placeholders::_2);
   }
 
   void conf(const nlohmann::json& args)
@@ -76,10 +78,12 @@ public:
       ers::error(ConfigurationError(ERS_HERE, "Auto-pop percentage out of range."));
     } else {
       pop_limit_size_ = pop_limit_pct_ * buffer_capacity_;
+      max_requested_elements_ = pop_limit_size_ - pop_limit_size_ * pop_size_pct_;
     }
     ERS_INFO("RequestHandler configured. " << std::fixed << std::setprecision(2)
           << "auto-pop limit: "<< pop_limit_pct_*100.0f << "% "
-          << "auto-pop size: " << pop_size_pct_*100.0f  << "%");
+          << "auto-pop size: " << pop_size_pct_*100.0f  << "% "
+          << "max requested elements: " << max_requested_elements_);
   }
 
   void start(const nlohmann::json& /*args*/)
@@ -101,21 +105,22 @@ public:
     auto size_guess = occupancy_callback_();
     if (size_guess > pop_limit_size_) {
       dfmessages::DataRequest dr;
-      auto execfut = std::async(std::launch::deferred, cleanup_request_callback_, dr);
+      auto delay_us = 0;
+      auto execfut = std::async(std::launch::deferred, cleanup_request_callback_, dr, delay_us);
       completion_queue_.push(std::move(execfut));              
     }
   }
 
   // DataRequest struct!?
-  void issue_request(dfmessages::DataRequest datarequest) 
+  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0)
   {
-    auto reqfut = std::async(std::launch::async, data_request_callback_, datarequest);
+    auto reqfut = std::async(std::launch::async, data_request_callback_, datarequest, delay_us);
     completion_queue_.push(std::move(reqfut));
   }
 
 protected:
   RequestResult
-  cleanup_request(dfmessages::DataRequest dr)
+  cleanup_request(dfmessages::DataRequest dr, unsigned /*delay_us*/ = 0)
   {
     //auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = occupancy_callback_();
@@ -127,14 +132,14 @@ protected:
       occupancy_ = occupancy_callback_();
       pops_count_.store(pops_count_.load()+to_pop);
     }
-    return RequestResult(ResultCode::kPass, dr);
+    return RequestResult(ResultCode::kCleanup, dr);
   }
 
   RequestResult 
-  data_request(dfmessages::DataRequest dr)
+  data_request(dfmessages::DataRequest dr, unsigned /*delay_us*/ = 0)
   {
     ers::error(DefaultImplementationCalled(ERS_HERE, " DefaultRequestHandlerModel ", " data_request "));
-    return RequestResult(ResultCode::kPass, dr);
+    return RequestResult(ResultCode::kUnknown, dr);
   }
 
   void executor()
@@ -151,8 +156,10 @@ protected:
           fut.wait(); // trigger execution
           auto reqres = fut.get();
           if (reqres.result_code == ResultCode::kNotYet) { // give it another chance
-            ERS_DEBUG(0, "Re-queue request with timestamp: " << reqres.data_request.trigger_timestamp); 
-            issue_request(reqres.data_request);
+            ERS_DEBUG(1, "Re-queue request. "
+              << "With timestamp=" << reqres.data_request.trigger_timestamp
+              << "delay [us] " << reqres.request_delay_us);
+            issue_request(reqres.data_request, reqres.request_delay_us);
           }
         }
       }
@@ -192,16 +199,14 @@ protected:
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink_;
 
   // Requests
-  typedef std::function<RequestResult(dfmessages::DataRequest)> RequestCallback;
+  typedef std::function<RequestResult(dfmessages::DataRequest, unsigned)> RequestCallback;
   RequestCallback cleanup_request_callback_;
   RequestCallback data_request_callback_;
+  std::size_t max_requested_elements_;
 
   // Completion of requests requests
   typedef tbb::concurrent_queue<std::future<RequestResult>> CompletionQueue;
   CompletionQueue completion_queue_;
-
-  //typedef std::function<void()> CleanupRequestCallback;
-  //CleanupRequestCallback cleanup_request_callback_;
 
 private:
   // Executor
