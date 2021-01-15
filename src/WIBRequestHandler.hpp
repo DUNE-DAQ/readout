@@ -82,7 +82,7 @@ protected:
     uint_fast64_t last_ts = front_wh.timestamp();
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_ * frames_per_element_);
+    uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_ * frames_per_element_) + 1;
     uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
     ERS_DEBUG(2, "TPC (WIB frame) data request for " 
@@ -167,7 +167,7 @@ private:
   const size_t element_size_ = wib_frame_size_ * frames_per_element_;
   const uint_fast64_t safe_num_elements_margin_ = 10;
 
-  const uint_fast32_t min_delay_us_ = 300000;
+  const uint_fast32_t min_delay_us_ = 30000;
 
   // Stats
   stats::counter_t found_requested_count_{0};
