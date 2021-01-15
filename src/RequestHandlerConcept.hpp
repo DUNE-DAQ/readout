@@ -33,11 +33,42 @@ public:
 
   // requests
   virtual void auto_cleanup_check() = 0;
-  virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
+  virtual void issue_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
 
 protected:
-  virtual void cleanup_request(dfmessages::DataRequest /*dr*/) = 0;
-  virtual void data_request(dfmessages::DataRequest /*dr*/) = 0;
+  // Result code of requests
+  enum ResultCode { kFound = 0, kNotFound, kTooOld, kNotYet, kPass, kCleanup, kUnknown };
+  std::map<ResultCode, std::string> ResultCodeStrings { 
+    { ResultCode::kFound, "FOUND" }, 
+    { ResultCode::kNotFound,"NOT_FOUND" },
+    { ResultCode::kTooOld, "TOO_OLD" }, 
+    { ResultCode::kNotYet, "NOT_YET_PRESENT" },
+    { ResultCode::kPass, "PASSED" },
+    { ResultCode::kCleanup, "CLEANUP"},
+    { ResultCode::kUnknown, "UNKNOWN" }
+  };
+
+  inline const std::string& resultCodeAsString(ResultCode rc) {
+    return ResultCodeStrings[rc];
+  }
+
+  // Request Result
+  struct RequestResult {
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr, unsigned rdus = 0)
+    : result_code(rc)
+    , data_request(dr)
+    , request_delay_us(rdus)
+    { }
+    ResultCode result_code;
+    dfmessages::DataRequest data_request;
+    unsigned request_delay_us;
+  };
+
+  // Bookkeeping of OOB requests
+  std::map<dfmessages::DataRequest, int> request_counter_;
+
+  virtual RequestResult cleanup_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
+  virtual RequestResult data_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
   virtual void executor() = 0;
 
 private:
