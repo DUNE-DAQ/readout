@@ -168,7 +168,8 @@ private:
         raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+        ++rawq_timeout_count_;
+        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
       // Only process if data was acquired
       if (payload_ptr != nullptr) {
@@ -183,6 +184,7 @@ private:
 
   void run_timesync() {
     ERS_INFO("TimeSync thread started...");
+    auto once_per_run = true;
     while (run_marker_.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
@@ -202,7 +204,10 @@ private:
             ++request_count_;
           }
         } else {
-          ERS_INFO("Timesync with DAQ time 0 won't be sent out as it's an invalid sync.");
+          if (once_per_run) {
+            ERS_INFO("Timesync with DAQ time 0 won't be sent out as it's an invalid sync.");
+            once_per_run = false;
+          }
         }
       }
       catch (...) { // RS FIXME
@@ -210,6 +215,7 @@ private:
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    once_per_run = true;
     ERS_INFO("TimeSync thread joins...");
   } 
 
@@ -242,6 +248,10 @@ private:
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
       ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz] "
         << "Consumed DataRequests: " << new_requests);
+      auto rawq_timeouts = rawq_timeout_count_.exchange(0);
+      if (rawq_timeouts > 0) {
+        ERS_INFO("***ERROR: Raw input queue timed out " << rawq_timeouts << " times!");
+      }
       for (int i=0; i<100 && run_marker_.load(); ++i) { // 100 x 100ms = 10s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -261,6 +271,7 @@ private:
   // STATS
   stats::counter_t packet_count_{0};
   stats::counter_t request_count_{0};
+  stats::counter_t rawq_timeout_count_{0};
   ReusableThread stats_thread_;
 
   // CONSUMER
