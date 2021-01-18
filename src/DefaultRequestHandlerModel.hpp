@@ -164,6 +164,18 @@ protected:
         }
       }
     }
+    while (!completion_queue_.empty()) { // cleanup completion queue
+      bool success = completion_queue_.try_pop(fut);
+      if (!success) {
+
+      } else {
+        fut.wait(); // trigger execution
+        auto reqres = fut.get();
+        if (reqres.result_code != ResultCode::kFound) {
+
+        }
+      }
+    }
   }
 
   void run_stats() {

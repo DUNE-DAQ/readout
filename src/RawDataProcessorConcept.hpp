@@ -31,6 +31,7 @@ public:
 
   virtual void conf(const nlohmann::json& cfg) = 0;
   uint64_t get_last_daq_time() { return last_processed_daq_ts_.load(); }
+  void reset_last_daq_time() { last_processed_daq_ts_.store(0); }
 
 protected:
   std::atomic<time::timestamp_t> last_processed_daq_ts_{0};

@@ -154,7 +154,8 @@ public:
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
     }
     ERS_INFO("Flushing latency buffer with occupancy: " << occupancy_callback_());
-    pop_callback_(occupancy_callback_()); 
+    pop_callback_(occupancy_callback_());
+    raw_processor_impl_->reset_last_daq_time();
   }
 
 private:
@@ -179,7 +180,18 @@ private:
         ++packet_count_;
       }
     }
-    ERS_INFO("Consumer thread joins...");
+    ERS_INFO("Consumer cleans up raw queue...");
+    auto flushed_count = 0;
+    while (raw_data_source_->can_pop()) {
+      try {
+        std::unique_ptr<RawType> payload_ptr(nullptr);
+        raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
+        ++flushed_count;
+      }
+      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      }
+    } 
+    ERS_INFO("Consumer thread joins... Flushed " << flushed_count << " elements from source queue.");
   }   
 
   void run_timesync() {
@@ -232,7 +244,18 @@ private:
         // not an error, safe to continue
       }
     }
-    ERS_INFO("Requester thread joins...");
+    ERS_INFO("Requester cleans up request queues...");
+    auto flushed_count = 0;
+    while (request_source_->can_pop()) {
+      try {
+        dfmessages::DataRequest data_request;
+        request_source_->pop(data_request, source_queue_timeout_ms_);
+        ++flushed_count;
+      }
+      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      }
+    }
+    ERS_INFO("Requester thread joins... Flushed " << flushed_count << " request.");
   }
 
   void run_stats() {
