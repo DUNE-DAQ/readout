@@ -162,17 +162,21 @@ private:
   void run_consume() {
     ERS_INFO("Consumer thread started...");
     while (run_marker_.load()) {
-      std::unique_ptr<RawType> payload_ptr;
+      std::unique_ptr<RawType> payload_ptr(nullptr);
+      // Try to acquire data
       try {
         raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
-      process_callback_(payload_ptr.get());
-      write_callback_(std::move(payload_ptr));
-      request_handler_impl_->auto_cleanup_check();
-      ++packet_count_;           
+      // Only process if data was acquired
+      if (payload_ptr != nullptr) {
+        process_callback_(payload_ptr.get());
+        write_callback_(std::move(payload_ptr));
+        request_handler_impl_->auto_cleanup_check();
+        ++packet_count_;
+      }
     }
     ERS_INFO("Consumer thread joins...");
   }   
