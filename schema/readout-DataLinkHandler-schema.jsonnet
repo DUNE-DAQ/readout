@@ -28,11 +28,11 @@ local datalinkhandler = {
     pct : s.number("Percent", "f4",
                    doc="Testing float number"),
 
-    str : s.string("Str", "string",
-                   doc="A string field"),
+    raw_type : s.string("RawType", moo.re.ident,
+                  doc="A string field"),
 
     conf: s.record("Conf", [
-        s.field("raw_type", self.str, "wib",
+        s.field("raw_type", self.raw_type, "wib",
                 doc="Raw type"),
         s.field("source_queue_timeout_ms", self.count, 2000,
                 doc="Timeout for source queue"),

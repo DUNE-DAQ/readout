@@ -25,7 +25,10 @@ local fakecardreader = {
     linkvec : s.sequence("linkvec", self.linkid,
                      doc="A sequence of links"),
 
-    str : s.string("Str", "string",
+    raw_type : s.string("RawType", moo.re.ident,
+                  doc="A string field"),
+
+    filepath : s.string("FilePath", moo.re.hierpath,
                   doc="A string field"),
 
     conf: s.record("Conf", [
@@ -38,10 +41,10 @@ local fakecardreader = {
         s.field("rate_khz", self.khz, 166,
                 doc="Rate of ratelimiter"),
 
-        s.field("raw_type", self.str, "wib",
+        s.field("raw_type", self.raw_type, "wib",
                 doc="User payload type"),
 
-        s.field("data_filename", self.str, "/tmp/frames.bin",
+        s.field("data_filename", self.filepath, "/tmp/frames.bin",
                 doc="Data file that contains user payloads"),
 
         s.field("queue_timeout_ms", self.uint4, 2000,
