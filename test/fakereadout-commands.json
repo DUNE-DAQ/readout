@@ -21,7 +21,7 @@
                             {
                                 "dir": "input",
                                 "inst": "fakelink-0",
-                                "name": "raw-input"
+                                "name": "raw_input"
                             },
                             {
                                 "dir": "output",

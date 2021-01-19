@@ -78,7 +78,7 @@ public:
     ERS_INFO("Resetting queues...");
     for (const auto& qi : queue_config_.qinfos) { 
       try {
-        if (qi.name == "raw-input") {
+        if (qi.name == "raw_input") {
           raw_data_source_.reset(new raw_source_qt(qi.inst));
         } else if (qi.name == "requests") {
           request_source_.reset(new request_source_qt(qi.inst));
@@ -88,6 +88,7 @@ public:
           fragment_sink_.reset(new fragment_sink_qt(qi.inst));
         } else {
           // throw error
+          ers::error(ResourceQueueError(ERS_HERE, "Unknown queue requested!", qi.name, ""));
         }
       }
       catch (const ers::Issue& excpt) {
