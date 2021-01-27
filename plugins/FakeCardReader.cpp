@@ -118,7 +118,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = source_buffer_->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data())->wib_header()->timestamp();
+  auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data());
+  uint64_t ts_0 = wfptr->get_wib_header()->get_timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
   uint64_t ts_next = ts_0;
 
@@ -136,8 +137,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
       // fake the timestamp
       for (unsigned int i=0; i<12; ++i) {
-        auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
-        auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
+	auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header()); 
         wfh->set_timestamp(ts_next);
         ts_next += 25;
       }  
