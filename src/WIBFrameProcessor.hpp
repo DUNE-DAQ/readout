@@ -46,7 +46,7 @@ protected:
 
   void timestamp_check(frameptr fp) {
     auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
-    current_ts_ = wfptr->get_wib_header()->get_timestamp();
+    current_ts_ = wfptr->wib_header()->timestamp();
     if (current_ts_ - previous_ts_ != 300) {
       ++ts_error_ctr_;
       if (first_ts_missmatch_) {
