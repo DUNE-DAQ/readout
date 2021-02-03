@@ -8,7 +8,7 @@
 #ifndef UDAQ_READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
 #define UDAQ_READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
 
-#include "ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "RawDataProcessorConcept.hpp"
 #include "FlowGraphRawDataProcessorModel.hpp"
 #include "WIBFrameProcessor.hpp"

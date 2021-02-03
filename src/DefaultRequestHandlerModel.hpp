@@ -13,7 +13,7 @@
 
 #include "ReadoutIssues.hpp"
 #include "RequestHandlerConcept.hpp"
-#include "ReusableThread.hpp"
+#include "readout/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
 
