@@ -27,7 +27,7 @@
 #include "CreateRawDataProcessor.hpp"
 #include "CreateLatencyBuffer.hpp"
 #include "CreateRequestHandler.hpp"
-#include "ReusableThread.hpp"
+#include "readout/ReusableThread.hpp"
 
 #include <functional>
 

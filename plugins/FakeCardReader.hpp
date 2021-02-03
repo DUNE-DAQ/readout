@@ -20,9 +20,9 @@
 #include "appfwk/DAQSink.hpp"
 
 // package
-#include "ReadoutTypes.hpp"
+#include "readout/ReusableThread.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
-#include "ReusableThread.hpp"
 #include "RateLimiter.hpp"
 #include "FileSourceBuffer.hpp"
 

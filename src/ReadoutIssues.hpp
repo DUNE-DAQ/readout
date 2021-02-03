@@ -14,10 +14,6 @@
 
 namespace dunedaq {
 
-    ERS_DECLARE_ISSUE(readout, FelixError,
-                      " FELIX Error: " << flxerror,
-                      ((std::string)flxerror))
-
     ERS_DECLARE_ISSUE(readout, InternalError,
                       " Readout Internal Error: " << intererror,
                       ((std::string)intererror))
