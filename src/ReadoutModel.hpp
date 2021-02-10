@@ -162,8 +162,11 @@ public:
 private:
 
   void run_consume() {
+    rawq_timeout_count_ = 0;
+    packet_count_ = 0;
+
     ERS_INFO("Consumer thread started...");
-    while (run_marker_.load()) {
+    while (run_marker_.load() || raw_data_source_->can_pop()) {
       std::unique_ptr<RawType> payload_ptr(nullptr);
       // Try to acquire data
       try {
@@ -181,22 +184,13 @@ private:
         ++packet_count_;
       }
     }
-    ERS_INFO("Consumer cleans up raw queue...");
-    auto flushed_count = 0;
-    while (raw_data_source_->can_pop()) {
-      try {
-        std::unique_ptr<RawType> payload_ptr(nullptr);
-        raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
-        ++flushed_count;
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-      }
-    } 
-    ERS_INFO("Consumer thread joins... Flushed " << flushed_count << " elements from source queue.");
+
+    ERS_INFO("Consumer thread joins... ");
   }   
 
   void run_timesync() {
     ERS_INFO("TimeSync thread started...");
+    request_count_ = 0;
     auto once_per_run = true;
     while (run_marker_.load()) {
       try {
@@ -234,7 +228,8 @@ private:
 
   void run_requests() {
     ERS_INFO("Requester thread started...");
-    while (run_marker_.load()) {
+    request_count_ = 0;
+    while (run_marker_.load() || request_source_->can_pop()) {
       dfmessages::DataRequest data_request;
       try {
         request_source_->pop(data_request, source_queue_timeout_ms_);
@@ -245,18 +240,7 @@ private:
         // not an error, safe to continue
       }
     }
-    ERS_INFO("Requester cleans up request queues...");
-    auto flushed_count = 0;
-    while (request_source_->can_pop()) {
-      try {
-        dfmessages::DataRequest data_request;
-        request_source_->pop(data_request, source_queue_timeout_ms_);
-        ++flushed_count;
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-      }
-    }
-    ERS_INFO("Requester thread joins... Flushed " << flushed_count << " request.");
+    ERS_INFO("Requester thread joins... ");
   }
 
   void run_stats() {
