@@ -4,7 +4,11 @@ Appfwk DAQModules, utilities, and scripts for DUNE Upstream DAQ FELIX Readout So
 ## TP Integration
 
 TP is added to the FakeCardReader module (TP is currently not a standalone module). The fake TPs are read out from a binary file (/tmp/tp_frames.bin) 
-and parsed using a structure "TPFrame" defined in  DUNE-DAQ/dataformats. 
+and parsed using a structure "TPFrame" defined in  DUNE-DAQ/dataformats.
+
+To get the "tp_frames.bin" TP data:
+    curl https://cernbox.cern.ch/index.php/s/ENmgJ4DWom1Ixg2 -o tp_frames.bin
+
 
 To test the TP readout, run
     daq_application -c stdin://sourcecode/readout/test/fakereadout-tp-commands-input.json
