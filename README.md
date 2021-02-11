@@ -1,6 +1,18 @@
 # readout - Readout software and utilities 
 Appfwk DAQModules, utilities, and scripts for DUNE Upstream DAQ FELIX Readout Software.
 
+## TP Integration
+
+TP is added to the FakeCardReader module (TP is currently not a standalone module). The fake TPs are read out from a binary file (/tmp/tp_frames.bin) 
+and parsed using a structure "TPFrame" defined in  DUNE-DAQ/dataformats. 
+
+To test the TP readout, run
+    daq_application -c stdin://sourcecode/readout/test/fakereadout-tp-commands-input.json
+
+and start typing the commands:
+    init, conf, start, stop
+
+
 ## Building
 
 For the dependencies, you need the following external package that ships a build of a partial set of the ATLAS FELIX Software suite:
