@@ -13,6 +13,7 @@
 #include "ReadoutConstants.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
+#include "dataformats/tp/TPFrame.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -32,6 +33,8 @@
 namespace dunedaq {
 namespace readout { 
 
+typedef uint32_t word_t;
+
 FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
@@ -47,20 +50,32 @@ FakeCardReader::FakeCardReader(const std::string& name)
 void
 FakeCardReader::init(const data_t& args)
 {
-
   auto ini = args.get<appfwk::cmd::ModInit>();
+
   for (const auto& qi : ini.qinfos) {
-    if (qi.dir != "output") {
+    if (!(qi.dir == "output" || qi.dir == "tp_output")) {
       continue;
     }
-    try {
-      ERS_LOG("Setting up queue: " << qi.inst);
-      output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+
+    if (qi.dir == "output") {
+      try {
+        output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+      }
+      catch (const ers::Issue& excpt) {
+        throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
+      }
     }
-    catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
+
+    if (qi.dir == "tp_output") {
+      try {
+        tp_output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>(qi.inst));
+      }
+      catch (const ers::Issue& excpt) {
+        throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
+      }
     }
   }
+
 }
 
 void 
@@ -72,8 +87,15 @@ FakeCardReader::do_conf(const data_t& args)
     cfg_ = args.get<fakecardreader::Conf>();
 
     // Read input
-    source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
-    source_buffer_->read(cfg_.data_filename);
+    if (cfg_.raw_type == "wib") {
+      source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
+      source_buffer_->read(cfg_.data_filename);
+    }
+
+    if (cfg_.raw_type == "tp") {
+      tp_source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::TP_SUPERCHUNK_SIZE);
+      tp_source_buffer_->read(cfg_.tp_data_filename);
+    }
 
     // Mark configured
     configured_ = true;
@@ -88,6 +110,11 @@ FakeCardReader::do_start(const data_t& /*args*/)
   int idx=0;
   for (auto my_queue : output_queues_) {
     worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
+    ++idx;
+  }
+  idx=0;
+  for (auto my_queue : tp_output_queues_) {
+    worker_threads_.emplace_back(&FakeCardReader::generate_tp_data, this, my_queue, cfg_.link_ids[idx]);
     ++idx;
   }
 }
@@ -122,8 +149,7 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
   ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
   uint64_t ts_next = ts_0;
 
-  // Run until stop marker
-  
+  // Run until stop marker 
   while (run_marker_.load()) {
       // Which element to push to the buffer
       if (offset == num_elem) {
@@ -157,6 +183,87 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
   ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
 }
 
+void 
+FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
+{
+  std::stringstream ss;
+  ss << "card-reader-" << linkid;
+  pthread_setname_np(pthread_self(), ss.str().c_str());
+  // Init ratelimiter, element offset and source buffer ref
+  dunedaq::readout::RateLimiter rate_limiter(cfg_.rate_khz);
+  rate_limiter.init();
+  int offset = 0;
+  auto& source = tp_source_buffer_->get();
+
+  // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
+  int num_elem = tp_source_buffer_->num_elements();
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::TPFrame*>(source.data())->tp_header()->timestamp();
+  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
+  uint64_t ts_next = ts_0;
+
+  struct TPSubframe {
+    word_t w1;
+    word_t w2;
+    word_t w3;
+  };
+  bool head = false;
+  dunedaq::dataformats::TPFrame* tf = nullptr;
+  const dunedaq::dataformats::TPDataBlock* tb = nullptr;
+  while (run_marker_.load()) {
+      // Which element to push to the buffer
+      if (offset == num_elem) {
+        offset = 0;
+      } 
+      // Create next superchunk
+      std::unique_ptr<types::TP_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::TP_SUPERCHUNK_STRUCT>();
+      // Memcpy from file buffer to flat char array
+      ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::TP_SUPERCHUNK_SIZE), constant::TP_SUPERCHUNK_SIZE);
+
+      for (unsigned int i=0; i<constant::TP_SUPERCHUNK_SIZE/12; ++i) {
+        auto* sp = reinterpret_cast<TPSubframe*>(((uint8_t*)payload_ptr.get())+i*12);
+        if (!head) {
+          tf = new dunedaq::dataformats::TPFrame();
+          tb = tf->tp_data();
+          const dunedaq::dataformats::TPHeader* tfh = tf->tp_header();
+          tfh = reinterpret_cast<dunedaq::dataformats::TPHeader*>(sp);
+          tf->set_tp_header(*tfh);
+          tf->set_timestamp(ts_next);
+          ts_next += 25;
+          //tfh->printHex();
+          //tf->tp_header()->printHex();
+          head = true;
+          continue;
+        }
+        if (sp->w3 == 0xDEADBEEF) {
+          const dunedaq::dataformats::TPPedinfo* tpi = tf->tp_pedinfo();
+          tpi = reinterpret_cast<dunedaq::dataformats::TPPedinfo*>(sp);
+          tf->set_tp_pedinfo(*tpi);
+          //tpi->printHex();
+          //tf->tp_pedinfo()->printHex();
+          head = false;
+          tf->set_tp_data(*tb);
+          continue;
+        }
+        dunedaq::dataformats::TPData* td = reinterpret_cast<dunedaq::dataformats::TPData*>(sp);
+        tf->add_tp(*td);
+        //tf->tp_data()->printHex();
+      }
+
+      // queue in to actual DAQSink
+      try {
+        myqueue->push(std::move(payload_ptr), queue_timeout_ms_);
+      } catch (...) { // RS TODO: ERS issues
+        std::runtime_error("Queue timed out...");
+      }
+
+    // Count packet and limit rate if needed.
+    ++offset;
+    ++packet_count_;
+    rate_limiter.limit();
+  }
+  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
+}
+
 void
 FakeCardReader::run_stats()
 {
@@ -174,6 +281,9 @@ FakeCardReader::run_stats()
     t0 = now;
   }
 }
+
+
+
 
 }
 } // namespace dunedaq::readout

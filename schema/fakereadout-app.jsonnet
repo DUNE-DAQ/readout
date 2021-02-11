@@ -48,6 +48,15 @@ local qspec_list = [
         "apa_number": 1,
         "link_number": 2
       }
+      ),
+      cmd.mcmd("tp-fake-source", {
+        "link_ids": [0],
+        "input_limit": 10485100,
+        "rate_khz": 166,
+        "raw_type": "tp",
+        "tp_data_filename": "/tmp/tp_frames.bin",
+        "queue_timeout_ms": 2000
+      }
       )
     ]
   ) {},

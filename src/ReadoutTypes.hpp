@@ -59,6 +59,24 @@ typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
 using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
 
+// TP
+const constexpr std::size_t TP_SUPERCHUNK_SIZE = 5568; // also defined in ReadoutConstants.hpp
+struct TP_SUPERCHUNK_STRUCT {
+  char data[TP_SUPERCHUNK_SIZE];
+};
+
+typedef dunedaq::appfwk::DAQSink<TP_SUPERCHUNK_STRUCT> TPFrameSink;
+typedef std::unique_ptr<TPFrameSink> UniqueTPFrameSink;
+using TPFramePtrSink = appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>;
+using UniqueTPFramePtrSink = std::unique_ptr<TPFramePtrSink>;
+
+typedef dunedaq::appfwk::DAQSource<TP_SUPERCHUNK_STRUCT> TPFrameSource;
+typedef std::unique_ptr<TPFrameSource> UniqueTPFrameSource;
+using TPFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>;
+using UniqueTPFramePtrSource = std::unique_ptr<TPFramePtrSource>;
+
+
+
 } // namespace types
 } // namespace readout
 } // namespace dunedaq

@@ -1,0 +1,88 @@
+[
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "tp_output",
+                                "inst": "tp_fakelink-0",
+                                "name": "tp_output"
+                            }
+                        ]
+                    },
+                    "inst": "tp_fake-source",
+                    "plugin": "FakeCardReader"
+                }
+            ],
+            "queues": [
+                {
+                    "capacity": 100000,
+                    "inst": "tp_fakelink-0",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "frags-out",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "requests-in",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "ts-sync-out",
+                    "kind": "FollyMPMCQueue"
+                }
+            ]
+        },
+        "id": "init"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "tp_data_filename": "/tmp/tp_frames.bin",
+                        "input_limit": 10485100,
+                        "link_ids": [
+                            0
+                        ],
+                        "queue_timeout_ms": 2000,
+                        "rate_khz": 166,
+                        "raw_type": "tp"
+                    },
+                    "match": "tp_fake-source"
+                }
+            ]
+        },
+        "id": "conf"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "run": 42
+                    },
+                    "match": ""
+                }
+            ]
+        },
+        "id": "start"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {},
+                    "match": ""
+                }
+            ]
+        },
+        "id": "stop"
+    }
+]

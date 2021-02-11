@@ -14,34 +14,6 @@
                     },
                     "inst": "fake-source",
                     "plugin": "FakeCardReader"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "fakelink-0",
-                                "name": "raw-input"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "ts-sync-out",
-                                "name": "timesync"
-                            },
-                            {
-                                "dir": "input",
-                                "inst": "requests-in",
-                                "name": "requests"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "frags-out",
-                                "name": "fragments"
-                            }
-                        ]
-                    },
-                    "inst": "fake-handler",
-                    "plugin": "DataLinkHandler"
                 }
             ],
             "queues": [
@@ -84,32 +56,6 @@
                         "raw_type": "wib"
                     },
                     "match": "fake-source"
-                },
-                {
-                    "data": {
-                        "apa_number": 1,
-                        "fake_trigger_flag": 1,
-                        "latency_buffer_size": 100000,
-                        "link_number": 2,
-                        "pop_limit_pct": 0.8,
-                        "pop_size_pct": 0.3,
-                        "raw_type": "wib",
-                        "source_queue_timeout_ms": 2000
-                    },
-                    "match": "fake-handler"
-                },
-                {
-                    "data": {
-                        "input_limit": 10485100,
-                        "link_ids": [
-                            0
-                        ],
-                        "queue_timeout_ms": 2000,
-                        "rate_khz": 166,
-                        "raw_type": "tp",
-                        "tp_data_filename": "/tmp/tp_frames.bin"
-                    },
-                    "match": "tp-fake-source"
                 }
             ]
         },
