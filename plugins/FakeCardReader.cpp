@@ -73,7 +73,14 @@ FakeCardReader::do_conf(const data_t& args)
 
     // Read input
     source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
-    source_buffer_->read(cfg_.data_filename);
+    ERS_LOG("Reading binary file: " << cfg_.data_filename);
+    try {
+      source_buffer_->read(cfg_.data_filename);
+    }
+    catch (const ers::Issue& ex) {
+      ers::fatal(ex);
+      throw ConfigurationError(ERS_HERE, "", ex);
+    }
 
     // Mark configured
     configured_ = true;
@@ -85,11 +92,17 @@ FakeCardReader::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
   stats_thread_.set_work(&FakeCardReader::run_stats, this);
-  int idx=0;
-  for (auto my_queue : output_queues_) {
-    worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
-    ++idx;
+
+  if(source_buffer_->num_elements() == 0) {
+    ers::fatal(EmptySourceBuffer(ERS_HERE, cfg_.data_filename));
+  } else {
+    int idx=0;
+    for (auto my_queue : output_queues_) {
+      worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
+      ++idx;
+    }
   }
+
 }
 
 void 

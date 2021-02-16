@@ -39,7 +39,7 @@ public:
     // Open file 
     rawdata_ifs_.open(source_filename_, std::ios::in | std::ios::binary);
     if (!rawdata_ifs_) {
-      ers::error(ConfigurationError(ERS_HERE, "Couldn't open binary file."));
+      throw CannotOpenFile(ERS_HERE, source_filename_);
     }
     
     // Check file size 

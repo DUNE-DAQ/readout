@@ -26,6 +26,14 @@ namespace dunedaq {
                       " Readout Configuration Error: " << conferror,
                       ((std::string)conferror)) 
 
+    ERS_DECLARE_ISSUE(readout, CannotOpenFile,
+                      " Couldn't open binary file: " << filename,
+                      ((std::string)filename))
+
+    ERS_DECLARE_ISSUE(readout, EmptySourceBuffer,
+                      " Source Buffer is empty, check file: " << filename,
+                      ((std::string)filename))
+
     ERS_DECLARE_ISSUE(readout, QueueTimeoutError,
                       " Readout queue timed out: " << queuename,
                       ((std::string)queuename))
