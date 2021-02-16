@@ -45,6 +45,7 @@ public:
 private:
   // Commands
   void do_conf(const data_t& /*args*/);
+  void do_scrap(const data_t& /*args*/);
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
 

@@ -32,6 +32,7 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
   , run_marker_{false}
 {
   register_command("conf", &DataLinkHandler::do_conf);
+  register_command("scrap", &DataLinkHandler::do_scrap);
   register_command("start", &DataLinkHandler::do_start);
   register_command("stop", &DataLinkHandler::do_stop);
 }
@@ -51,8 +52,15 @@ DataLinkHandler::do_conf(const data_t& args)
 {
   ERS_INFO("Configure readout implementation...");
   readout_impl_->conf(args);
+  configured_ = true;
 }
 
+void
+DataLinkHandler::do_scrap(const data_t& /*args*/)
+{
+  ERS_INFO("Scrap readout implementation...");
+  configured_ = false;
+}
 void 
 DataLinkHandler::do_start(const data_t& args)
 {

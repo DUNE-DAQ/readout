@@ -40,6 +40,7 @@ FakeCardReader::FakeCardReader(const std::string& name)
   , stats_thread_(0)
 {
   register_command("conf", &FakeCardReader::do_conf);
+  register_command("scrap", &FakeCardReader::do_scrap);
   register_command("start", &FakeCardReader::do_start);
   register_command("stop", &FakeCardReader::do_stop);
 }
@@ -87,10 +88,16 @@ FakeCardReader::do_conf(const data_t& args)
   }
 }
 
+void
+FakeCardReader::do_scrap(const data_t& /*args*/)
+{
+     configured_ = false;
+}
 void 
 FakeCardReader::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
+  packet_count_ = 0;
   stats_thread_.set_work(&FakeCardReader::run_stats, this);
 
   if(source_buffer_->num_elements() == 0) {
@@ -112,6 +119,9 @@ FakeCardReader::do_stop(const data_t& /*args*/)
   for (auto& work_thread : worker_threads_) {
     work_thread.join();
   }
+  
+  worker_threads_.clear();
+
   while (!stats_thread_.get_readiness()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));            
   }
@@ -120,9 +130,7 @@ FakeCardReader::do_stop(const data_t& /*args*/)
 void 
 FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
 {
-  std::stringstream ss;
-  ss << "card-reader-" << linkid;
-  pthread_setname_np(pthread_self(), ss.str().c_str());
+  pthread_setname_np(pthread_self(), get_name().c_str());
   // Init ratelimiter, element offset and source buffer ref
   dunedaq::readout::RateLimiter rate_limiter(cfg_.rate_khz);
   rate_limiter.init();
