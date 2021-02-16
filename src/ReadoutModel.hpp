@@ -15,6 +15,8 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include "logging/Logging.hpp"
+
 #include "dataformats/ComponentRequest.hpp"
 #include "dataformats/Fragment.hpp"
 
@@ -58,7 +60,7 @@ public:
   , timesync_thread_(0)
   {
     // Queue specs are in ModInit structs.
-    ERS_INFO("Generic ReaoutModel initialized with queue config, but no resets yet.");
+    ers::info(ers::Message(ERS_HERE,"Generic ReaoutModel initialized with queue config, but no resets yet."));
     queue_config_ = args.get<appfwk::cmd::ModInit>();
   }
 
@@ -72,10 +74,10 @@ public:
    }
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-    ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
+	ers::info(ers::Message(ERS_HERE,"ReadoutModel creation for raw type: "+raw_type_name_)); 
 
     // Reset queues
-    ERS_INFO("Resetting queues...");
+	ers::info(ers::Message(ERS_HERE,"Resetting queues..."));
     for (const auto& qi : queue_config_.qinfos) { 
       try {
         if (qi.name == "raw_input") {
@@ -131,7 +133,7 @@ public:
   }
 
   void start(const nlohmann::json& args) {
-    ERS_INFO("Starting threads...");
+    ers::info(ers::Message(ERS_HERE,"Starting threads..."));
     request_handler_impl_->start(args);
     stats_thread_.set_work(&ReadoutModel<RawType>::run_stats, this);
     consumer_thread_.set_work(&ReadoutModel<RawType>::run_consume, this);
@@ -140,7 +142,7 @@ public:
   }
 
   void stop(const nlohmann::json& args) {    
-    ERS_INFO("Stoppping threads...");
+    ers::info(ers::Message(ERS_HERE,"Stoppping threads..."));
     request_handler_impl_->stop(args);
     while (!timesync_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
@@ -154,7 +156,7 @@ public:
     while (!stats_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
     }
-    ERS_INFO("Flushing latency buffer with occupancy: " << occupancy_callback_());
+	ers::info(ers::Message(ERS_HERE,"Flushing latency buffer with occupancy: "+occupancy_callback_()));
     pop_callback_(occupancy_callback_());
     raw_processor_impl_->reset_last_daq_time();
   }
@@ -162,7 +164,7 @@ public:
 private:
 
   void run_consume() {
-    ERS_INFO("Consumer thread started...");
+    ers::info(ers::Message(ERS_HERE,"Consumer thread started..."));
     while (run_marker_.load()) {
       std::unique_ptr<RawType> payload_ptr(nullptr);
       // Try to acquire data
@@ -181,7 +183,7 @@ private:
         ++packet_count_;
       }
     }
-    ERS_INFO("Consumer cleans up raw queue...");
+	ers::info(ers::Message(ERS_HERE,"Consumer cleans up raw queue..."));
     auto flushed_count = 0;
     while (raw_data_source_->can_pop()) {
       try {
@@ -192,16 +194,16 @@ private:
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
       }
     } 
-    ERS_INFO("Consumer thread joins... Flushed " << flushed_count << " elements from source queue.");
+	ers::info(ers::Message(ERS_HERE,"Consumer thread joins... Flushed "+std::to_string(flushed_count)+" elements from source queue."));
   }   
 
   void run_timesync() {
-    ERS_INFO("TimeSync thread started...");
+    ers::info(ers::Message(ERS_HERE,"TimeSync thread started..."));
     auto once_per_run = true;
     while (run_marker_.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
-        //ERS_DEBUG(0,"New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
+        //TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.m_daq_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
           if (fake_trigger_) {
@@ -209,16 +211,16 @@ private:
             dr.m_trigger_timestamp = timesyncmsg.m_daq_time - 500*time::us;
             dr.m_window_width = 1000;
             dr.m_window_offset = 100;
-            ERS_DEBUG(2, "Issuing fake trigger based on timesync. "
+            TLOG_DEBUG(2) << "Issuing fake trigger based on timesync. "
               << " ts=" << dr.m_trigger_timestamp
               << " window_width=" << dr.m_window_width
-              << " window_offset=" << dr.m_window_offset);
+              << " window_offset=" << dr.m_window_offset;
             request_handler_impl_->issue_request(dr);
             ++request_count_;
           }
         } else {
           if (once_per_run) {
-            ERS_INFO("Timesync with DAQ time 0 won't be sent out as it's an invalid sync.");
+            ers::info(ers::Message(ERS_HERE,"Timesync with DAQ time 0 won't be sent out as it's an invalid sync."));
             once_per_run = false;
           }
         }
@@ -229,11 +231,11 @@ private:
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     once_per_run = true;
-    ERS_INFO("TimeSync thread joins...");
+	ers::info(ers::Message(ERS_HERE,"TimeSync thread joins..."));
   } 
 
   void run_requests() {
-    ERS_INFO("Requester thread started...");
+    ers::info(ers::Message(ERS_HERE,"Requester thread started..."));
     while (run_marker_.load()) {
       dfmessages::DataRequest data_request;
       try {
@@ -245,7 +247,7 @@ private:
         // not an error, safe to continue
       }
     }
-    ERS_INFO("Requester cleans up request queues...");
+	ers::info(ers::Message(ERS_HERE,"Requester cleans up request queues..."));
     auto flushed_count = 0;
     while (request_source_->can_pop()) {
       try {
@@ -256,12 +258,12 @@ private:
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
       }
     }
-    ERS_INFO("Requester thread joins... Flushed " << flushed_count << " request.");
+	ers::info(ers::Message(ERS_HERE,"Requester thread joins... Flushed "+std::to_string(flushed_count)+" request."));
   }
 
   void run_stats() {
     // Temporarily, for debugging, a rate checker thread...
-    ERS_INFO("Statistics thread started...");
+    ers::info(ers::Message(ERS_HERE,"Statistics thread started..."));
     int new_packets = 0;
     int new_requests = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -270,18 +272,20 @@ private:
       new_packets = packet_count_.exchange(0);
       new_requests = request_count_.exchange(0);
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz] "
-        << "Consumed DataRequests: " << new_requests);
+	  ers::info(ers::Message(ERS_HERE,
+	                         "Consumed Packet rate: "+std::to_string(new_packets/seconds/1000.)+
+	                         " [kHz] Consumed DataRequests: "+std::to_string(new_requests)));
       auto rawq_timeouts = rawq_timeout_count_.exchange(0);
       if (rawq_timeouts > 0) {
-        ERS_INFO("***ERROR: Raw input queue timed out " << rawq_timeouts << " times!");
+        ers::info(ers::Message(ERS_HERE,
+		                       "***ERROR: Raw input queue timed out "+std::to_string(rawq_timeouts)+" times!"));
       }
       for (int i=0; i<100 && run_marker_.load(); ++i) { // 100 x 100ms = 10s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
     }
-    ERS_INFO("Statistics thread joins...");
+	ers::info(ers::Message(ERS_HERE,"Statistics thread joins..."));
   }
 
   // Constuctor params

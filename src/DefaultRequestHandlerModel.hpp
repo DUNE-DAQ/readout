@@ -19,6 +19,7 @@
 
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
+#include "logging/Logging.hpp"
 
 #include <tbb/concurrent_queue.h>
 
@@ -58,7 +59,7 @@ public:
   , occupancy_(0)
   , stats_thread_(0)
   {
-    ERS_INFO("DefaultRequestHandlerModel created...");
+    ers::info(ers::Message(ERS_HERE,"DefaultRequestHandlerModel created..."));
     cleanup_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
       this, std::placeholders::_1, std::placeholders::_2);
     data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
@@ -80,10 +81,12 @@ public:
       pop_limit_size_ = pop_limit_pct_ * buffer_capacity_;
       max_requested_elements_ = pop_limit_size_ - pop_limit_size_ * pop_size_pct_;
     }
-    ERS_INFO("RequestHandler configured. " << std::fixed << std::setprecision(2)
-          << "auto-pop limit: "<< pop_limit_pct_*100.0f << "% "
-          << "auto-pop size: " << pop_size_pct_*100.0f  << "% "
-          << "max requested elements: " << max_requested_elements_);
+	std::ostringstream oss;
+	oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
+		<< "auto-pop limit: "<< pop_limit_pct_*100.0f << "% "
+		<< "auto-pop size: " << pop_size_pct_*100.0f  << "% "
+		<< "max requested elements: " << max_requested_elements_;
+	ers::info(ers::Message(ERS_HERE,oss.str()));
   }
 
   void start(const nlohmann::json& /*args*/)
@@ -156,9 +159,9 @@ protected:
           fut.wait(); // trigger execution
           auto reqres = fut.get();
           if (reqres.result_code == ResultCode::kNotYet) { // give it another chance
-            ERS_DEBUG(1, "Re-queue request. "
+            TLOG_DEBUG(1) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.m_trigger_timestamp
-              << "delay [us] " << reqres.request_delay_us);
+              << "delay [us] " << reqres.request_delay_us;
             issue_request(reqres.data_request, reqres.request_delay_us);
           }
         }
@@ -179,7 +182,7 @@ protected:
   }
 
   void run_stats() {
-    ERS_INFO("Statistics thread started...");
+    ers::info(ers::Message(ERS_HERE,"Statistics thread started..."));
     int new_pop_reqs = 0;
     int new_pop_count = 0;
     int new_occupancy = 0;
@@ -190,15 +193,15 @@ protected:
       new_pop_count = pops_count_.exchange(0);
       new_occupancy = occupancy_;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_DEBUG(1, "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+      TLOG_DEBUG(1) << "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
-          << " Occupancy: " << new_occupancy);
+          << " Occupancy: " << new_occupancy;
       for(int i=0; i<50 && run_marker_.load(); ++i){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
     }
-    ERS_INFO("Statistics thread stopped...");
+	ers::info(ers::Message(ERS_HERE,"Statistics thread stopped..."));
   }
 
   // Data access (LB interfaces)

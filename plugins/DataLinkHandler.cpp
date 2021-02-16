@@ -16,7 +16,9 @@
 #include <string>
 #include <vector>
 
-#include <TRACE/trace.h>
+//#include <TRACE/trace.h>
+#include "logging/Logging.hpp"
+
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
@@ -39,7 +41,7 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
 void
 DataLinkHandler::init(const data_t& args)
 {
-  ERS_INFO("Initialiyze readout implementation...");
+  TLOG() << "Initialiyze readout implementation...";
   readout_impl_ = createReadout(args, run_marker_);
   if (readout_impl_ == nullptr) {
     throw std::runtime_error("Readout implementation creation failed...");
@@ -49,14 +51,14 @@ DataLinkHandler::init(const data_t& args)
 void
 DataLinkHandler::do_conf(const data_t& args)
 {
-  ERS_INFO("Configure readout implementation...");
+  TLOG() << "Configure readout implementation...";
   readout_impl_->conf(args);
 }
 
 void 
 DataLinkHandler::do_start(const data_t& args)
 {
-  ERS_INFO("Start readout implementeation...");
+  TLOG() << "Start readout implementeation...";
   run_marker_.store(true);
   readout_impl_->start(args);
 }
@@ -64,7 +66,7 @@ DataLinkHandler::do_start(const data_t& args)
 void 
 DataLinkHandler::do_stop(const data_t& args)
 {
-  ERS_INFO("Stop readout implementation...");
+  TLOG() << "Stop readout implementation...";
   run_marker_.store(false);
   readout_impl_->stop(args);
 }

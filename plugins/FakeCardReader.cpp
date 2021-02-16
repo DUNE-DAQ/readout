@@ -23,7 +23,9 @@
 #include <string>
 #include <vector>
 
-#include <TRACE/trace.h>
+//#include <TRACE/trace.h>
+#include "logging/Logging.hpp"
+
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
@@ -54,7 +56,7 @@ FakeCardReader::init(const data_t& args)
       continue;
     }
     try {
-      ERS_LOG("Setting up queue: " << qi.inst);
+      TLOG() << "Setting up queue: " << qi.inst;
       output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
     }
     catch (const ers::Issue& excpt) {
@@ -73,7 +75,9 @@ FakeCardReader::do_conf(const data_t& args)
 
     // Read input
     source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
+	TLOG_DEBUG(3) << "source_buffer_->read(" << cfg_.data_filename << ") started";
     source_buffer_->read(cfg_.data_filename);
+	TLOG_DEBUG(3) << "source_buffer_->read(" << cfg_.data_filename << ") complete";
 
     // Mark configured
     configured_ = true;
@@ -118,9 +122,15 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = source_buffer_->num_elements();
+  if (num_elem == 0) {
+	  TLOG_DEBUG(2) << "num_elem=0; sleeping...";
+	  usleep(100000);
+	  num_elem = source_buffer_->num_elements();
+  }
   auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data());
+  TLOG_DEBUG(2) << "num_elem=" << num_elem << " wfptr=" << wfptr;
   uint64_t ts_0 = wfptr->get_wib_header()->get_timestamp();
-  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
+  TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0;
 
   // Run until stop marker
@@ -155,7 +165,7 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
     ++packet_count_;
     rate_limiter.limit();
   }
-  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
+  TLOG_DEBUG(0) << "Data generation thread " << linkid << " finished";
 }
 
 void
@@ -168,7 +178,7 @@ FakeCardReader::run_stats()
     auto now = std::chrono::high_resolution_clock::now();
     new_packets = packet_count_.exchange(0);
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-    ERS_INFO("Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]");
+    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";
     for(int i=0; i<100 && run_marker_.load(); ++i){ // 10 seconds sleep
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

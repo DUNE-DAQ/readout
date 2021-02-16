@@ -10,6 +10,7 @@
 #define UDAQ_READOUT_SRC_ASYNCRAWPROCESSOR_HPP_
 
 #include "RawDataProcessorConcept.hpp"
+#include "logging/Logging.hpp"
 
 #include <functional>
 #include <future>
@@ -37,7 +38,7 @@ public:
   }
 
   void conf(const nlohmann::json& /*cfg*/) {
-    ERS_INFO("Setting up async task tree.");
+    ers::info(ers::Message(ERS_HERE,"Setting up async task tree."));
   }
 
   void process_item(RawType* item) {

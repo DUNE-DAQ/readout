@@ -13,6 +13,7 @@
 #include "ReadoutStatistics.hpp"
 #include "ReadoutIssues.hpp"
 #include "Time.hpp"
+#include "logging/Logging.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 
@@ -53,7 +54,10 @@ protected:
         first_ts_missmatch_ = false;
       }
       else {
-        ERS_INFO("Timestamp MISSMATCH! -> | previous: " << previous_ts_ << " next: " << current_ts_);
+		  ers::info(ers::Message(ERS_HERE,
+		                         "Timestamp MISSMATCH! -> | previous: "
+		                         +std::to_string(previous_ts_)
+		                         +" next: "+std::to_string(current_ts_)));
       }
     }
     previous_ts_ = current_ts_;

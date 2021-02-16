@@ -9,6 +9,7 @@
 #define UDAQ_READOUT_SRC_FILESOURCEBUFFER_HPP_
 
 #include "ReadoutIssues.hpp"
+#include "logging/Logging.hpp"
 
 #include <fstream>
 
@@ -62,7 +63,10 @@ public:
     rawdata_ifs_.seekg(0, std::ios::beg);
     input_buffer_.reserve(filesize);
     input_buffer_.insert(input_buffer_.begin(), std::istreambuf_iterator<char>(rawdata_ifs_), std::istreambuf_iterator<char>());
-    ERS_INFO("Available elements: " << element_count_ << " | In bytes: " << input_buffer_.size());
+	ers::info( ers::Message(ERS_HERE,"Available elements: "
+	                        +std::to_string( element_count_ )
+	                        +" | In bytes: "
+	                        +std::to_string(input_buffer_.size())));
   }
 
   const int& num_elements() {

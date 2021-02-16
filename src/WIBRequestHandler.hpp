@@ -12,6 +12,7 @@
 #include "DefaultRequestHandlerModel.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
+#include "logging/Logging.hpp"
 
 #include "ReadoutStatistics.hpp"
 
@@ -36,7 +37,7 @@ public:
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
       occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
   {
-    ERS_INFO("WIBRequestHandler created...");
+    ers::info(ers::Message(ERS_HERE,"WIBRequestHandler created..."));
     data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, 
       this, std::placeholders::_1, std::placeholders::_2);
   } 
@@ -85,14 +86,13 @@ protected:
     uint_fast32_t num_elements_in_window = dr.m_window_width / (tick_dist_ * frames_per_element_) + 1;
     uint_fast32_t min_num_elements = (time_tick_diff + dr.m_window_width/tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
-    ERS_DEBUG(2, "TPC (WIB frame) data request for " 
+    TLOG_DEBUG(2) << "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.m_trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
       << "ElementsInWindow=" << num_elements_in_window << " "
       << "MinNumElements=" << min_num_elements << " "
-      << "Occupancy=" << occupancy_guess
-    );
+      << "Occupancy=" << occupancy_guess;
 
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
@@ -124,15 +124,16 @@ protected:
 
     // Find data in Latency Buffer
     if ( rres.result_code != ResultCode::kFound ) {
-      ERS_INFO("***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
+      std::ostringstream oss;
+      oss << "***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
         << "Trigger TS=" << dr.m_trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
         << "ElementOffset=" << num_element_offset << ".th "
         << "ElementsInWindow=" << num_elements_in_window << " "
         << "MinNumElements=" << min_num_elements << " "
-        << "Occupancy=" << occupancy_guess
-      );
+        << "Occupancy=" << occupancy_guess;
+	  ers::info(ers::Message(ERS_HERE,oss.str()));
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {

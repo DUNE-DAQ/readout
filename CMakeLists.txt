@@ -6,6 +6,7 @@ find_package(daq-cmake REQUIRED)
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
+find_package(logging REQUIRED)
 find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 #find_package(udaq_readout_deps REQUIRED)
@@ -16,6 +17,7 @@ find_package(TBB REQUIRED)
 # Dependency sets
 #set(FLXCARD_DEPENDENCIES udaq_readout_deps::FlxCard udaq_readout_deps::cmem_rcc udaq_readout::deps::packetformat)
 set(FLXUTIL_DEPENDENCIES 
+  logging::logging
   dataformats::dataformats
   dfmessages::dfmessages
   #udaq_readout_deps::packetformat 
