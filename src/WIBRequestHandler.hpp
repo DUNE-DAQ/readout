@@ -112,11 +112,18 @@ protected:
     else if ( min_num_elements > occupancy_guess ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
-      rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
-      if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
-        rres.request_delay_us = min_delay_us_; 
+      if(run_marker_.load()) {
+         rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
+         if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
+           rres.request_delay_us = min_delay_us_; 
+         }
       }
-    }
+      else {
+          frag_header.m_error_bits |= 0x1; // error bit for not-found data
+          rres.result_code = ResultCode::kNotFound;
+          ++bad_requested_count_;
+      }
+    }   
     else {
       rres.result_code = ResultCode::kFound;
       ++found_requested_count_;

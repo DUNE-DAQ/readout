@@ -91,12 +91,14 @@ public:
 
   void start(const nlohmann::json& /*args*/)
   {
+    //run_marker_.store(true);
     stats_thread_.set_work(&DefaultRequestHandlerModel<RawType>::run_stats, this);
     executor_ = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
   {
+    //run_marker_.store(false);
     executor_.join();
     while (!stats_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
@@ -148,7 +150,7 @@ protected:
   void executor()
   {
     std::future<RequestResult> fut;
-    while (run_marker_.load()) {
+    while (run_marker_.load() || !completion_queue_.empty()) {
       if (completion_queue_.empty()) {
         std::this_thread::sleep_for(std::chrono::microseconds(50));
       } else {
@@ -158,24 +160,12 @@ protected:
         } else {
           fut.wait(); // trigger execution
           auto reqres = fut.get();
-          if (reqres.result_code == ResultCode::kNotYet) { // give it another chance
+          if (reqres.result_code == ResultCode::kNotYet && run_marker_.load()) { // give it another chance
             TLOG_DEBUG(1) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.m_trigger_timestamp
               << "delay [us] " << reqres.request_delay_us;
             issue_request(reqres.data_request, reqres.request_delay_us);
           }
-        }
-      }
-    }
-    while (!completion_queue_.empty()) { // cleanup completion queue
-      bool success = completion_queue_.try_pop(fut);
-      if (!success) {
-
-      } else {
-        fut.wait(); // trigger execution
-        auto reqres = fut.get();
-        if (reqres.result_code != ResultCode::kFound) {
-
         }
       }
     }
@@ -223,10 +213,12 @@ protected:
   typedef tbb::concurrent_queue<std::future<RequestResult>> CompletionQueue;
   CompletionQueue completion_queue_;
 
+protected:
+  std::atomic<bool>& run_marker_;
+
 private:
   // Executor
   std::thread executor_;
-  std::atomic<bool>& run_marker_;
 
   // Configuration
   std::string raw_type_name_;
