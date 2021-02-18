@@ -8,7 +8,7 @@ and parsed using a structure "TPFrame" defined in  DUNE-DAQ/dataformats.
 
 To get the "tp_frames.bin" TP data:
 
-    curl https://cernbox.cern.ch/index.php/s/ENmgJ4DWom1Ixg2 -o tp_frames.bin
+    curl https://cernbox.cern.ch/index.php/s/686ndOgupTli2RW -o tp_frames.bin
 
 
 To test the TP readout, run
