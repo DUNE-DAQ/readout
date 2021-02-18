@@ -159,7 +159,7 @@ protected:
           auto reqres = fut.get();
           if (reqres.result_code == ResultCode::kNotYet && run_marker_.load()) { // give it another chance
             ERS_DEBUG(1, "Re-queue request. "
-              << "With timestamp=" << reqres.data_request.m_trigger_timestamp
+              << "With timestamp=" << reqres.data_request.trigger_timestamp
               << "delay [us] " << reqres.request_delay_us);
             issue_request(reqres.data_request, reqres.request_delay_us);
           }

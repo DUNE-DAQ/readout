@@ -196,17 +196,18 @@ private:
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
         //ERS_DEBUG(0,"New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
-        if (timesyncmsg.m_daq_time != 0) {
+        if (timesyncmsg.daq_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
           if (fake_trigger_) {
             dfmessages::DataRequest dr;
-            dr.m_trigger_timestamp = timesyncmsg.m_daq_time - 500*time::us;
-            dr.m_window_width = 1000;
-            dr.m_window_offset = 100;
+            dr.trigger_timestamp = timesyncmsg.daq_time - 500*time::us;
+            auto width = 1000;
+            auto offset = 100;
+            dr.window_start = dr.trigger_timestamp - offset;
+            dr.window_end = dr.window_start + width;
             ERS_DEBUG(2, "Issuing fake trigger based on timesync. "
-              << " ts=" << dr.m_trigger_timestamp
-              << " window_width=" << dr.m_window_width
-              << " window_offset=" << dr.m_window_offset);
+              << " ts=" << dr.trigger_timestamp << " window_start=" << dr.window_start
+                        << " window_end=" << dr.window_end);
             request_handler_impl_->issue_request(dr);
             ++request_count_;
           }
