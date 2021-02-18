@@ -13,7 +13,7 @@ To get the "tp_frames.bin" TP data:
 
 To test the TP readout, run
 
-    daq_application -c stdin://sourcecode/readout/test/fakereadout-tp-commands-input.json
+    daq_application -c stdin://sourcecode/readout/test/fakereadout-commands.json
 
 and start typing the commands:
 
