@@ -27,7 +27,7 @@
 #include "CreateRawDataProcessor.hpp"
 #include "CreateLatencyBuffer.hpp"
 #include "CreateRequestHandler.hpp"
-#include "ReusableThread.hpp"
+#include "readout/ReusableThread.hpp"
 
 #include <functional>
 
@@ -162,8 +162,11 @@ public:
 private:
 
   void run_consume() {
+    rawq_timeout_count_ = 0;
+    packet_count_ = 0;
+
     ERS_INFO("Consumer thread started...");
-    while (run_marker_.load()) {
+    while (run_marker_.load() || raw_data_source_->can_pop()) {
       std::unique_ptr<RawType> payload_ptr(nullptr);
       // Try to acquire data
       try {
@@ -181,38 +184,29 @@ private:
         ++packet_count_;
       }
     }
-    ERS_INFO("Consumer cleans up raw queue...");
-    auto flushed_count = 0;
-    while (raw_data_source_->can_pop()) {
-      try {
-        std::unique_ptr<RawType> payload_ptr(nullptr);
-        raw_data_source_->pop(payload_ptr, source_queue_timeout_ms_);
-        ++flushed_count;
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-      }
-    } 
-    ERS_INFO("Consumer thread joins... Flushed " << flushed_count << " elements from source queue.");
+
+    ERS_INFO("Consumer thread joins... ");
   }   
 
   void run_timesync() {
     ERS_INFO("TimeSync thread started...");
+    request_count_ = 0;
     auto once_per_run = true;
     while (run_marker_.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
         //ERS_DEBUG(0,"New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
-        if (timesyncmsg.DAQ_time != 0) {
+        if (timesyncmsg.m_daq_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
           if (fake_trigger_) {
             dfmessages::DataRequest dr;
-            dr.trigger_timestamp = timesyncmsg.DAQ_time - 500*time::us;
-            dr.window_width = 1000;
-            dr.window_offset = 100;
+            dr.m_trigger_timestamp = timesyncmsg.m_daq_time - 500*time::us;
+            dr.m_window_width = 1000;
+            dr.m_window_offset = 100;
             ERS_DEBUG(2, "Issuing fake trigger based on timesync. "
-              << " ts=" << dr.trigger_timestamp
-              << " window_width=" << dr.window_width
-              << " window_offset=" << dr.window_offset);
+              << " ts=" << dr.m_trigger_timestamp
+              << " window_width=" << dr.m_window_width
+              << " window_offset=" << dr.m_window_offset);
             request_handler_impl_->issue_request(dr);
             ++request_count_;
           }
@@ -234,7 +228,8 @@ private:
 
   void run_requests() {
     ERS_INFO("Requester thread started...");
-    while (run_marker_.load()) {
+    request_count_ = 0;
+    while (run_marker_.load() || request_source_->can_pop()) {
       dfmessages::DataRequest data_request;
       try {
         request_source_->pop(data_request, source_queue_timeout_ms_);
@@ -245,18 +240,7 @@ private:
         // not an error, safe to continue
       }
     }
-    ERS_INFO("Requester cleans up request queues...");
-    auto flushed_count = 0;
-    while (request_source_->can_pop()) {
-      try {
-        dfmessages::DataRequest data_request;
-        request_source_->pop(data_request, source_queue_timeout_ms_);
-        ++flushed_count;
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-      }
-    }
-    ERS_INFO("Requester thread joins... Flushed " << flushed_count << " request.");
+    ERS_INFO("Requester thread joins... ");
   }
 
   void run_stats() {

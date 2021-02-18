@@ -139,6 +139,9 @@ template <class T> struct AccessableProducerConsumerQueue {
     auto recordIdx = currentRead + index;
     if (recordIdx > size_) {
       recordIdx -= size_;
+      if (recordIdx > size_) { // don't stomp out
+        return nullptr;
+      }
     }
     return &records_[recordIdx];
   }

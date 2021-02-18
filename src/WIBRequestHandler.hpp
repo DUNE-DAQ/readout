@@ -56,13 +56,13 @@ protected:
   create_fragment_header(const dfmessages::DataRequest& dr) 
   {
     dataformats::FragmentHeader fh;
-    fh.size = sizeof(dataformats::FragmentHeader);
-    fh.trigger_number = dr.trigger_number;    
-    fh.trigger_timestamp = dr.trigger_timestamp;
-    fh.window_offset = dr.window_offset;
-    fh.window_width = dr.window_width;
-    fh.run_number = dr.run_number;
-    fh.link_id = { apa_number_, link_number_ };
+    fh.m_size = sizeof(fh);
+    fh.m_trigger_number = dr.m_trigger_number;    
+    fh.m_trigger_timestamp = dr.m_trigger_timestamp;
+    fh.m_window_offset = dr.m_window_offset;
+    fh.m_window_width = dr.m_window_width;
+    fh.m_run_number = dr.m_run_number;
+    fh.m_link_id = { apa_number_, link_number_ };
     return std::move(fh);
   } 
 
@@ -78,15 +78,15 @@ protected:
     // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
-    uint_fast64_t start_win_ts = dr.trigger_timestamp - dr.window_offset;
-    uint_fast64_t last_ts = front_wh.timestamp();
+    uint_fast64_t start_win_ts = dr.m_trigger_timestamp - dr.m_window_offset;
+    uint_fast64_t last_ts = front_wh.get_timestamp();
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = dr.window_width / (tick_dist_ * frames_per_element_) + 1;
-    uint_fast32_t min_num_elements = (time_tick_diff + dr.window_width/tick_dist_) 
+    uint_fast32_t num_elements_in_window = dr.m_window_width / (tick_dist_ * frames_per_element_) + 1;
+    uint_fast32_t min_num_elements = (time_tick_diff + dr.m_window_width/tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
     ERS_DEBUG(2, "TPC (WIB frame) data request for " 
-      << "Trigger TS=" << dr.trigger_timestamp << " "
+      << "Trigger TS=" << dr.m_trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
       << "ElementsInWindow=" << num_elements_in_window << " "
@@ -100,23 +100,30 @@ protected:
 
     // List of safe-extraction conditions
     if ( num_elements_in_window > max_requested_elements_ ) {
-      frag_header.error_bits |= 0x2; // error bit too big window
+      frag_header.m_error_bits |= 0x2; // error bit too big window
       rres.result_code = ResultCode::kPass;
       ++bad_requested_count_;
     } 
     else if ( last_ts > start_win_ts ) { // data is gone.
-      frag_header.error_bits |= 0x1; // error bit for not-found data
+      frag_header.m_error_bits |= 0x1; // error bit for not-found data
       rres.result_code = ResultCode::kNotFound;
       ++bad_requested_count_;
     } 
     else if ( min_num_elements > occupancy_guess ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
-      rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
-      if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
-        rres.request_delay_us = min_delay_us_; 
+      if(run_marker_.load()) {
+         rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
+         if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
+           rres.request_delay_us = min_delay_us_; 
+         }
       }
-    }
+      else {
+          frag_header.m_error_bits |= 0x1; // error bit for not-found data
+          rres.result_code = ResultCode::kNotFound;
+          ++bad_requested_count_;
+      }
+    }   
     else {
       rres.result_code = ResultCode::kFound;
       ++found_requested_count_;
@@ -126,7 +133,7 @@ protected:
     if ( rres.result_code != ResultCode::kFound ) {
       ERS_INFO("***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
-        << "Trigger TS=" << dr.trigger_timestamp << " " 
+        << "Trigger TS=" << dr.m_trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
         << "ElementOffset=" << num_element_offset << ".th "
         << "ElementsInWindow=" << num_elements_in_window << " "
@@ -136,9 +143,12 @@ protected:
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
-        frag_pieces.emplace_back( 
-          std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) ) 
-        );
+        auto* element = front_callback_(num_element_offset+idxoffset);
+        if (element != nullptr) {
+          frag_pieces.emplace_back( 
+            std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) )
+          );
+        }
       }
     }
 

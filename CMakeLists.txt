@@ -40,7 +40,6 @@ daq_add_application(readout_test_ratelimiter test_ratelimiter_app.cxx TEST LINK_
 
 ##############################################################################
 # Test configurations
-file(COPY test/felix_readout_card0_app.json DESTINATION test)
 file(COPY test/fakereadout-commands.json DESTINATION test)
 
 ##############################################################################

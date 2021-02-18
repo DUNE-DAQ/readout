@@ -13,7 +13,7 @@
 #include "ReadoutConstants.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
-#include "dataformats/tp/TPFrame.hpp"
+#include "dataformats/wib/RawWibTp.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -33,8 +33,6 @@
 namespace dunedaq {
 namespace readout { 
 
-typedef uint32_t word_t;
-
 FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , configured_(false)
@@ -43,6 +41,7 @@ FakeCardReader::FakeCardReader(const std::string& name)
   , stats_thread_(0)
 {
   register_command("conf", &FakeCardReader::do_conf);
+  register_command("scrap", &FakeCardReader::do_scrap);
   register_command("start", &FakeCardReader::do_start);
   register_command("stop", &FakeCardReader::do_stop);
 }
@@ -53,28 +52,22 @@ FakeCardReader::init(const data_t& args)
   auto ini = args.get<appfwk::cmd::ModInit>();
 
   for (const auto& qi : ini.qinfos) {
-    if (!(qi.dir == "output" || qi.dir == "tp_output")) {
+    if (qi.dir != "output") {
       continue;
     }
-
-    if (qi.dir == "output") {
-      try {
+   
+    try {    
+      if (qi.name == "tp_output") {
+        tp_output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
+      } else {
         output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
       }
-      catch (const ers::Issue& excpt) {
-        throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
-      }
     }
-
-    if (qi.dir == "tp_output") {
-      try {
-        tp_output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>(qi.inst));
-      }
-      catch (const ers::Issue& excpt) {
-        throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
-      }
+    catch (const ers::Issue& excpt) {
+      throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
     }
   }
+  ERS_INFO("Init: # output queues: " << output_queues_.size() << "; # tp_output queues: " << tp_output_queues_.size()); 
 
 }
 
@@ -87,13 +80,19 @@ FakeCardReader::do_conf(const data_t& args)
     cfg_ = args.get<fakecardreader::Conf>();
 
     // Read input
-    if (cfg_.raw_type == "wib") {
-      source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
+    source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
+    ERS_LOG("Reading binary file: " << cfg_.data_filename);
+    try {
       source_buffer_->read(cfg_.data_filename);
     }
+    catch (const ers::Issue& ex) {
+      ers::fatal(ex);
+      throw ConfigurationError(ERS_HERE, "", ex);
+    }
 
-    if (cfg_.raw_type == "tp") {
-      tp_source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::TP_SUPERCHUNK_SIZE);
+    if (cfg_.tp_enabled == "true") {
+      tp_source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
+      //tp_source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, 3);
       tp_source_buffer_->read(cfg_.tp_data_filename);
     }
 
@@ -102,19 +101,31 @@ FakeCardReader::do_conf(const data_t& args)
   }
 }
 
+void
+FakeCardReader::do_scrap(const data_t& /*args*/)
+{
+     configured_ = false;
+}
 void 
 FakeCardReader::do_start(const data_t& /*args*/)
 {
   run_marker_.store(true);
+  packet_count_ = 0;
   stats_thread_.set_work(&FakeCardReader::run_stats, this);
-  int idx=0;
-  for (auto my_queue : output_queues_) {
-    worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
-    ++idx;
+
+  if(source_buffer_->num_elements() == 0) {
+    ers::fatal(EmptySourceBuffer(ERS_HERE, cfg_.data_filename));
+  } else {
+    int idx=0;
+    for (auto my_queue : output_queues_) {
+      worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
+      ++idx;
+    }
   }
-  idx=0;
-  for (auto my_queue : tp_output_queues_) {
-    worker_threads_.emplace_back(&FakeCardReader::generate_tp_data, this, my_queue, cfg_.link_ids[idx]);
+  if (cfg_.tp_enabled == "true") {
+    for (auto my_queue : tp_output_queues_) {
+      worker_threads_.emplace_back(&FakeCardReader::generate_tp_data, this, my_queue, cfg_.link_ids[idx]);
+    }
     ++idx;
   }
 }
@@ -126,6 +137,9 @@ FakeCardReader::do_stop(const data_t& /*args*/)
   for (auto& work_thread : worker_threads_) {
     work_thread.join();
   }
+  
+  worker_threads_.clear();
+
   while (!stats_thread_.get_readiness()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));            
   }
@@ -134,9 +148,7 @@ FakeCardReader::do_stop(const data_t& /*args*/)
 void 
 FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
 {
-  std::stringstream ss;
-  ss << "card-reader-" << linkid;
-  pthread_setname_np(pthread_self(), ss.str().c_str());
+  pthread_setname_np(pthread_self(), get_name().c_str());
   // Init ratelimiter, element offset and source buffer ref
   dunedaq::readout::RateLimiter rate_limiter(cfg_.rate_khz);
   rate_limiter.init();
@@ -145,7 +157,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = source_buffer_->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data())->wib_header()->timestamp();
+  auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data());
+  uint64_t ts_0 = wfptr->get_wib_header()->get_timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
   uint64_t ts_next = ts_0;
 
@@ -162,8 +175,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
       // fake the timestamp
       for (unsigned int i=0; i<12; ++i) {
-        auto* wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
-        auto* wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->wib_header()); 
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
+	auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header()); 
         wfh->set_timestamp(ts_next);
         ts_next += 25;
       }  
@@ -184,70 +197,68 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 }
 
 void 
-FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
+FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>* myqueue, int linkid) 
 {
   std::stringstream ss;
   ss << "card-reader-" << linkid;
   pthread_setname_np(pthread_self(), ss.str().c_str());
   // Init ratelimiter, element offset and source buffer ref
-  dunedaq::readout::RateLimiter rate_limiter(cfg_.rate_khz);
+  dunedaq::readout::RateLimiter rate_limiter(cfg_.tp_rate_khz);
   rate_limiter.init();
   int offset = 0;
   auto& source = tp_source_buffer_->get();
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = tp_source_buffer_->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::TPFrame*>(source.data())->tp_header()->timestamp();
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWibTp*>(source.data())->get_header()->timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
   uint64_t ts_next = ts_0;
 
-  struct TPSubframe {
-    word_t w1;
-    word_t w2;
-    word_t w3;
-  };
-  bool head = false;
-  dunedaq::dataformats::TPFrame* tf = nullptr;
-  const dunedaq::dataformats::TPDataBlock* tb = nullptr;
+  //dunedaq::dataformats::RawWibTp* tf{nullptr};
+  std::unique_ptr<dunedaq::dataformats::RawWibTp> tf{nullptr};
+  const dunedaq::dataformats::TpDataBlock* tb{nullptr};
   while (run_marker_.load()) {
       // Which element to push to the buffer
-      if (offset == num_elem) {
+      if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE)) {
         offset = 0;
-      } 
-      // Create next superchunk
-      std::unique_ptr<types::TP_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::TP_SUPERCHUNK_STRUCT>();
-      // Memcpy from file buffer to flat char array
-      ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::TP_SUPERCHUNK_SIZE), constant::TP_SUPERCHUNK_SIZE);
+      }
+      // Count number of subframes in a TP frame
+      int n = 1;
+      while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) 
+             + offset + (n-1)*constant::RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
+        n++;
+      }
+      // Create next TP frame
+      std::unique_ptr<types::RAW_WIB_TP_STRUCT> payload_ptr = std::make_unique<types::RAW_WIB_TP_STRUCT>();
+      m_data_ = malloc(n*constant::RAW_WIB_TP_SUBFRAME_SIZE);
+      m_alloc_ = true;
+      ::memcpy(m_data_, (void*)(source.data()+offset), n*constant::RAW_WIB_TP_SUBFRAME_SIZE);
 
-      for (unsigned int i=0; i<constant::TP_SUPERCHUNK_SIZE/12; ++i) {
-        auto* sp = reinterpret_cast<TPSubframe*>(((uint8_t*)payload_ptr.get())+i*12);
-        if (!head) {
-          tf = new dunedaq::dataformats::TPFrame();
-          tb = tf->tp_data();
-          const dunedaq::dataformats::TPHeader* tfh = tf->tp_header();
-          tfh = reinterpret_cast<dunedaq::dataformats::TPHeader*>(sp);
-          tf->set_tp_header(*tfh);
+      for (unsigned int i=0; i<n; ++i) {
+        auto* sp = reinterpret_cast<types::TpSubframe*>(((uint8_t*)m_data_+i*constant::RAW_WIB_TP_SUBFRAME_SIZE));
+        if (!m_head_) {
+          tf = std::make_unique<dunedaq::dataformats::RawWibTp>();
+          tb = tf->get_data();
+          const dunedaq::dataformats::TpHeader* tfh = tf->get_header();
+          tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp);
+          tf->set_header(*tfh);
           tf->set_timestamp(ts_next);
           ts_next += 25;
-          //tfh->printHex();
-          //tf->tp_header()->printHex();
-          head = true;
+          m_head_ = true;
           continue;
         }
-        if (sp->w3 == 0xDEADBEEF) {
-          const dunedaq::dataformats::TPPedinfo* tpi = tf->tp_pedinfo();
-          tpi = reinterpret_cast<dunedaq::dataformats::TPPedinfo*>(sp);
-          tf->set_tp_pedinfo(*tpi);
-          //tpi->printHex();
-          //tf->tp_pedinfo()->printHex();
-          head = false;
-          tf->set_tp_data(*tb);
+        if (sp->word3 == 0xDEADBEEF) {
+          const dunedaq::dataformats::TpPedinfo* tpi = tf->get_pedinfo();
+          tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp);
+          tf->set_pedinfo(*tpi);
+          m_head_ = false;
+          tf->set_data(std::move(*tb));
           continue;
         }
-        dunedaq::dataformats::TPData* td = reinterpret_cast<dunedaq::dataformats::TPData*>(sp);
-        tf->add_tp(*td);
-        //tf->tp_data()->printHex();
+        dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp);
+        tf->set_tp(*td);
       }
+      payload_ptr->data = std::move(tf);
 
       // queue in to actual DAQSink
       try {
@@ -257,7 +268,8 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::TP_SUPER
       }
 
     // Count packet and limit rate if needed.
-    ++offset;
+    offset += n*constant::RAW_WIB_TP_SUBFRAME_SIZE;
+    if (m_alloc_) { free(m_data_); }
     ++packet_count_;
     rate_limiter.limit();
   }

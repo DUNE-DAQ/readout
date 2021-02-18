@@ -62,7 +62,9 @@ for proc in psutil.process_iter():
       new_aff = []
       notfound = None
       try:
-        new_aff = affinity_dict[proc.cmdline()[1]][tp.name()]
+        # TODO: remove hardcoded args idx.
+        #  (In daqling arg[1] was the name of the module, which is a UID.)
+        new_aff = affinity_dict[proc.cmdline()[0]][tp.name()]
       except Exception as e:
          notfound = True
       print('     affinity to set: ', new_aff, '\n')

@@ -35,8 +35,8 @@ const constexpr std::size_t FLX_SUPERCHUNK_FACTOR = 12;
 
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 
-// TP 
-const constexpr std::size_t TP_SUPERCHUNK_SIZE = 5568; // may change
+// Raw WIB TP 
+const constexpr std::size_t RAW_WIB_TP_SUBFRAME_SIZE = 12; // header, data, pedinfo have same size: 3 words * 4 bytes/word  
 
 } // namespace constant
 } // namespace readout

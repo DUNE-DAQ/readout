@@ -8,6 +8,8 @@
 #ifndef UDAQ_READOUT_SRC_READOUTTYPES_HPP_
 #define UDAQ_READOUT_SRC_READOUTTYPES_HPP_
 
+#include "dataformats/wib/RawWibTp.hpp"
+
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
@@ -21,6 +23,7 @@ namespace readout {
 namespace types {
 
 using cfg_data_t = nlohmann::json;
+typedef uint32_t word_t;
 
 /**
  * @brief A FULLMODE Elink is identified by the following: 
@@ -59,23 +62,16 @@ typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
 using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
 
-// TP
-const constexpr std::size_t TP_SUPERCHUNK_SIZE = 5568; // also defined in ReadoutConstants.hpp
-struct TP_SUPERCHUNK_STRUCT {
-  char data[TP_SUPERCHUNK_SIZE];
+// raw WIB TP
+struct RAW_WIB_TP_STRUCT {
+  std::unique_ptr<dunedaq::dataformats::RawWibTp> data;
 };
-
-typedef dunedaq::appfwk::DAQSink<TP_SUPERCHUNK_STRUCT> TPFrameSink;
-typedef std::unique_ptr<TPFrameSink> UniqueTPFrameSink;
-using TPFramePtrSink = appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>;
-using UniqueTPFramePtrSink = std::unique_ptr<TPFramePtrSink>;
-
-typedef dunedaq::appfwk::DAQSource<TP_SUPERCHUNK_STRUCT> TPFrameSource;
-typedef std::unique_ptr<TPFrameSource> UniqueTPFrameSource;
-using TPFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>;
-using UniqueTPFramePtrSource = std::unique_ptr<TPFramePtrSource>;
-
-
+struct TpSubframe
+{
+  word_t word1;
+  word_t word2;
+  word_t word3;  
+};
 
 } // namespace types
 } // namespace readout

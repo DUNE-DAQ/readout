@@ -20,9 +20,9 @@
 #include "appfwk/DAQSink.hpp"
 
 // package
-#include "ReadoutTypes.hpp"
+#include "readout/ReusableThread.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
-#include "ReusableThread.hpp"
 #include "RateLimiter.hpp"
 #include "FileSourceBuffer.hpp"
 
@@ -56,14 +56,20 @@ public:
 
 private:
   using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
-  using tp_sink_t = appfwk::DAQSink<std::unique_ptr<types::TP_SUPERCHUNK_STRUCT>>;
+  using tp_sink_t = appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>;
   // Commands
   void do_conf(const data_t& /*args*/);
+  void do_scrap(const data_t& /*args*/);
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
 
   void generate_data(sink_t* queue, int link_id);
   void generate_tp_data(tp_sink_t* queue, int link_id);
+  void generate_tp_data_v0(tp_sink_t* queue, int link_id);
+
+  void* m_data_{nullptr};
+  bool m_alloc_{false};
+  bool m_head_{false};
 
   // Configuration
   bool configured_;

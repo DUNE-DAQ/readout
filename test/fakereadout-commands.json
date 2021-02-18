@@ -9,6 +9,11 @@
                                 "dir": "output",
                                 "inst": "fakelink-0",
                                 "name": "output"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "fakelink-5",
+                                "name": "tp_output"
                             }
                         ]
                     },
@@ -64,6 +69,11 @@
                     "capacity": 1000,
                     "inst": "ts-sync-out",
                     "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "fakelink-5",
+                    "kind": "FollySPSCQueue"
                 }
             ]
         },
@@ -77,11 +87,15 @@
                         "data_filename": "/tmp/frames.bin",
                         "input_limit": 10485100,
                         "link_ids": [
-                            0
+                            0,
+                            5
                         ],
                         "queue_timeout_ms": 2000,
                         "rate_khz": 166,
-                        "raw_type": "wib"
+                        "raw_type": "wib",
+                        "tp_data_filename": "/tmp/tp_frames.bin",
+                        "tp_enabled": "true",
+                        "tp_rate_khz": 66
                     },
                     "match": "fake-source"
                 },
@@ -97,19 +111,6 @@
                         "source_queue_timeout_ms": 2000
                     },
                     "match": "fake-handler"
-                },
-                {
-                    "data": {
-                        "input_limit": 10485100,
-                        "link_ids": [
-                            0
-                        ],
-                        "queue_timeout_ms": 2000,
-                        "rate_khz": 166,
-                        "raw_type": "tp",
-                        "tp_data_filename": "/tmp/tp_frames.bin"
-                    },
-                    "match": "tp-fake-source"
                 }
             ]
         },

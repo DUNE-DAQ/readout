@@ -9,7 +9,7 @@
 #ifndef UDAQ_READOUT_SRC_CREATEREADOUT_HPP_
 #define UDAQ_READOUT_SRC_CREATEREADOUT_HPP_
 
-#include "ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConcept.hpp"
 #include "ReadoutModel.hpp"
