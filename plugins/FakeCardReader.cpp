@@ -12,7 +12,9 @@
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
+//#include "dataformats/wib/WIBFrame.hpp"         // FIXME move to dataformats repo
+#include "readout/WIBFrame.hpp"                   // FIXME now using local copy
+#include "readout/RawWibTp.hpp"                   // FIXME now using local copy
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -54,14 +56,19 @@ FakeCardReader::init(const data_t& args)
     if (qi.dir != "output") {
       continue;
     }
+
     try {
-      ERS_LOG("Setting up queue: " << qi.inst);
-      output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+      if (qi.name == "tp_output") {
+        tp_output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
+      } else {
+        output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+      }
     }
     catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
     }
   }
+  ERS_INFO("Init: # output queues: " << output_queues_.size() << "; # tp_output queues: " << tp_output_queues_.size());
 }
 
 void 
@@ -81,6 +88,11 @@ FakeCardReader::do_conf(const data_t& args)
     catch (const ers::Issue& ex) {
       ers::fatal(ex);
       throw ConfigurationError(ERS_HERE, "", ex);
+    }
+
+    if (cfg_.tp_enabled == "true") {
+      tp_source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
+      tp_source_buffer_->read(cfg_.tp_data_filename);
     }
 
     // Mark configured
@@ -106,6 +118,12 @@ FakeCardReader::do_start(const data_t& /*args*/)
     int idx=0;
     for (auto my_queue : output_queues_) {
       worker_threads_.emplace_back(&FakeCardReader::generate_data, this, my_queue, cfg_.link_ids[idx]);
+      ++idx;
+    }
+    if (cfg_.tp_enabled == "true") {
+      for (auto my_queue : tp_output_queues_) {
+        worker_threads_.emplace_back(&FakeCardReader::generate_tp_data, this, my_queue, cfg_.link_ids[idx]);
+      }
       ++idx;
     }
   }
@@ -178,6 +196,82 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
   }
   ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
 }
+
+void
+FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>* myqueue, int linkid)
+{
+  std::stringstream ss;
+  ss << "card-reader-" << linkid;
+  pthread_setname_np(pthread_self(), ss.str().c_str());
+  // Init ratelimiter, element offset and source buffer ref
+  dunedaq::readout::RateLimiter rate_limiter(cfg_.tp_rate_khz);
+  rate_limiter.init();
+  int offset = 0;
+  auto& source = tp_source_buffer_->get();
+
+  // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
+  int num_elem = tp_source_buffer_->num_elements();
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWibTp*>(source.data())->get_header()->timestamp();
+  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
+  uint64_t ts_next = ts_0;
+
+  dunedaq::dataformats::RawWibTp* tf{nullptr};
+  while (run_marker_.load()) {
+    // Which element to push to the buffer
+    if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE)) {
+      offset = 0;
+    }
+    // Count number of subframes in a TP frame
+    int n = 1;
+    while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data())
+           + offset + (n-1)*constant::RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
+      n++;
+    }
+    // Create next TP frame
+    std::unique_ptr<types::RAW_WIB_TP_STRUCT> payload_ptr = std::make_unique<types::RAW_WIB_TP_STRUCT>();
+
+    for (int i=0; i<n; ++i) {
+     auto* sp = reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data())+offset+i*constant::RAW_WIB_TP_SUBFRAME_SIZE);
+     if (!m_found_tp_header) {
+        tf = new dunedaq::dataformats::RawWibTp();
+        const dunedaq::dataformats::TpHeader* tfh = tf->get_header();
+        tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp);
+        tf->set_timestamp(ts_next);
+        ts_next += 25;
+        m_found_tp_header = true;
+        payload_ptr->head = *tfh;
+        continue;
+      }
+      if (sp->word3 == 0xDEADBEEF) {
+        const dunedaq::dataformats::TpPedinfo* tpi = tf->get_pedinfo();
+        tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp);
+        m_found_tp_header = false;
+        payload_ptr->ped = *tpi;
+        continue;
+      }
+      dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp);
+      payload_ptr->block.set_tp(*td);
+    }
+    ERS_INFO("First timestamp in the source file: " << sizeof(dunedaq::dataformats::TpDataBlock) << " vs " << tf->num_tp_per_block()*sizeof(types::TpSubframe));
+ 
+    // queue in to actual DAQSink
+    try {
+      myqueue->push(std::move(payload_ptr), queue_timeout_ms_);
+    } catch (...) { // RS TODO: ERS issues
+      std::runtime_error("Queue timed out...");
+    }
+
+    // Count packet and limit rate if needed.
+    offset += n*constant::RAW_WIB_TP_SUBFRAME_SIZE;
+    //if (m_alloc_) { free(m_data_); }
+    ++packet_count_;
+    rate_limiter.limit();
+  }
+  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
+}
+
+
+
 
 void
 FakeCardReader::run_stats()

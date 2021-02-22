@@ -56,6 +56,7 @@ public:
 
 private:
   using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+  using tp_sink_t = appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>;
   // Commands
   void do_conf(const data_t& /*args*/);
   void do_scrap(const data_t& /*args*/);
@@ -63,6 +64,7 @@ private:
   void do_stop(const data_t& /*args*/);
 
   void generate_data(sink_t* queue, int link_id);
+  void generate_tp_data(tp_sink_t* queue, int link_id);
 
   // Configuration
   bool configured_;
@@ -73,9 +75,11 @@ private:
   std::chrono::milliseconds queue_timeout_ms_;
   //std::vector<std::unique_ptr<sink_t>> output_queues_;
   std::vector<sink_t*> output_queues_;
+  std::vector<tp_sink_t*> tp_output_queues_;
 
   // Internals
   std::unique_ptr<FileSourceBuffer> source_buffer_;
+  std::unique_ptr<FileSourceBuffer> tp_source_buffer_;
 
   // Processor
   std::vector<std::thread> worker_threads_;
@@ -87,6 +91,9 @@ private:
   stats::counter_t packet_count_{0};
   ReusableThread stats_thread_;
   void run_stats();
+
+  // raw WIB TP parsing
+  bool m_found_tp_header{false};
 
 };
 
