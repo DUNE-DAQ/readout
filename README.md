@@ -3,8 +3,8 @@ Appfwk DAQModules, utilities, and scripts for DUNE Upstream DAQ Readout Software
 
 ## Building
 
-Clone the package into a work area as defined under the instructions of the appfwk:
-https://github.com/DUNE-DAQ/appfwk/wiki/Compiling-and-running-under-v2.2.0
+Clone the package into a work area as defined under the instructions of DUNE-DAQ Build Tools:
+https://github.com/DUNE-DAQ/appfwk/wiki/Compiling-and-running
 
 
 ## Examples
