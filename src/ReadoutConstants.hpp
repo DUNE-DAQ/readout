@@ -35,6 +35,9 @@ const constexpr std::size_t FLX_SUPERCHUNK_FACTOR = 12;
 
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 
+// Raw WIB TP 
+const constexpr std::size_t RAW_WIB_TP_SUBFRAME_SIZE = 12; // same size for header, tp data, pedinfo: 3 words * 4 bytes/word 
+
 } // namespace constant
 } // namespace readout
 } // namespace dunedaq

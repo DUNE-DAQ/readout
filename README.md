@@ -19,3 +19,21 @@ After that, launch a readout emaulation via:
     daq_application -c stdin://sourcecode/readout/test/fakereadout-commands.json
     
 Then start typing commands as instructed by the command facility.
+
+## Enabling raw WIB TP readout
+
+FakeCardReader module is capable of reading raw WIB TP data by enabling the corresponding link 
+via configuration. Currently the fake TPs are read out from a binary file (with default location 
+at /tmp/tp_frames.bin) and parsed using the "RawWibTp" format.
+
+To get the "tp_frames.bin" TP data:
+
+    curl https://cernbox.cern.ch/index.php/s/686ndOgupTli2RW -o tp_frames.bin
+
+To test the fake raw WIB TP readout, run
+
+    daq_application -c stdin://sourcecode/readout/test/fakereadout-commands.json
+
+and start typing the commands:
+
+    init, conf, start, stop
