@@ -22,7 +22,7 @@ local qspec_list = [
       ]),
 
       cmd.mspec("fake-handler", "DataLinkHandler", [
-        cmd.qinfo("raw-input", qdict.fake_link.inst,   cmd.qdir.input),
+        cmd.qinfo("raw_input", qdict.fake_link.inst,   cmd.qdir.input),
         cmd.qinfo("timesync",  qdict.time_sync.inst,   cmd.qdir.output),
         cmd.qinfo("requests",  qdict.requests_in.inst, cmd.qdir.input),
         cmd.qinfo("fragments", qdict.frags_out.inst,   cmd.qdir.output)
@@ -39,7 +39,7 @@ local qspec_list = [
         "raw_type": "wib",
         "data_filename": "/tmp/frames.bin",
         "queue_timeout_ms": 2000,
-        "tp_enabled": "true",
+        "tp_enabled": "false",
         "tp_rate_khz": 66,
         "tp_data_filename": "/tmp/tp_frames.bin"
       }

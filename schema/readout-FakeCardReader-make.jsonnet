@@ -5,7 +5,7 @@
 
     // Make a conf object for cardreader
     conf(lid=0, inplim=10485100, rate=166, rawtype="wib", datfile="/tmp/frames.bin", qtms=2000,
-         raw_win_tp=true, tp_datfile="/tmp/tp_frames.bin", tp_rate=66) :: {
+         raw_wib_tp=false, tp_datfile="/tmp/tp_frames.bin", tp_rate=66) :: {
         link_ids: [lid],
         input_limit: inplim, 
         rate_khz: rate, 

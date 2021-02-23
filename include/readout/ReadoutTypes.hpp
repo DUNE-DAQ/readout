@@ -8,7 +8,7 @@
 #ifndef UDAQ_READOUT_SRC_READOUTTYPES_HPP_
 #define UDAQ_READOUT_SRC_READOUTTYPES_HPP_
 
-#include "RawWibTp.hpp"
+#include "RawWIBTp.hpp"
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"

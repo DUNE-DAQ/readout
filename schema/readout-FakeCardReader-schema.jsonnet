@@ -53,7 +53,7 @@ local fakecardreader = {
         s.field("queue_timeout_ms", self.uint4, 2000,
                 doc="Queue timeout in milliseconds"),
 
-        s.field("tp_enabled", self.tp_enabled, "true",
+        s.field("tp_enabled", self.tp_enabled, "false",
                 doc="Enables raw WIB TP link"),
 
         s.field("tp_rate_khz", self.khz, 66,

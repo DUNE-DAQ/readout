@@ -14,7 +14,7 @@
 
 //#include "dataformats/wib/WIBFrame.hpp"         // FIXME move to dataformats repo
 #include "readout/WIBFrame.hpp"                   // FIXME now using local copy
-#include "readout/RawWibTp.hpp"                   // FIXME now using local copy
+#include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -211,11 +211,11 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = tp_source_buffer_->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWibTp*>(source.data())->get_header()->timestamp();
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->timestamp();
   ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
   uint64_t ts_next = ts_0;
 
-  dunedaq::dataformats::RawWibTp* tf{nullptr};
+  dunedaq::dataformats::RawWIBTp* tf{nullptr};
   while (run_marker_.load()) {
     // Which element to push to the buffer
     if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE)) {
@@ -233,7 +233,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     for (int i=0; i<n; ++i) {
      auto* sp = reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data())+offset+i*constant::RAW_WIB_TP_SUBFRAME_SIZE);
      if (!m_found_tp_header) {
-        tf = new dunedaq::dataformats::RawWibTp();
+        tf = new dunedaq::dataformats::RawWIBTp();
         const dunedaq::dataformats::TpHeader* tfh = tf->get_header();
         tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp);
         tf->set_timestamp(ts_next);
@@ -252,7 +252,6 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
       dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp);
       payload_ptr->block.set_tp(*td);
     }
-    ERS_INFO("First timestamp in the source file: " << sizeof(dunedaq::dataformats::TpDataBlock) << " vs " << tf->num_tp_per_block()*sizeof(types::TpSubframe));
  
     // queue in to actual DAQSink
     try {

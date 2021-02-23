@@ -1,5 +1,5 @@
 /**
- * @file RawWibTp.hpp Raw Trigger Primitive bit fields and accessors
+ * @file RawWIBTp.hpp Raw Trigger Primitive bit fields and accessors
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -166,7 +166,7 @@ struct TpDataBlock
 //=============
 // Raw WIB Trigger Primitive frame
 //=============
-class RawWibTp
+class RawWIBTp
 {
 public:
   // Constant expressions
