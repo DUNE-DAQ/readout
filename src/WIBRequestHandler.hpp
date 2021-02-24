@@ -59,7 +59,7 @@ protected:
     fh.size = sizeof(fh);
     fh.trigger_number = dr.trigger_number;    
     fh.trigger_timestamp = dr.trigger_timestamp;
-    fh.window_start = dr.window_start;
+    fh.window_begin = dr.window_begin;
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
     fh.link_id = { apa_number_, link_number_ };
@@ -78,13 +78,13 @@ protected:
     // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
-    uint_fast64_t start_win_ts = dr.window_start;
+    uint_fast64_t start_win_ts = dr.window_begin;
     uint_fast64_t last_ts = front_wh.get_timestamp();
     uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
     uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = (dr.window_end - dr.window_start) / (tick_dist_ * frames_per_element_) + 1;
+    uint_fast32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (tick_dist_ * frames_per_element_) + 1;
     uint_fast32_t min_num_elements =
-      (time_tick_diff + (dr.window_end - dr.window_start) / tick_dist_) 
+      (time_tick_diff + (dr.window_end - dr.window_begin) / tick_dist_) 
                                    / frames_per_element_ + safe_num_elements_margin_;
     ERS_DEBUG(2, "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "

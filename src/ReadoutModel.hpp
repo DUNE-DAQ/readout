@@ -203,10 +203,10 @@ private:
             dr.trigger_timestamp = timesyncmsg.daq_time - 500*time::us;
             auto width = 1000;
             auto offset = 100;
-            dr.window_start = dr.trigger_timestamp - offset;
-            dr.window_end = dr.window_start + width;
+            dr.window_begin = dr.trigger_timestamp - offset;
+            dr.window_end = dr.window_begin + width;
             ERS_DEBUG(2, "Issuing fake trigger based on timesync. "
-              << " ts=" << dr.trigger_timestamp << " window_start=" << dr.window_start
+              << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                         << " window_end=" << dr.window_end);
             request_handler_impl_->issue_request(dr);
             ++request_count_;
