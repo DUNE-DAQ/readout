@@ -12,6 +12,7 @@
 #include "GraphRawProcessor.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
+#include "logging/Logging.hpp"
 
 #include <functional>
 #include <atomic>
@@ -31,7 +32,7 @@ public:
   explicit WIBFrameGraphProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
   : GraphRawProcessor<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
   {
-    ERS_INFO("Creating WIB specific GraphRawProcessor workflow.");
+    TLOG() << "Creating WIB specific GraphRawProcessor workflow.";
 
     // We need to alter parallel tasks
     parallel_task_nodes_.emplace_back(funcnode_t(task_graph_, tbb::flow::unlimited, timestamp_check()));

@@ -23,6 +23,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <chrono>
 
 /**
  * @brief Name used by TRACE TLOG calls from this source file
@@ -136,7 +137,6 @@ FakeCardReader::do_start(const data_t& /*args*/)
       ++idx;
     }
   }
-
 }
 
 void 
@@ -167,9 +167,9 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = source_buffer_->num_elements();
   if (num_elem == 0) {
-	  TLOG_DEBUG(2) << "num_elem=0; sleeping...";
-	  usleep(100000);
-	  num_elem = source_buffer_->num_elements();
+    TLOG_DEBUG(2) << "num_elem=0; sleeping...";
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    num_elem = source_buffer_->num_elements();
   }
   auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data());
   TLOG_DEBUG(2) << "num_elem=" << num_elem << " wfptr=" << wfptr;
