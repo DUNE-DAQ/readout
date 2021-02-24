@@ -6,18 +6,19 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_WIBFRAMEGRAPHPROCESSOR_HPP_
-#define UDAQ_READOUT_SRC_WIBFRAMEGRAPHPROCESSOR_HPP_
+#ifndef READOUT_SRC_WIBFRAMEGRAPHPROCESSOR_HPP_
+#define READOUT_SRC_WIBFRAMEGRAPHPROCESSOR_HPP_
 
 #include "GraphRawProcessor.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 
+#include "tbb/flow_graph.h"
+
 #include <functional>
 #include <atomic>
-
-#include "tbb/flow_graph.h"
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -47,22 +48,21 @@ public:
 
   // task1
   struct timestamp_check {
-    uint64_t ts_prev = 0;
-    uint64_t ts_next = 0;
-    uint64_t counter = 0;
+    uint64_t ts_prev = 0; // NOLINT
+    uint64_t ts_next = 0; // NOLINT
+    uint64_t counter = 0; // NOLINT
     bool first = true;
     frameptr operator()(frameptr fp) {
-      auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
+      auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
       ts_next = wfptr->timestamp();
-      //std::cout << " TS: " << wfptr->timestamp() << " stored: " << ts_next << '\n'; 
       if (ts_next - ts_prev != 300) {
         ++counter;
         if (first) {
           wfptr->wib_header()->print();
-          std::cout << "First TS mismatch is fine | previous: " << ts_prev << " next: " << ts_next << '\n';
+          TLOG() << "First TS mismatch is fine | previous: " << ts_prev << " next: " << ts_next;
           first = false;
         }
-        std::cout << "SCREAM | previous: " << ts_prev << " next: " << ts_next << '\n';
+        TLOG() << "SCREAM | previous: " << ts_prev << " next: " << ts_next;
       }
       ts_prev = ts_next;
       return fp;
@@ -70,36 +70,14 @@ public:
   };
 
   struct error_check {
-    uint8_t s1err = 0;
-    uint8_t s2err = 0;
+    uint8_t s1err = 0; // NOLINT
+    uint8_t s2err = 0; // NOLINT
     frameptr operator()(frameptr fp) {
-      auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
+      auto* wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
       ;
       return fp;
     }
   };
-
-  /*
-  struct pipeline1 {
-    bool first = false;
-    frameptr operator()(frameptr fp) { 
-      const wibframeptr wfptr = reinterpret_cast<dunedaq::rawdata::WIBFrame*>(fp);
-      if (!first) {
-        wfptr->wib_header()->print();
-        first = true;
-      }
-      //std::cout << "Pipeline1 run on: " << std::hex << static_cast<void*>(fp) << std::dec << '\n';
-      return fp;
-    }
-  };
-
-  struct pipeline2 {
-    frameptr operator()(frameptr fp) { 
-      //std::cout << "Pipeline2 run on: " << std::hex << static_cast<void*>(fp) << std::dec << '\n';
-      return fp;
-    }
-  };
-  */
 
 private:
 
@@ -108,4 +86,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#endif // READOUT_SRC_WIBFRAMEGRAPHPROCESSOR_HPP_

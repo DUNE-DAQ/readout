@@ -6,15 +6,17 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
-#define UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
+#ifndef READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
+#define READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
 
 #include "RawDataProcessorConcept.hpp"
 #include "logging/Logging.hpp"
 
-#include <functional>
-
 #include "tbb/flow_graph.h"
+
+#include <functional>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -83,4 +85,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
+#endif // READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_

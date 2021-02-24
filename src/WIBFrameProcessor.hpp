@@ -1,13 +1,12 @@
 /**
-* @file WIBFrameProcessor.hpp Glue between input receiver, payload processor, 
-* latency buffer and request handler.
+* @file WIBFrameProcessor.hpp WIB specific Task based raw processor
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
-#define UDAQ_READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#ifndef READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#define READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
 
 #include "TaskRawDataProcessorModel.hpp"
 #include "ReadoutStatistics.hpp"
@@ -17,10 +16,11 @@
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 
-#include <functional>
-#include <atomic>
-
 #include "tbb/flow_graph.h"
+
+#include <string>
+#include <atomic>
+#include <functional>
 
 namespace dunedaq {
 namespace readout {
@@ -34,32 +34,31 @@ public:
   explicit WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
   : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
   {
-    tasklist_.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
-    //tasklist_.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
+    m_tasklist.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
+    //m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   } 
 
 protected:
-  
-  time::timestamp_t previous_ts_ = 0;
-  time::timestamp_t current_ts_ = 0;
-  bool first_ts_missmatch_ = true;
-  stats::counter_t ts_error_ctr_{0};
+  // Internals  
+  time::timestamp_t m_previous_ts = 0;
+  time::timestamp_t m_current_ts = 0;
+  bool m_first_ts_missmatch = true;
+  stats::counter_t m_ts_error_ctr{0};
 
   void timestamp_check(frameptr fp) {
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp);
-    current_ts_ = wfptr->get_wib_header()->get_timestamp();
-    if (current_ts_ - previous_ts_ != 300) {
-      ++ts_error_ctr_;
-      if (first_ts_missmatch_) {
-        first_ts_missmatch_ = false;
-      }
-      else {
-        TLOG() << "Timestamp MISSMATCH! -> | previous: " << std::to_string(previous_ts_) 
-               << " next: "+std::to_string(current_ts_);
+    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
+    m_current_ts = wfptr->get_wib_header()->get_timestamp();
+    if (m_current_ts - m_previous_ts != 300) {
+      ++m_ts_error_ctr;
+      if (m_first_ts_missmatch) {
+        m_first_ts_missmatch = false;
+      } else {
+        TLOG() << "Timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
+               << " next: "+std::to_string(m_current_ts);
       }
     }
-    previous_ts_ = current_ts_;
-    last_processed_daq_ts_ = current_ts_;
+    m_previous_ts = m_current_ts;
+    m_last_processed_daq_ts = m_current_ts;
   }
 
   void frame_error_check(frameptr /*fp*/) {
@@ -73,4 +72,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#endif // READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
