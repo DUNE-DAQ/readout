@@ -1,15 +1,18 @@
 /**
-* @file RequestHandlerConcept.hpp RequestHandler base class 
+* @file RequestHandlerConcept.hpp RequestHandler interface class 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
-#define UDAQ_READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
+#ifndef READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
+#define READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
 
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
+
+#include <map>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -17,7 +20,7 @@ namespace readout {
 class RequestHandlerConcept {
 
 public:
-  explicit RequestHandlerConcept() {}
+  RequestHandlerConcept() {}
   RequestHandlerConcept(const RequestHandlerConcept&)
     = delete; ///< RequestHandlerConcept is not copy-constructible
   RequestHandlerConcept& operator=(const RequestHandlerConcept&)
@@ -75,7 +78,7 @@ private:
 
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
+#endif // READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
