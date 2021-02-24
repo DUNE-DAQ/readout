@@ -5,18 +5,18 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef UDAQ_READOUT_SRC_RATELIMITER_HPP_
-#define UDAQ_READOUT_SRC_RATELIMITER_HPP_
+#ifndef READOUT_SRC_RATELIMITER_HPP_
+#define READOUT_SRC_RATELIMITER_HPP_
 
 #include "Time.hpp"
 
-#include <time.h>
+#include <ctime>
 #include <unistd.h>
 
 namespace dunedaq {
 namespace readout {
 
-/* RateLimiter usage:
+/** RateLimiter usage:
  *
  *  auto limiter = RateLimiter(1000); // 1MHz
  *  limiter.init();
@@ -27,27 +27,27 @@ namespace readout {
  */
 class RateLimiter {
 public:
-  RateLimiter(double kilohertz)
-  : kilohertz_(kilohertz)
-  , max_overshoot_(10 * time::ms)
-  , period_((1000./kilohertz_) * time::us)
+  explicit RateLimiter(double kilohertz)
+  : m_kilohertz(kilohertz)
+  , m_max_overshoot(10 * time::ms)
+  , m_period( static_cast<time::timestamp_t>((1000.f/m_kilohertz) * static_cast<double>(time::us)) )
   {
     init();
   }
 
   void init() {
-    now_ = gettime();
-    deadline_ = now_ + period_;
+    m_now = gettime();
+    m_deadline = m_now + m_period;
   }
 
   void limit() {
-    if(now_ > deadline_ + max_overshoot_) {
-      deadline_ = now_ + period_;
+    if(m_now > m_deadline + m_max_overshoot) {
+      m_deadline = m_now + m_period;
     } else {
-      while(now_ < deadline_) {
-        now_ = gettime();            
+      while(m_now < m_deadline) {
+        m_now = gettime();            
       }
-      deadline_ += period_;
+      m_deadline += m_period;
     }
   }
 
@@ -59,14 +59,14 @@ protected:
   }
 
 private:
-  double kilohertz_;
-  time::timestamp_t max_overshoot_;
-  time::timestamp_t period_;
-  time::timestamp_t now_;
-  time::timestamp_t deadline_;
+  double m_kilohertz;
+  time::timestamp_t m_max_overshoot;
+  time::timestamp_t m_period;
+  time::timestamp_t m_now;
+  time::timestamp_t m_deadline;
 };
 
 } // namespace readout
 } // namespace dunedaq
  
-#endif // UDAQ_READOUT_SRC_RATELIMITER_HPP_
+#endif // READOUT_SRC_RATELIMITER_HPP_
