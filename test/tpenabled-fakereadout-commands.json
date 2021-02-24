@@ -7,7 +7,7 @@
                         "qinfos": [
                             {
                                 "dir": "output",
-                                "inst": "fakelink-0",
+                                "inst": "wib-fakelink-0",
                                 "name": "output"
                             },
                             {
@@ -25,7 +25,7 @@
                         "qinfos": [
                             {
                                 "dir": "input",
-                                "inst": "fakelink-0",
+                                "inst": "wib-fakelink-0",
                                 "name": "raw_input"
                             },
                             {
@@ -52,7 +52,7 @@
             "queues": [
                 {
                     "capacity": 100000,
-                    "inst": "fakelink-0",
+                    "inst": "wib-fakelink-0",
                     "kind": "FollySPSCQueue"
                 },
                 {
