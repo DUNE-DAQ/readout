@@ -5,8 +5,8 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_TIME_HPP_
-#define UDAQ_READOUT_SRC_TIME_HPP_
+#ifndef READOUT_SRC_TIME_HPP_
+#define READOUT_SRC_TIME_HPP_
 
 #include <cstdint> // uint64_t
 #include <chrono>
@@ -15,15 +15,12 @@ namespace dunedaq {
 namespace readout {
 namespace time {
 
-/*
- * Timestamp and constants
- * */
-typedef std::uint64_t timestamp_t;
+using timestamp_t = std::uint64_t; // NOLINT
 
-static constexpr timestamp_t ns = 1;
-static constexpr timestamp_t us = 1000 * ns;
-static constexpr timestamp_t ms = 1000 * us;
-static constexpr timestamp_t s = 1000 * ms;
+inline constexpr timestamp_t ns = 1;
+inline constexpr timestamp_t us = 1000 * ns;
+inline constexpr timestamp_t ms = 1000 * us;
+inline constexpr timestamp_t s = 1000 * ms;
 
 template<typename ChronoType>
 inline int64_t now_as() { // NOLINT
@@ -36,4 +33,4 @@ inline int64_t now_as() { // NOLINT
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_TIME_HPP_
+#endif // READOUT_SRC_TIME_HPP_

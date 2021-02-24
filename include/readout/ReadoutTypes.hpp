@@ -8,6 +8,8 @@
 #ifndef UDAQ_READOUT_SRC_READOUTTYPES_HPP_
 #define UDAQ_READOUT_SRC_READOUTTYPES_HPP_
 
+#include "RawWIBTp.hpp"
+
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
@@ -58,6 +60,20 @@ typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
 typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
 using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
+
+// raw WIB TP
+struct RAW_WIB_TP_STRUCT {
+  dunedaq::dataformats::TpHeader head;
+  dunedaq::dataformats::TpDataBlock block;
+  dunedaq::dataformats::TpPedinfo ped;
+};
+struct TpSubframe
+{
+  uint32_t word1;
+  uint32_t word2;
+  uint32_t word3;
+};
+
 
 } // namespace types
 } // namespace readout

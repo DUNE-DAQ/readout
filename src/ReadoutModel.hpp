@@ -39,7 +39,7 @@ namespace readout {
 template<class RawType>
 class ReadoutModel : public ReadoutConcept {
 public:
-  explicit ReadoutModel(const nlohmann::json& args, std::atomic<bool>& run_marker)
+  explicit ReadoutModel(std::atomic<bool>& run_marker)
   : raw_type_name_("")
   , run_marker_(run_marker)
   , fake_trigger_(false)
@@ -58,26 +58,13 @@ public:
   , requester_thread_(0)
   , timesync_queue_timeout_ms_(0)
   , timesync_thread_(0)
-  {
-    // Queue specs are in ModInit structs.
-    ers::info(ers::Message(ERS_HERE,"Generic ReaoutModel initialized with queue config, but no resets yet."));
+  { }
+
+  void init(const nlohmann::json& args, const std::string& raw_type_name) {
     queue_config_ = args.get<appfwk::cmd::ModInit>();
-  }
-
-  void conf(const nlohmann::json& args) {
-    auto conf = args.get<datalinkhandler::Conf>();
-    raw_type_name_ = conf.raw_type;
-    if (conf.fake_trigger_flag == 0) {
-      fake_trigger_ = false; 
-    } else {
-      fake_trigger_ = true; 
-   }
-    latency_buffer_size_ = conf.latency_buffer_size;
-    source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-	ers::info(ers::Message(ERS_HERE,"ReadoutModel creation for raw type: "+raw_type_name_)); 
-
+    raw_type_name_ = raw_type_name;
     // Reset queues
-	ers::info(ers::Message(ERS_HERE,"Resetting queues..."));
+	  ers::info(ers::Message(ERS_HERE,"Resetting queues..."));
     for (const auto& qi : queue_config_.qinfos) { 
       try {
         if (qi.name == "raw_input") {
@@ -96,7 +83,20 @@ public:
       catch (const ers::Issue& excpt) {
         ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
       }
-    }
+    }   
+  }
+
+  void conf(const nlohmann::json& args) {
+    auto conf = args.get<datalinkhandler::Conf>();
+    raw_type_name_ = conf.raw_type;
+    if (conf.fake_trigger_flag == 0) {
+      fake_trigger_ = false; 
+    } else {
+      fake_trigger_ = true; 
+   }
+    latency_buffer_size_ = conf.latency_buffer_size;
+    source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
+    ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
 
     // Instantiate functionalities
     try {
