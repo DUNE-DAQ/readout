@@ -37,7 +37,7 @@ public:
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
       occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
   {
-    ers::info(ers::Message(ERS_HERE,"WIBRequestHandler created..."));
+    TLOG() << "WIBRequestHandler created...";
     data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, 
       this, std::placeholders::_1, std::placeholders::_2);
   } 
@@ -140,7 +140,7 @@ protected:
         << "ElementsInWindow=" << num_elements_in_window << " "
         << "MinNumElements=" << min_num_elements << " "
         << "Occupancy=" << occupancy_guess;
-	  ers::info(ers::Message(ERS_HERE,oss.str()));
+      TLOG() << oss.str();
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
       for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {

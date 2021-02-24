@@ -13,9 +13,9 @@
 #include "ReadoutStatistics.hpp"
 #include "ReadoutIssues.hpp"
 #include "Time.hpp"
-#include "logging/Logging.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
+#include "logging/Logging.hpp"
 
 #include <functional>
 #include <atomic>
@@ -54,10 +54,8 @@ protected:
         first_ts_missmatch_ = false;
       }
       else {
-		  ers::info(ers::Message(ERS_HERE,
-		                         "Timestamp MISSMATCH! -> | previous: "
-		                         +std::to_string(previous_ts_)
-		                         +" next: "+std::to_string(current_ts_)));
+        TLOG() << "Timestamp MISSMATCH! -> | previous: " << std::to_string(previous_ts_) 
+               << " next: "+std::to_string(current_ts_);
       }
     }
     previous_ts_ = current_ts_;

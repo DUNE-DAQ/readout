@@ -59,7 +59,7 @@ public:
   , occupancy_(0)
   , stats_thread_(0)
   {
-    ers::info(ers::Message(ERS_HERE,"DefaultRequestHandlerModel created..."));
+    TLOG() << "DefaultRequestHandlerModel created...";
     cleanup_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
       this, std::placeholders::_1, std::placeholders::_2);
     data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
@@ -86,7 +86,7 @@ public:
 		<< "auto-pop limit: "<< pop_limit_pct_*100.0f << "% "
 		<< "auto-pop size: " << pop_size_pct_*100.0f  << "% "
 		<< "max requested elements: " << max_requested_elements_;
-	ers::info(ers::Message(ERS_HERE,oss.str()));
+        TLOG() << oss.str();
   }
 
   void start(const nlohmann::json& /*args*/)
@@ -172,7 +172,7 @@ protected:
   }
 
   void run_stats() {
-    ers::info(ers::Message(ERS_HERE,"Statistics thread started..."));
+    TLOG() << "Statistics thread started...";
     int new_pop_reqs = 0;
     int new_pop_count = 0;
     int new_occupancy = 0;
@@ -191,7 +191,7 @@ protected:
       }
       t0 = now;
     }
-	ers::info(ers::Message(ERS_HERE,"Statistics thread stopped..."));
+    TLOG() << "Statistics thread stopped...";
   }
 
   // Data access (LB interfaces)

@@ -38,7 +38,7 @@ public:
   }
 
   void conf(const nlohmann::json& /*cfg*/) {
-    ers::info(ers::Message(ERS_HERE,"Setting up async task tree."));
+    TLOG() << "Setting up async task tree.";
   }
 
   void process_item(RawType* item) {

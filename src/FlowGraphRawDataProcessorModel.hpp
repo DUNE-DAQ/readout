@@ -39,7 +39,7 @@ public:
   }
 
   void conf(const nlohmann::json& cfg) {
-	  ers::info(ers::Message(ERS_HERE,"Setting up flow grap."));
+    TLOG() << "Setting up flow grap.";
     if (!parallel_task_nodes_.empty()){
       for (long unsigned int i=0; i<parallel_task_nodes_.size(); ++i) { // NOLINT
         tbb::flow::make_edge(graph_input_, parallel_task_nodes_[i]);

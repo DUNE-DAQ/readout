@@ -63,10 +63,8 @@ public:
     rawdata_ifs_.seekg(0, std::ios::beg);
     input_buffer_.reserve(filesize);
     input_buffer_.insert(input_buffer_.begin(), std::istreambuf_iterator<char>(rawdata_ifs_), std::istreambuf_iterator<char>());
-	ers::info( ers::Message(ERS_HERE,"Available elements: "
-	                        +std::to_string( element_count_ )
-	                        +" | In bytes: "
-	                        +std::to_string(input_buffer_.size())));
+    TLOG() << "Available elements: " << std::to_string(element_count_) 
+           << " | In bytes: " << std::to_string(input_buffer_.size());
   }
 
   const int& num_elements() {
