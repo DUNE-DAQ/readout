@@ -15,6 +15,8 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include "logging/Logging.hpp"
+
 #include "dataformats/ComponentRequest.hpp"
 #include "dataformats/Fragment.hpp"
 
@@ -62,7 +64,6 @@ public:
     queue_config_ = args.get<appfwk::cmd::ModInit>();
     raw_type_name_ = raw_type_name;
     // Reset queues
-    ERS_INFO("Resetting queues...");
     for (const auto& qi : queue_config_.qinfos) { 
       try {
         if (qi.name == "raw_input") {
@@ -94,7 +95,7 @@ public:
    }
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-    ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
+    TLOG() << "ReadoutModel creation for raw type: " << raw_type_name_; 
 
     // Instantiate functionalities
     try {
@@ -131,7 +132,7 @@ public:
   }
 
   void start(const nlohmann::json& args) {
-    ERS_INFO("Starting threads...");
+    TLOG() << "Starting threads...";
     request_handler_impl_->start(args);
     stats_thread_.set_work(&ReadoutModel<RawType>::run_stats, this);
     consumer_thread_.set_work(&ReadoutModel<RawType>::run_consume, this);
@@ -140,7 +141,7 @@ public:
   }
 
   void stop(const nlohmann::json& args) {    
-    ERS_INFO("Stoppping threads...");
+    TLOG() << "Stoppping threads...";
     request_handler_impl_->stop(args);
     while (!timesync_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
@@ -154,7 +155,7 @@ public:
     while (!stats_thread_.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
     }
-    ERS_INFO("Flushing latency buffer with occupancy: " << occupancy_callback_());
+    TLOG() << "Flushing latency buffer with occupancy: " << occupancy_callback_();
     pop_callback_(occupancy_callback_());
     raw_processor_impl_->reset_last_daq_time();
   }
@@ -164,8 +165,7 @@ private:
   void run_consume() {
     rawq_timeout_count_ = 0;
     packet_count_ = 0;
-
-    ERS_INFO("Consumer thread started...");
+    TLOG() << "Consumer thread started...";
     while (run_marker_.load() || raw_data_source_->can_pop()) {
       std::unique_ptr<RawType> payload_ptr(nullptr);
       // Try to acquire data
@@ -184,18 +184,17 @@ private:
         ++packet_count_;
       }
     }
-
-    ERS_INFO("Consumer thread joins... ");
+    TLOG() << "Consumer thread joins... ";
   }   
 
   void run_timesync() {
-    ERS_INFO("TimeSync thread started...");
+    TLOG() << "TimeSync thread started...";
     request_count_ = 0;
     auto once_per_run = true;
     while (run_marker_.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(raw_processor_impl_->get_last_daq_time());
-        //ERS_DEBUG(0,"New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time);
+        //TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.m_daq_time != 0) {
           timesync_sink_->push(std::move(timesyncmsg));
           if (fake_trigger_) {
@@ -203,16 +202,16 @@ private:
             dr.m_trigger_timestamp = timesyncmsg.m_daq_time - 500*time::us;
             dr.m_window_width = 1000;
             dr.m_window_offset = 100;
-            ERS_DEBUG(2, "Issuing fake trigger based on timesync. "
+            TLOG_DEBUG(2) << "Issuing fake trigger based on timesync. "
               << " ts=" << dr.m_trigger_timestamp
               << " window_width=" << dr.m_window_width
-              << " window_offset=" << dr.m_window_offset);
+              << " window_offset=" << dr.m_window_offset;
             request_handler_impl_->issue_request(dr);
             ++request_count_;
           }
         } else {
           if (once_per_run) {
-            ERS_INFO("Timesync with DAQ time 0 won't be sent out as it's an invalid sync.");
+            TLOG() << "Timesync with DAQ time 0 won't be sent out as it's an invalid sync.";
             once_per_run = false;
           }
         }
@@ -223,11 +222,11 @@ private:
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     once_per_run = true;
-    ERS_INFO("TimeSync thread joins...");
+    TLOG() << "TimeSync thread joins...";
   } 
 
   void run_requests() {
-    ERS_INFO("Requester thread started...");
+    TLOG() << "Requester thread started...";
     request_count_ = 0;
     while (run_marker_.load() || request_source_->can_pop()) {
       dfmessages::DataRequest data_request;
@@ -240,12 +239,12 @@ private:
         // not an error, safe to continue
       }
     }
-    ERS_INFO("Requester thread joins... ");
+    TLOG() << "Requester thread joins... ";
   }
 
   void run_stats() {
     // Temporarily, for debugging, a rate checker thread...
-    ERS_INFO("Statistics thread started...");
+    TLOG() << "Statistics thread started...";
     int new_packets = 0;
     int new_requests = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -254,18 +253,18 @@ private:
       new_packets = packet_count_.exchange(0);
       new_requests = request_count_.exchange(0);
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_INFO("Consumed Packet rate: " << new_packets/seconds/1000. << " [kHz] "
-        << "Consumed DataRequests: " << new_requests);
+      TLOG() << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.)
+             << " [kHz] Consumed DataRequests: " << std::to_string(new_requests);
       auto rawq_timeouts = rawq_timeout_count_.exchange(0);
       if (rawq_timeouts > 0) {
-        ERS_INFO("***ERROR: Raw input queue timed out " << rawq_timeouts << " times!");
+        TLOG() << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts) << " times!";
       }
       for (int i=0; i<100 && run_marker_.load(); ++i) { // 100 x 100ms = 10s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
     }
-    ERS_INFO("Statistics thread joins...");
+    TLOG() << "Statistics thread joins...";
   }
 
   // Constuctor params

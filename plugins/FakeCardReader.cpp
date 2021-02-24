@@ -5,14 +5,13 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-
 #include "readout/fakecardreader/Nljs.hpp"
-
 #include "FakeCardReader.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
 //#include "dataformats/wib/WIBFrame.hpp"         // FIXME move to dataformats repo
+#include "logging/Logging.hpp"
 #include "readout/WIBFrame.hpp"                   // FIXME now using local copy
 #include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
 #include "appfwk/cmd/Nljs.hpp"
@@ -25,11 +24,20 @@
 #include <string>
 #include <vector>
 
-#include <TRACE/trace.h>
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
 #define TRACE_NAME "FakeCardReader" // NOLINT
+
+/**
+* @brief TRACE debug levels used in this source file
+ */
+enum
+{
+  TLVL_ENTER_EXIT_METHODS = 5,
+  TLVL_WORK_STEPS = 10,
+  TLVL_BOOKKEEPING = 15
+};
 
 namespace dunedaq {
 namespace readout { 
@@ -58,6 +66,7 @@ FakeCardReader::init(const data_t& args)
     }
 
     try {
+      TLOG() << "Setting up queue: " << qi.inst;
       if (qi.name == "tp_output") {
         tp_output_queues_.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
       } else {
@@ -68,7 +77,7 @@ FakeCardReader::init(const data_t& args)
       throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
     }
   }
-  ERS_INFO("Init: # output queues: " << output_queues_.size() << "; # tp_output queues: " << tp_output_queues_.size());
+  TLOG() << "Init: # output queues: " << output_queues_.size() << "; # tp_output queues: " << tp_output_queues_.size();
 }
 
 void 
@@ -81,7 +90,7 @@ FakeCardReader::do_conf(const data_t& args)
 
     // Read input
     source_buffer_ = std::make_unique<FileSourceBuffer>(cfg_.input_limit, constant::WIB_SUPERCHUNK_SIZE);
-    ERS_LOG("Reading binary file: " << cfg_.data_filename);
+    TLOG() << "Reading binary file: " << cfg_.data_filename;
     try {
       source_buffer_->read(cfg_.data_filename);
     }
@@ -157,12 +166,16 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = source_buffer_->num_elements();
+  if (num_elem == 0) {
+	  TLOG_DEBUG(2) << "num_elem=0; sleeping...";
+	  usleep(100000);
+	  num_elem = source_buffer_->num_elements();
+  }
   auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data());
-  
+  TLOG_DEBUG(2) << "num_elem=" << num_elem << " wfptr=" << wfptr;
   // set the initial timestamp to a configured value, otherwise just use the timestamp from the wib header
   uint64_t ts_0 = (cfg_.set_t0_to >= 0) ? cfg_.set_t0_to : wfptr->get_wib_header()->get_timestamp();
-  
-  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
+  TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0;
 
   // Run until stop marker
@@ -197,7 +210,7 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
     ++packet_count_;
     rate_limiter.limit();
   }
-  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
+  TLOG_DEBUG(0) << "Data generation thread " << linkid << " finished";
 }
 
 void
@@ -215,7 +228,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = tp_source_buffer_->num_elements();
   uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->timestamp();
-  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
+  TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0;
 
   dunedaq::dataformats::RawWIBTp* tf{nullptr};
@@ -269,7 +282,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     ++packet_count_;
     rate_limiter.limit();
   }
-  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Data generation thread " << linkid << " finished";
 }
 
 
@@ -285,7 +298,7 @@ FakeCardReader::run_stats()
     auto now = std::chrono::high_resolution_clock::now();
     new_packets = packet_count_.exchange(0);
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-    ERS_INFO("Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]");
+    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";
     for(int i=0; i<100 && run_marker_.load(); ++i){ // 10 seconds sleep
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

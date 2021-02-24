@@ -6,6 +6,7 @@ find_package(daq-cmake REQUIRED)
 daq_setup_environment()
 
 find_package(appfwk REQUIRED)
+find_package(logging REQUIRED)
 find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
@@ -14,6 +15,7 @@ find_package(TBB REQUIRED)
 ##############################################################################
 # Dependency sets
 set(READOUT_DEPENDENCIES 
+  logging::logging
   dataformats::dataformats
   dfmessages::dfmessages
   Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS}

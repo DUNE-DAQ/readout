@@ -10,6 +10,7 @@
 #define UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
 
 #include "RawDataProcessorConcept.hpp"
+#include "logging/Logging.hpp"
 
 #include <functional>
 
@@ -38,7 +39,7 @@ public:
   }
 
   void conf(const nlohmann::json& cfg) {
-    ERS_INFO("Setting up flow grap.");
+    TLOG() << "Setting up flow grap.";
     if (!parallel_task_nodes_.empty()){
       for (long unsigned int i=0; i<parallel_task_nodes_.size(); ++i) { // NOLINT
         tbb::flow::make_edge(graph_input_, parallel_task_nodes_[i]);
