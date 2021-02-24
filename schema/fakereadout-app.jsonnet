@@ -39,6 +39,7 @@ local qspec_list = [
         "raw_type": "wib",
         "data_filename": "/tmp/frames.bin",
         "queue_timeout_ms": 2000,
+        "set_t0_t0": -1
         "tp_enabled": "false",
         "tp_rate_khz": 66,
         "tp_data_filename": "/tmp/tp_frames.bin"
