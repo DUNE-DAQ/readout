@@ -6,30 +6,39 @@
  * received with this code.
 */
 #include "readout/datalinkhandler/Nljs.hpp"
-
 #include "DataLinkHandler.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
+#include "logging/Logging.hpp"
 
 #include <sstream>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <TRACE/trace.h>
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
 #define TRACE_NAME "DataLinkHandler" // NOLINT
+
+/**
+ * @brief TRACE debug levels used in this source file
+ */
+enum
+{
+  TLVL_ENTER_EXIT_METHODS = 5,
+  TLVL_WORK_STEPS = 10,
+  TLVL_BOOKKEEPING = 15
+};
 
 namespace dunedaq {
 namespace readout { 
 
 DataLinkHandler::DataLinkHandler(const std::string& name)
   : DAQModule(name)
-  , configured_(false)
-  , readout_impl_(nullptr)
-  , run_marker_{false}
+  , m_configured(false)
+  , m_readout_impl(nullptr)
+  , m_run_marker{false}
 {
   register_command("conf", &DataLinkHandler::do_conf);
   register_command("scrap", &DataLinkHandler::do_scrap);
@@ -40,9 +49,9 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
 void
 DataLinkHandler::init(const data_t& args)
 {
-  ERS_INFO("Initialiyze readout implementation...");
-  readout_impl_ = createReadout(args, run_marker_);
-  if (readout_impl_ == nullptr) {
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Initialiyze readout implementation...";
+  m_readout_impl = createReadout(args, m_run_marker);
+  if (m_readout_impl == nullptr) {
     throw std::runtime_error("Readout implementation creation failed...");
   }
 }
@@ -50,34 +59,34 @@ DataLinkHandler::init(const data_t& args)
 void
 DataLinkHandler::do_conf(const data_t& args)
 {
-  ERS_INFO("Configure readout implementation...");
-  readout_impl_->conf(args);
-  configured_ = true;
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Configure readout implementation...";
+  m_readout_impl->conf(args);
+  m_configured = true;
 }
 
 void
 DataLinkHandler::do_scrap(const data_t& /*args*/)
 {
-  ERS_INFO("Scrap readout implementation...");
-  configured_ = false;
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Scrap readout implementation...";
+  m_configured = false;
 }
 void 
 DataLinkHandler::do_start(const data_t& args)
 {
-  ERS_INFO("Start readout implementeation...");
-  run_marker_.store(true);
-  readout_impl_->start(args);
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Start readout implementeation...";
+  m_run_marker.store(true);
+  m_readout_impl->start(args);
 }
 
 void 
 DataLinkHandler::do_stop(const data_t& args)
 {
-  ERS_INFO("Stop readout implementation...");
-  run_marker_.store(false);
-  readout_impl_->stop(args);
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Stop readout implementation...";
+  m_run_marker.store(false);
+  m_readout_impl->stop(args);
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
 DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::DataLinkHandler)

@@ -5,12 +5,15 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_CREATEREQUESTHANDLER_HPP_
-#define UDAQ_READOUT_SRC_CREATEREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_CREATEREQUESTHANDLER_HPP_
+#define READOUT_SRC_CREATEREQUESTHANDLER_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "RequestHandlerConcept.hpp"
 #include "WIBRequestHandler.hpp"
+
+#include <memory>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -21,8 +24,8 @@ createRequestHandler(const std::string& rawtype,
                      std::atomic<bool>& run_marker,
                      std::function<size_t()>& occupancy_callback,
                      std::function<bool(RawType&)>& read_callback,
-                     std::function<void(unsigned)>& pop_callback,
-                     std::function<RawType*(unsigned)>& front_callback,
+                     std::function<void(unsigned)>& pop_callback,       // NOLINT
+                     std::function<RawType*(unsigned)>& front_callback, // NOLINT
                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
 {
   if (rawtype == "wib") {
@@ -41,7 +44,7 @@ createRequestHandler(const std::string& rawtype,
   return nullptr;      
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_CREATEREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_CREATEREQUESTHANDLER_HPP_

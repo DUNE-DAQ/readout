@@ -5,12 +5,15 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FILESOURCEBUFFER_HPP_
-#define UDAQ_READOUT_SRC_FILESOURCEBUFFER_HPP_
+#ifndef READOUT_SRC_FILESOURCEBUFFER_HPP_
+#define READOUT_SRC_FILESOURCEBUFFER_HPP_
 
 #include "ReadoutIssues.hpp"
+#include "logging/Logging.hpp"
 
 #include <fstream>
+#include <limits>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -18,10 +21,10 @@ namespace readout {
 class FileSourceBuffer {
 public:
   explicit FileSourceBuffer(int input_limit, int chunk_size)
-  : input_limit_(input_limit)
-  , chunk_size_(chunk_size)
-  , element_count_(0)
-  , source_filename_("")
+  : m_input_limit(input_limit)
+  , m_chunk_size(chunk_size)
+  , m_element_count(0)
+  , m_source_filename("")
   { }
 
   FileSourceBuffer(const FileSourceBuffer&) 
@@ -35,57 +38,58 @@ public:
 
   void read(const std::string& sourcefile)
   {
-    source_filename_ = sourcefile;
+    m_source_filename = sourcefile;
     // Open file 
-    rawdata_ifs_.open(source_filename_, std::ios::in | std::ios::binary);
-    if (!rawdata_ifs_) {
-      throw CannotOpenFile(ERS_HERE, source_filename_);
+    m_rawdata_ifs.open(m_source_filename, std::ios::in | std::ios::binary);
+    if (!m_rawdata_ifs) {
+      throw CannotOpenFile(ERS_HERE, m_source_filename);
     }
     
     // Check file size 
-    rawdata_ifs_.ignore(std::numeric_limits<std::streamsize>::max());
-    std::streamsize filesize = rawdata_ifs_.gcount();
-    if (filesize > input_limit_) { // bigger than configured limit
+    m_rawdata_ifs.ignore(std::numeric_limits<std::streamsize>::max());
+    std::streamsize filesize = m_rawdata_ifs.gcount();
+    if (filesize > m_input_limit) { // bigger than configured limit
       ers::error(ConfigurationError(ERS_HERE, "File size limit exceeded."));
     }
 
     // Check for exact match
-    int remainder = filesize % chunk_size_;
+    int remainder = filesize % m_chunk_size;
     if (remainder > 0) {
       ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
     }
     
     // Set usable element count
-    element_count_ = filesize / chunk_size_;
+    m_element_count = filesize / m_chunk_size;
     
     // Read file into input buffer
-    rawdata_ifs_.seekg(0, std::ios::beg);
-    input_buffer_.reserve(filesize);
-    input_buffer_.insert(input_buffer_.begin(), std::istreambuf_iterator<char>(rawdata_ifs_), std::istreambuf_iterator<char>());
-    ERS_INFO("Available elements: " << element_count_ << " | In bytes: " << input_buffer_.size());
+    m_rawdata_ifs.seekg(0, std::ios::beg);
+    m_input_buffer.reserve(filesize);
+    m_input_buffer.insert(m_input_buffer.begin(), std::istreambuf_iterator<char>(m_rawdata_ifs), std::istreambuf_iterator<char>());
+    TLOG() << "Available elements: " << std::to_string(m_element_count) 
+           << " | In bytes: " << std::to_string(m_input_buffer.size());
   }
 
   const int& num_elements() {
-    return std::ref(element_count_);
+    return std::ref(m_element_count);
   }
 
-  std::vector<std::uint8_t>& get() {
-    return std::ref(input_buffer_);
+  std::vector<std::uint8_t>& get() { // NOLINT
+    return std::ref(m_input_buffer);
   }
 
 private:
   // Configuration
-  int input_limit_;
-  int chunk_size_;
-  int element_count_;
-  std::string source_filename_;
+  int m_input_limit;
+  int m_chunk_size;
+  int m_element_count;
+  std::string m_source_filename;
 
   // Internals
-  std::ifstream rawdata_ifs_;
-  std::vector<std::uint8_t> input_buffer_;
+  std::ifstream m_rawdata_ifs;
+  std::vector<std::uint8_t> m_input_buffer; // NOLINT
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_FILESOURCEBUFFER_HPP_
+#endif // READOUT_SRC_FILESOURCEBUFFER_HPP_

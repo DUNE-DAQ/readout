@@ -1,12 +1,12 @@
 /**
-* @file LatencyBufferBase.hpp Latency buffer base class 
+* @file LatencyBufferBase.hpp Latency buffer interface class 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_LATENCYBUFFERCONCEPT_HPP_
-#define UDAQ_READOUT_SRC_LATENCYBUFFERCONCEPT_HPP_
+#ifndef READOUT_SRC_LATENCYBUFFERCONCEPT_HPP_
+#define READOUT_SRC_LATENCYBUFFERCONCEPT_HPP_
 
 namespace dunedaq {
 namespace readout {
@@ -14,7 +14,7 @@ namespace readout {
 class LatencyBufferConcept {
 
 public:
-  explicit LatencyBufferConcept() {}
+  LatencyBufferConcept() {}
   LatencyBufferConcept(const LatencyBufferConcept&)
     = delete; ///< LatencyBufferConcept is not copy-constructible
   LatencyBufferConcept& operator=(const LatencyBufferConcept&)
@@ -30,7 +30,7 @@ private:
 
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_LATENCYBUFFERCONCEPT_HPP_
+#endif // READOUT_SRC_LATENCYBUFFERCONCEPT_HPP_

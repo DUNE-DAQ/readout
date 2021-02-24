@@ -5,13 +5,16 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
-#define UDAQ_READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
+#ifndef READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
+#define READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
 
 #include "readout/ReadoutTypes.hpp"
 #include "RawDataProcessorConcept.hpp"
 #include "FlowGraphRawDataProcessorModel.hpp"
 #include "WIBFrameProcessor.hpp"
+
+#include <memory>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -27,7 +30,7 @@ createRawDataProcessor(const std::string& rawtype, std::function<void(RawType*)>
   return nullptr;
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_
+#endif // READOUT_SRC_CREATERAWDATAPROCESSOR_HPP_

@@ -16,6 +16,9 @@ local fakecardreader = {
     uint4  : s.number("uint4", "u4",
                      doc="An unsigned of 4 bytes"),
 
+    int8  : s.number("int8", "i8",
+                     doc="integer of 8 bytes"),
+
     khz  : s.number("khz", "f8",
                      doc="A frequency in kHz"),
   
@@ -30,6 +33,9 @@ local fakecardreader = {
 
     filepath : s.string("FilePath", moo.re.hierpath,
                   doc="A string field"),
+
+    tp_enabled: s.string("TpEnabled", moo.re.ident,
+                  doc="A true or false flag for enabling raw WIB TP link"),
 
     conf: s.record("Conf", [
         s.field("link_ids", self.linkvec,
@@ -49,6 +55,18 @@ local fakecardreader = {
 
         s.field("queue_timeout_ms", self.uint4, 2000,
                 doc="Queue timeout in milliseconds"),
+        
+        s.field("set_t0_to", self.int8, -1,
+                doc="The first DAQ timestamp. If -1, t0 from file is used."),
+
+        s.field("tp_enabled", self.tp_enabled, "false",
+                doc="Enables raw WIB TP link"),
+
+        s.field("tp_rate_khz", self.khz, 66,
+                doc="Rate of ratelimiter"),
+
+        s.field("tp_data_filename", self.filepath, "/tmp/tp_frames.bin",
+                doc="Data file that contains user raw WIB TP payloads"),
 
     ], doc="Fake Elink reader module configuration"),
 

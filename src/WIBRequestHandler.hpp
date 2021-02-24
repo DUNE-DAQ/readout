@@ -1,25 +1,29 @@
-/*
+/**
 * @file WIBRequestHandler.hpp Trigger matching mechanism for WIB frames. 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_WIBREQUESTHANDLER_HPP_
-#define UDAQ_READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#define READOUT_SRC_WIBREQUESTHANDLER_HPP_
 
 #include "ReadoutIssues.hpp"
+#include "ReadoutStatistics.hpp"
 #include "DefaultRequestHandlerModel.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
-
-#include "ReadoutStatistics.hpp"
+#include "logging/Logging.hpp"
 
 #include <atomic>
 #include <thread>
 #include <functional>
 #include <future>
 #include <iomanip>
+#include <utility>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -36,8 +40,8 @@ public:
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
       occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
   {
-    ERS_INFO("WIBRequestHandler created...");
-    data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, 
+    TLOG() << "WIBRequestHandler created...";
+    m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 
       this, std::placeholders::_1, std::placeholders::_2);
   } 
 
@@ -46,8 +50,8 @@ public:
     // Call up to the base class, whose conf function does useful things
     DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
-    apa_number_ = config.apa_number;
-    link_number_ = config.link_number;
+    m_apa_number = config.apa_number;
+    m_link_number = config.link_number;
   }
   
 protected:
@@ -62,7 +66,7 @@ protected:
     fh.window_begin = dr.window_begin;
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
-    fh.link_id = { apa_number_, link_number_ };
+    fh.link_id = { m_apa_number, m_link_number };
     return std::move(fh);
   } 
 
@@ -76,78 +80,75 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
 
     // Data availability is calculated here
-    size_t occupancy_guess = occupancy_callback_(); 
-    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
-    uint_fast64_t start_win_ts = dr.window_begin;
-    uint_fast64_t last_ts = front_wh.get_timestamp();
-    uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
-    uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (tick_dist_ * frames_per_element_) + 1;
-    uint_fast32_t min_num_elements =
-      (time_tick_diff + (dr.window_end - dr.window_begin) / tick_dist_) 
-                                   / frames_per_element_ + safe_num_elements_margin_;
-    ERS_DEBUG(2, "TPC (WIB frame) data request for " 
-      << "Trigger TS=" << dr.trigger_timestamp << " "
+    size_t occupancy_guess = m_occupancy_callback(); 
+    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_front_callback(0) )); // NOLINT
+    uint64_t start_win_ts = dr.window_begin;   // NOLINT
+    uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
+    uint64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
+    uint32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
+    uint32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
+    uint32_t min_num_elements = (time_tick_diff + (dr.window_end - dr.window_begin) /m_tick_dist)                    // NOLINT
+                                   / m_frames_per_element + m_safe_num_elements_margin;
+    TLOG_DEBUG(2) << "TPC (WIB frame) data request for " 
+      << "Trigger TS=" << dr.m_trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
       << "ElementsInWindow=" << num_elements_in_window << " "
       << "MinNumElements=" << min_num_elements << " "
-      << "Occupancy=" << occupancy_guess
-    );
+      << "Occupancy=" << occupancy_guess;
 
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
 
     // List of safe-extraction conditions
-    if ( num_elements_in_window > max_requested_elements_ ) {
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
+    if ( num_elements_in_window > m_max_requested_elements ) {
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
-      ++bad_requested_count_;
-    } 
-    else if ( last_ts > start_win_ts ) { // data is gone.
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+      ++m_bad_requested_count;
+    } else if ( last_ts > start_win_ts ) { // data is gone.
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
-      ++bad_requested_count_;
-    } 
-    else if ( min_num_elements > occupancy_guess ) {
+      ++m_bad_requested_count;
+    } else if ( min_num_elements > occupancy_guess ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
-      if(run_marker_.load()) {
-         rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
-         if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
-           rres.request_delay_us = min_delay_us_; 
+      if(m_run_marker.load()) {
+         rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
+         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
+           rres.request_delay_us = m_min_delay_us; 
          }
-      }
-      else {
+      } else {
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
           rres.result_code = ResultCode::kNotFound;
-          ++bad_requested_count_;
+          ++m_bad_requested_count;
       }
-    }   
-    else {
+    } else {
       rres.result_code = ResultCode::kFound;
-      ++found_requested_count_;
+      ++m_found_requested_count;
     }
 
     // Find data in Latency Buffer
     if ( rres.result_code != ResultCode::kFound ) {
-      ERS_INFO("***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
+      std::ostringstream oss;
+      oss << "***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
         << "Trigger TS=" << dr.trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
         << "ElementOffset=" << num_element_offset << ".th "
         << "ElementsInWindow=" << num_elements_in_window << " "
         << "MinNumElements=" << min_num_elements << " "
-        << "Occupancy=" << occupancy_guess
-      );
+        << "Occupancy=" << occupancy_guess;
+      TLOG() << oss.str();
     } else {
-      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
-      for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
-        auto* element = front_callback_(num_element_offset+idxoffset);
+      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
+      for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
+        auto* element = m_front_callback(num_element_offset+idxoffset);
         if (element != nullptr) {
           frag_pieces.emplace_back( 
-            std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) )
+            std::make_pair<void*, size_t>(
+              static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
+              std::size_t(m_element_size))
           );
         }
       }
@@ -161,7 +162,7 @@ protected:
         // Set header
         frag->set_header_fields(frag_header);
         // Push to Fragment queue
-        fragment_sink_->push( std::move(frag) );
+        m_fragment_sink->push( std::move(frag) );
       } 
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
@@ -172,24 +173,24 @@ protected:
 
 private:
   // Constants
-  const uint_fast64_t tick_dist_ = 25; // 2 MHz@50MHz clock
-  const size_t wib_frame_size_ = 464;
-  const uint_fast8_t frames_per_element_ = 12;
-  const size_t element_size_ = wib_frame_size_ * frames_per_element_;
-  const uint_fast64_t safe_num_elements_margin_ = 10;
+  static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT
+  static const constexpr size_t m_wib_frame_size = 464;
+  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
+  static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
+  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT
 
-  const uint_fast32_t min_delay_us_ = 30000;
+  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT
 
   // Stats
-  stats::counter_t found_requested_count_{0};
-  stats::counter_t bad_requested_count_{0};
+  stats::counter_t m_found_requested_count{0};
+  stats::counter_t m_bad_requested_count{0};
 
-  uint32_t apa_number_;
-  uint32_t link_number_;
+  uint32_t m_apa_number; // NOLINT
+  uint32_t m_link_number; // NOLINT
 
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_WIBREQUESTHANDLER_HPP_

@@ -1,15 +1,13 @@
-/*
-* @file LatencyBuffer.hpp Buffers objects for some time
-* Software defined latency buffer to temporarily store objects from the
-* frontend apparatus. It wraps a bounded SPSC queue from Folly for
-* aligned memory access, and convenient frontPtr loads.
+/**
+* @file DefaultRequestHandlerModel.hpp Default mode of operandy for 
+* request handling: 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
-#define UDAQ_READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
+#ifndef READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
+#define READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "RequestHandlerConcept.hpp"
@@ -19,6 +17,7 @@
 
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
+#include "logging/Logging.hpp"
 
 #include <tbb/concurrent_queue.h>
 
@@ -27,6 +26,9 @@
 #include <functional>
 #include <future>
 #include <iomanip>
+#include <utility>
+#include <memory>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -36,109 +38,111 @@ class DefaultRequestHandlerModel : public RequestHandlerConcept {
 public:
   explicit DefaultRequestHandlerModel(const std::string& rawtype,
                                       std::atomic<bool>& marker,
-                                      std::function<size_t()>& occupancy_callback,
+                                      std::function<size_t()>& m_occupancycallback,
                                       std::function<bool(RawType&)>& read_callback,
                                       std::function<void(unsigned)>& pop_callback,
                                       std::function<RawType*(unsigned)>& front_callback,
                                       std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
-  : occupancy_callback_(occupancy_callback)
-  , read_callback_(read_callback)
-  , pop_callback_(pop_callback)
-  , front_callback_(front_callback)
-  , fragment_sink_(fragment_sink)
-  , run_marker_(marker)
-  , raw_type_name_(rawtype)
-  , pop_limit_pct_(0.0f)
-  , pop_size_pct_(0.0f)
-  , pop_limit_size_(0)
-  , pop_counter_{0}
-  , buffer_capacity_(0)
-  , pop_reqs_(0)
-  , pops_count_(0)
-  , occupancy_(0)
-  , stats_thread_(0)
+  : m_occupancy_callback(m_occupancycallback)
+  , m_read_callback(read_callback)
+  , m_pop_callback(pop_callback)
+  , m_front_callback(front_callback)
+  , m_fragment_sink(fragment_sink)
+  , m_run_marker(marker)
+  , m_raw_type_name(rawtype)
+  , m_pop_limit_pct(0.0f)
+  , m_pop_size_pct(0.0f)
+  , m_pop_limit_size(0)
+  , m_pop_counter{0}
+  , m_buffer_capacity(0)
+  , m_pop_reqs(0)
+  , m_pops_count(0)
+  , m_occupancy(0)
+  , m_stats_thread(0)
   {
-    ERS_INFO("DefaultRequestHandlerModel created...");
-    cleanup_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
+    TLOG() << "DefaultRequestHandlerModel created...";
+    m_cleanup_request_callback = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
       this, std::placeholders::_1, std::placeholders::_2);
-    data_request_callback_ = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
+    m_data_request_callback = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
       this, std::placeholders::_1, std::placeholders::_2);
   }
 
   void conf(const nlohmann::json& args)
   {
     auto conf = args.get<datalinkhandler::Conf>();
-    pop_limit_pct_ = conf.pop_limit_pct;
-    pop_size_pct_ = conf.pop_size_pct;
-    buffer_capacity_ = conf.latency_buffer_size;
-    //if (configured_) {
+    m_pop_limit_pct = conf.pop_limit_pct;
+    m_pop_size_pct = conf.pop_size_pct;
+    m_buffer_capacity = conf.latency_buffer_size;
+    //if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
-    if (pop_limit_pct_ < 0.0f || pop_limit_pct_ > 1.0f ||
-        pop_size_pct_ < 0.0f || pop_size_pct_ > 1.0f) {
+    if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f ||
+        m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
       ers::error(ConfigurationError(ERS_HERE, "Auto-pop percentage out of range."));
     } else {
-      pop_limit_size_ = pop_limit_pct_ * buffer_capacity_;
-      max_requested_elements_ = pop_limit_size_ - pop_limit_size_ * pop_size_pct_;
+      m_pop_limit_size = m_pop_limit_pct * m_buffer_capacity;
+      m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
     }
-    ERS_INFO("RequestHandler configured. " << std::fixed << std::setprecision(2)
-          << "auto-pop limit: "<< pop_limit_pct_*100.0f << "% "
-          << "auto-pop size: " << pop_size_pct_*100.0f  << "% "
-          << "max requested elements: " << max_requested_elements_);
+	std::ostringstream oss;
+	oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
+		<< "auto-pop limit: "<< m_pop_limit_pct*100.0f << "% "
+		<< "auto-pop size: " << m_pop_size_pct*100.0f  << "% "
+		<< "max requested elements: " << m_max_requested_elements;
+        TLOG() << oss.str();
   }
 
   void start(const nlohmann::json& /*args*/)
   {
-    //run_marker_.store(true);
-    stats_thread_.set_work(&DefaultRequestHandlerModel<RawType>::run_stats, this);
-    executor_ = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
+    //m_run_marker.store(true);
+    m_stats_thread.set_work(&DefaultRequestHandlerModel<RawType>::run_stats, this);
+    m_executor = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
   {
-    //run_marker_.store(false);
-    executor_.join();
-    while (!stats_thread_.get_readiness()) {
+    //m_run_marker.store(false);
+    m_executor.join();
+    while (!m_stats_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
     }
   }
  
   void auto_cleanup_check()
   {
-    auto size_guess = occupancy_callback_();
-    if (size_guess > pop_limit_size_) {
+    auto size_guess = m_occupancy_callback();
+    if (size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
       auto delay_us = 0;
-      auto execfut = std::async(std::launch::deferred, cleanup_request_callback_, dr, delay_us);
-      completion_queue_.push(std::move(execfut));              
+      auto execfut = std::async(std::launch::deferred, m_cleanup_request_callback, dr, delay_us);
+      m_completion_queue.push(std::move(execfut));              
     }
   }
 
   // DataRequest struct!?
-  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0)
+  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT
   {
-    auto reqfut = std::async(std::launch::async, data_request_callback_, datarequest, delay_us);
-    completion_queue_.push(std::move(reqfut));
+    auto reqfut = std::async(std::launch::async, m_data_request_callback, datarequest, delay_us);
+    m_completion_queue.push(std::move(reqfut));
   }
 
 protected:
   RequestResult
-  cleanup_request(dfmessages::DataRequest dr, unsigned /*delay_us*/ = 0)
+  cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT
   {
     //auto now_s = time::now_as<std::chrono::seconds>();
-    auto size_guess = occupancy_callback_();
-    if (size_guess > pop_limit_size_) {
-      ++pop_reqs_;
-      unsigned to_pop = pop_size_pct_ * occupancy_callback_();
-      pops_count_ += to_pop;
-      pop_callback_(to_pop);
-      occupancy_ = occupancy_callback_();
-      pops_count_.store(pops_count_.load()+to_pop);
+    auto size_guess = m_occupancy_callback();
+    if (size_guess > m_pop_limit_size) {
+      ++m_pop_reqs;
+      unsigned to_pop = m_pop_size_pct * m_occupancy_callback();
+      m_pops_count += to_pop;
+      m_pop_callback(to_pop);
+      m_occupancy = m_occupancy_callback();
+      m_pops_count.store(m_pops_count.load()+to_pop);
     }
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
   RequestResult 
-  data_request(dfmessages::DataRequest dr, unsigned /*delay_us*/ = 0)
+  data_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT
   {
     ers::error(DefaultImplementationCalled(ERS_HERE, " DefaultRequestHandlerModel ", " data_request "));
     return RequestResult(ResultCode::kUnknown, dr);
@@ -147,20 +151,20 @@ protected:
   void executor()
   {
     std::future<RequestResult> fut;
-    while (run_marker_.load() || !completion_queue_.empty()) {
-      if (completion_queue_.empty()) {
+    while (m_run_marker.load() || !m_completion_queue.empty()) {
+      if (m_completion_queue.empty()) {
         std::this_thread::sleep_for(std::chrono::microseconds(50));
       } else {
-        bool success = completion_queue_.try_pop(fut);
+        bool success = m_completion_queue.try_pop(fut);
         if (!success) {
           //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
         } else {
           fut.wait(); // trigger execution
           auto reqres = fut.get();
-          if (reqres.result_code == ResultCode::kNotYet && run_marker_.load()) { // give it another chance
-            ERS_DEBUG(1, "Re-queue request. "
+          if (reqres.result_code == ResultCode::kNotYet && m_run_marker.load()) { // give it another chance
+            TLOG_DEBUG(1) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
-              << "delay [us] " << reqres.request_delay_us);
+              << "delay [us] " << reqres.request_delay_us;
             issue_request(reqres.data_request, reqres.request_delay_us);
           }
         }
@@ -169,72 +173,72 @@ protected:
   }
 
   void run_stats() {
-    ERS_INFO("Statistics thread started...");
+    TLOG() << "Statistics thread started...";
     int new_pop_reqs = 0;
     int new_pop_count = 0;
     int new_occupancy = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
-    while (run_marker_.load()) {
+    while (m_run_marker.load()) {
       auto now = std::chrono::high_resolution_clock::now();
-      new_pop_reqs = pop_reqs_.exchange(0);
-      new_pop_count = pops_count_.exchange(0);
-      new_occupancy = occupancy_;
+      new_pop_reqs = m_pop_reqs.exchange(0);
+      new_pop_count = m_pops_count.exchange(0);
+      new_occupancy = m_occupancy;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      ERS_DEBUG(1, "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+      TLOG_DEBUG(1) << "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
-          << " Occupancy: " << new_occupancy);
-      for(int i=0; i<50 && run_marker_.load(); ++i){
+          << " Occupancy: " << new_occupancy;
+      for(int i=0; i<50 && m_run_marker.load(); ++i){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
     }
-    ERS_INFO("Statistics thread stopped...");
+    TLOG() << "Statistics thread stopped...";
   }
 
   // Data access (LB interfaces)
-  std::function<size_t()>& occupancy_callback_;
-  std::function<bool(RawType&)>& read_callback_; 
-  std::function<void(unsigned)>& pop_callback_;
-  std::function<RawType*(unsigned)>& front_callback_;
+  std::function<size_t()>& m_occupancy_callback;
+  std::function<bool(RawType&)>& m_read_callback; 
+  std::function<void(unsigned)>& m_pop_callback;
+  std::function<RawType*(unsigned)>& m_front_callback;
 
   // Request source and Fragment sink
-  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink_;
+  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
 
   // Requests
-  typedef std::function<RequestResult(dfmessages::DataRequest, unsigned)> RequestCallback;
-  RequestCallback cleanup_request_callback_;
-  RequestCallback data_request_callback_;
-  std::size_t max_requested_elements_;
+  using request_callback_t = std::function<RequestResult(dfmessages::DataRequest, unsigned)>;
+  request_callback_t m_cleanup_request_callback;
+  request_callback_t m_data_request_callback;
+  std::size_t m_max_requested_elements;
 
   // Completion of requests requests
-  typedef tbb::concurrent_queue<std::future<RequestResult>> CompletionQueue;
-  CompletionQueue completion_queue_;
+  using completion_queue_t = tbb::concurrent_queue<std::future<RequestResult>>;
+  completion_queue_t m_completion_queue;
 
-protected:
-  std::atomic<bool>& run_marker_;
+  // The run marker
+  std::atomic<bool>& m_run_marker;
 
 private:
   // Executor
-  std::thread executor_;
+  std::thread m_executor;
 
   // Configuration
-  std::string raw_type_name_;
-  bool configured_;
-  float pop_limit_pct_; // buffer occupancy percentage to issue a pop request
-  float pop_size_pct_;  // buffer percentage to pop
-  unsigned pop_limit_size_;  // pop_limit_pct * buffer_capacity
-  stats::counter_t pop_counter_;
-  size_t buffer_capacity_;
+  std::string m_raw_type_name;
+  bool m_configured;
+  float m_pop_limit_pct; // buffer occupancy percentage to issue a pop request
+  float m_pop_size_pct;  // buffer percentage to pop
+  unsigned m_pop_limit_size;  // pop_limit_pct * buffer_capacity
+  stats::counter_t m_pop_counter;
+  size_t m_buffer_capacity;
 
   // Stats
-  stats::counter_t pop_reqs_;
-  stats::counter_t pops_count_;
-  stats::counter_t occupancy_;
-  ReusableThread stats_thread_;
+  stats::counter_t m_pop_reqs;
+  stats::counter_t m_pops_count;
+  stats::counter_t m_occupancy;
+  ReusableThread m_stats_thread;
 
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
+#endif // READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_

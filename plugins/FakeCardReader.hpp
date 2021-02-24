@@ -10,26 +10,27 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
-#define UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
-
-#include "readout/fakecardreader/Structs.hpp"
-
-// appfwk
-#include "appfwk/DAQModule.hpp"
-#include "appfwk/DAQSink.hpp"
+#ifndef READOUT_PLUGINS_FAKECARDREADER_HPP_
+#define READOUT_PLUGINS_FAKECARDREADER_HPP_
 
 // package
+#include "readout/fakecardreader/Structs.hpp"
 #include "readout/ReusableThread.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
 #include "RateLimiter.hpp"
 #include "FileSourceBuffer.hpp"
 
+// appfwk
+#include "appfwk/DAQModule.hpp"
+#include "appfwk/DAQSink.hpp"
+
 // std
 #include <memory>
 #include <fstream>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -56,6 +57,7 @@ public:
 
 private:
   using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+  using tp_sink_t = appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>;
   // Commands
   void do_conf(const data_t& /*args*/);
   void do_scrap(const data_t& /*args*/);
@@ -63,34 +65,40 @@ private:
   void do_stop(const data_t& /*args*/);
 
   void generate_data(sink_t* queue, int link_id);
+  void generate_tp_data(tp_sink_t* queue, int link_id);
 
   // Configuration
-  bool configured_;
+  bool m_configured;
   using module_conf_t = fakecardreader::Conf;
-  module_conf_t cfg_;
+  module_conf_t m_cfg;
 
   // appfwk Queues
-  std::chrono::milliseconds queue_timeout_ms_;
-  //std::vector<std::unique_ptr<sink_t>> output_queues_;
-  std::vector<sink_t*> output_queues_;
+  std::chrono::milliseconds m_queue_timeout_ms;
+  //std::vector<std::unique_ptr<sink_t>> m_output_queues;
+  std::vector<sink_t*> m_output_queues;
+  std::vector<tp_sink_t*> m_tp_output_queues;
 
   // Internals
-  std::unique_ptr<FileSourceBuffer> source_buffer_;
+  std::unique_ptr<FileSourceBuffer> m_source_buffer;
+  std::unique_ptr<FileSourceBuffer> m_tp_source_buffer;
 
   // Processor
-  std::vector<std::thread> worker_threads_;
+  std::vector<std::thread> m_worker_threads;
 
   // Threading
-  std::atomic<bool> run_marker_;
+  std::atomic<bool> m_run_marker;
 
   // Stats
-  stats::counter_t packet_count_{0};
-  ReusableThread stats_thread_;
+  stats::counter_t m_packet_count{0};
+  ReusableThread m_stats_thread;
   void run_stats();
+
+  // raw WIB TP parsing
+  bool m_found_tp_header{false};
 
 };
 
-} // namespace dunedaq::readout
-}
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
+#endif // READOUT_PLUGINS_FAKECARDREADER_HPP_

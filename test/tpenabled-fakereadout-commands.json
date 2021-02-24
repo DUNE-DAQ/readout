@@ -8,12 +8,12 @@
                             {
                                 "dir": "output",
                                 "inst": "wib-fakelink-0",
-                                "name": "output_0"
+                                "name": "output"
                             },
                             {
                                 "dir": "output",
-                                "inst": "wib-fakelink-1",
-                                "name": "output_1"
+                                "inst": "fakelink-5",
+                                "name": "tp_output"
                             }
                         ]
                     },
@@ -26,7 +26,7 @@
                             {
                                 "dir": "input",
                                 "inst": "wib-fakelink-0",
-                                "name": "raw-input"
+                                "name": "raw_input"
                             },
                             {
                                 "dir": "output",
@@ -45,35 +45,7 @@
                             }
                         ]
                     },
-                    "inst": "fake-handler-0",
-                    "plugin": "DataLinkHandler"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "wib-fakelink-1",
-                                "name": "raw-input"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "ts-sync-out",
-                                "name": "timesync"
-                            },
-                            {
-                                "dir": "input",
-                                "inst": "requests-in",
-                                "name": "requests"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "frags-out",
-                                "name": "fragments"
-                            }
-                        ]
-                    },
-                    "inst": "fake-handler-1",
+                    "inst": "fake-handler",
                     "plugin": "DataLinkHandler"
                 }
             ],
@@ -81,11 +53,6 @@
                 {
                     "capacity": 100000,
                     "inst": "wib-fakelink-0",
-                    "kind": "FollySPSCQueue"
-                },
-                {
-                    "capacity": 100000,
-                    "inst": "wib-fakelink-1",
                     "kind": "FollySPSCQueue"
                 },
                 {
@@ -102,6 +69,11 @@
                     "capacity": 1000,
                     "inst": "ts-sync-out",
                     "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "fakelink-5",
+                    "kind": "FollySPSCQueue"
                 }
             ]
         },
@@ -112,24 +84,32 @@
             "modules": [
                 {
                     "data": {
-                        "data_filename": "/afs/cern.ch/user/g/glehmann/frames.bin",
+                        "data_filename": "/tmp/frames.bin",
                         "input_limit": 10485100,
-                        "link_ids": [0,1],
+                        "link_ids": [
+                            0
+                        ],
                         "queue_timeout_ms": 2000,
-                        "rate_khz": 1,
-                        "raw_type": "wib"
+                        "rate_khz": 166,
+                        "raw_type": "wib",
+                        "tp_data_filename": "/tmp/tp_frames.bin",
+                        "tp_enabled": "true",
+                        "tp_rate_khz": 66
                     },
                     "match": "fake-source"
                 },
                 {
                     "data": {
+                        "apa_number": 1,
+                        "fake_trigger_flag": 1,
                         "latency_buffer_size": 100000,
+                        "link_number": 2,
                         "pop_limit_pct": 0.8,
                         "pop_size_pct": 0.3,
                         "raw_type": "wib",
                         "source_queue_timeout_ms": 2000
                     },
-                    "match": "fake-handler.*"
+                    "match": "fake-handler"
                 }
             ]
         },

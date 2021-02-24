@@ -8,7 +8,7 @@
  */
 #include "RateLimiter.hpp"
 
-#include <ers/ers.h>
+#include "logging/Logging.hpp"
 
 #include <atomic>
 #include <string>
@@ -25,17 +25,17 @@ main(int /*argc*/, char** /*argv[]*/)
 
   // Killswitch that flips the run marker
   auto killswitch = std::thread([&]() {
-    ERS_INFO("Application will terminate in 5s...");
+    TLOG() << "Application will terminate in 5s...";
     std::this_thread::sleep_for(std::chrono::seconds(5));
     marker.store(false);
   });
 
   // RateLimiter
-  ERS_INFO("Creating ratelimiter with 1MHz...");
+  TLOG() << "Creating ratelimiter with 1MHz...";
   RateLimiter rl(1000);
 
   // Limit task
-  ERS_INFO("Launching task to count...");
+  TLOG() << "Launching task to count...";
   int ops = 0;
   rl.init();
   while (marker) {
@@ -45,15 +45,15 @@ main(int /*argc*/, char** /*argv[]*/)
   }
 
   // Join local threads
-  ERS_INFO("Flipping killswitch in order to stop...");
+  TLOG() << "Flipping killswitch in order to stop...";
   if (killswitch.joinable()) {
     killswitch.join();
   }
 
   // Check
-  ERS_INFO("Operations in 5 seconds (should be really close to 5 million:): " << ops);
+  TLOG() << "Operations in 5 seconds (should be really close to 5 million:): " << ops;
 
   // Exit
-  ERS_INFO("Exiting.");
+  TLOG() << "Exiting.";
   return 0;
 }

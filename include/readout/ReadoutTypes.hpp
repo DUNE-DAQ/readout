@@ -5,8 +5,10 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_READOUTTYPES_HPP_
-#define UDAQ_READOUT_SRC_READOUTTYPES_HPP_
+#ifndef READOUT_INCLUDE_READOUT_READOUTTYPES_HPP_
+#define READOUT_INCLUDE_READOUT_READOUTTYPES_HPP_
+
+#include "RawWIBTp.hpp"
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
@@ -28,8 +30,8 @@ using cfg_data_t = nlohmann::json;
  * - link tag (elink_id * 64 + 2048 * logic_region)
 */
 struct LinkId {
-  uint8_t card_id_;
-  uint32_t link_tag_;
+  uint8_t card_id_;   // NOLINT
+  uint32_t link_tag_; // NOLINT
 };
 
 /** 
@@ -59,8 +61,22 @@ typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
 using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
 
+// raw WIB TP
+struct RAW_WIB_TP_STRUCT {
+  dunedaq::dataformats::TpHeader head;
+  dunedaq::dataformats::TpDataBlock block;
+  dunedaq::dataformats::TpPedinfo ped;
+};
+
+struct TpSubframe
+{
+  uint32_t word1; // NOLINT
+  uint32_t word2; // NOLINT
+  uint32_t word3; // NOLINT
+};
+
 } // namespace types
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_READOUTTYPES_HPP_
+#endif // READOUT_INCLUDE_READOUT_READOUTTYPES_HPP_

@@ -6,15 +6,18 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_READOUTCONCEPT_HPP_
-#define UDAQ_READOUT_SRC_READOUTCONCEPT_HPP_
+#ifndef READOUT_SRC_READOUTCONCEPT_HPP_
+#define READOUT_SRC_READOUTCONCEPT_HPP_
+
+#include <string>
 
 namespace dunedaq {
 namespace readout {
 
 class ReadoutConcept {
 public:
-  explicit ReadoutConcept() {}
+  ReadoutConcept() {}
+  ~ReadoutConcept() {}
   ReadoutConcept(const ReadoutConcept&)
     = delete; ///< ReadoutConcept is not copy-constructible
   ReadoutConcept& operator=(const ReadoutConcept&)
@@ -24,6 +27,7 @@ public:
   ReadoutConcept& operator=(ReadoutConcept&&)
     = delete; ///< ReadoutConcept is not move-assignable
 
+  virtual void init(const nlohmann::json& args, const std::string& raw_type_name) = 0;
   virtual void conf(const nlohmann::json& args) = 0;
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
@@ -39,4 +43,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_READOUTCONCEPT_HPP_
+#endif // READOUT_SRC_READOUTCONCEPT_HPP_

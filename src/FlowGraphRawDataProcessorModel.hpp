@@ -6,14 +6,17 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
-#define UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
+#ifndef READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
+#define READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
 
 #include "RawDataProcessorConcept.hpp"
-
-#include <functional>
+#include "logging/Logging.hpp"
 
 #include "tbb/flow_graph.h"
+
+#include <functional>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -38,7 +41,7 @@ public:
   }
 
   void conf(const nlohmann::json& cfg) {
-    ERS_INFO("Setting up flow grap.");
+    TLOG() << "Setting up flow grap.";
     if (!parallel_task_nodes_.empty()){
       for (long unsigned int i=0; i<parallel_task_nodes_.size(); ++i) { // NOLINT
         tbb::flow::make_edge(graph_input_, parallel_task_nodes_[i]);
@@ -82,4 +85,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
+#endif // READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
