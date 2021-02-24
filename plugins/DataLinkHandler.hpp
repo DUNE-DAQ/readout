@@ -50,15 +50,14 @@ private:
   void do_stop(const data_t& /*args*/);
 
   // Configuration
-  bool configured_;
+  bool m_configured;
   using module_conf_t = datalinkhandler::Conf;
-  module_conf_t cfg_;
 
   // Internal
-  std::unique_ptr<ReadoutConcept> readout_impl_;
+  std::unique_ptr<ReadoutConcept> m_readout_impl;
 
   // Threading
-  std::atomic<bool> run_marker_;
+  std::atomic<bool> m_run_marker;
 };
 
 } // namespace dunedaq::readout

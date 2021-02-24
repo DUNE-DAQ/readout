@@ -36,9 +36,9 @@ namespace readout {
 
 DataLinkHandler::DataLinkHandler(const std::string& name)
   : DAQModule(name)
-  , configured_(false)
-  , readout_impl_(nullptr)
-  , run_marker_{false}
+  , m_configured(false)
+  , m_readout_impl(nullptr)
+  , m_run_marker{false}
 {
   register_command("conf", &DataLinkHandler::do_conf);
   register_command("scrap", &DataLinkHandler::do_scrap);
@@ -50,8 +50,8 @@ void
 DataLinkHandler::init(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Initialiyze readout implementation...";
-  readout_impl_ = createReadout(args, run_marker_);
-  if (readout_impl_ == nullptr) {
+  m_readout_impl = createReadout(args, m_run_marker);
+  if (m_readout_impl == nullptr) {
     throw std::runtime_error("Readout implementation creation failed...");
   }
 }
@@ -60,30 +60,30 @@ void
 DataLinkHandler::do_conf(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Configure readout implementation...";
-  readout_impl_->conf(args);
-  configured_ = true;
+  m_readout_impl->conf(args);
+  m_configured = true;
 }
 
 void
 DataLinkHandler::do_scrap(const data_t& /*args*/)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Scrap readout implementation...";
-  configured_ = false;
+  m_configured = false;
 }
 void 
 DataLinkHandler::do_start(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Start readout implementeation...";
-  run_marker_.store(true);
-  readout_impl_->start(args);
+  m_run_marker.store(true);
+  m_readout_impl->start(args);
 }
 
 void 
 DataLinkHandler::do_stop(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Stop readout implementation...";
-  run_marker_.store(false);
-  readout_impl_->stop(args);
+  m_run_marker.store(false);
+  m_readout_impl->stop(args);
 }
 
 }
