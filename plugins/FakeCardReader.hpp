@@ -10,26 +10,27 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
-#define UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
-
-#include "readout/fakecardreader/Structs.hpp"
-
-// appfwk
-#include "appfwk/DAQModule.hpp"
-#include "appfwk/DAQSink.hpp"
+#ifndef READOUT_PLUGINS_FAKECARDREADER_HPP_
+#define READOUT_PLUGINS_FAKECARDREADER_HPP_
 
 // package
+#include "readout/fakecardreader/Structs.hpp"
 #include "readout/ReusableThread.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
 #include "RateLimiter.hpp"
 #include "FileSourceBuffer.hpp"
 
+// appfwk
+#include "appfwk/DAQModule.hpp"
+#include "appfwk/DAQSink.hpp"
+
 // std
 #include <memory>
 #include <fstream>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -97,7 +98,7 @@ private:
 
 };
 
-} // namespace dunedaq::readout
-}
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
+#endif // READOUT_PLUGINS_FAKECARDREADER_HPP_

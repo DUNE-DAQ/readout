@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <utility>
 
 /**
  * @brief Name used by TRACE TLOG calls from this source file
@@ -171,12 +172,12 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     num_elem = m_source_buffer->num_elements();
   }
-  auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data());
+  auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data()); // NOLINT
   TLOG_DEBUG(2) << "num_elem=" << num_elem << " wfptr=" << wfptr;
   // set the initial timestamp to a configured value, otherwise just use the timestamp from the wib header
-  uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : wfptr->get_wib_header()->get_timestamp();
+  uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : wfptr->get_wib_header()->get_timestamp(); // NOLINT
   TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
-  uint64_t ts_next = ts_0;
+  uint64_t ts_next = ts_0; // NOLINT
 
   // Run until stop marker
   
@@ -188,11 +189,13 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
       // Create next superchunk
       std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
       // Memcpy from file buffer to flat char array
-      ::memcpy((void*)&payload_ptr->data, (void*)(source.data()+offset*constant::WIB_SUPERCHUNK_SIZE), constant::WIB_SUPERCHUNK_SIZE);
+      ::memcpy(static_cast<void*>(&payload_ptr->data),
+               static_cast<void*>(source.data() + offset * constant::WIB_SUPERCHUNK_SIZE), 
+               constant::WIB_SUPERCHUNK_SIZE);
 
       // fake the timestamp
-      for (unsigned int i=0; i<12; ++i) {
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464);
+      for (unsigned int i=0; i<12; ++i) { // NOLINT
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464); // NOLINT
 	auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header()); 
         wfh->set_timestamp(ts_next);
         ts_next += 25;
@@ -201,8 +204,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
       // queue in to actual DAQSink
       try {
         myqueue->push(std::move(payload_ptr), m_queue_timeout_ms);
-      } catch (...) { // RS TODO: ERS issues
-        std::runtime_error("Queue timed out...");
+      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        // std::runtime_error("Queue timed out...");
       }
 
     // Count packet and limit rate if needed.
@@ -227,9 +230,9 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = m_tp_source_buffer->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->timestamp();
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->timestamp(); // NOLINT
   TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
-  uint64_t ts_next = ts_0;
+  uint64_t ts_next = ts_0; // NOLINT
 
   dunedaq::dataformats::RawWIBTp* tf{nullptr};
   while (m_run_marker.load()) {
@@ -239,7 +242,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     }
     // Count number of subframes in a TP frame
     int n = 1;
-    while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data())
+    while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
            + offset + (n-1)*constant::RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
       n++;
     }
@@ -247,11 +250,12 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     std::unique_ptr<types::RAW_WIB_TP_STRUCT> payload_ptr = std::make_unique<types::RAW_WIB_TP_STRUCT>();
 
     for (int i=0; i<n; ++i) {
-     auto* sp = reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data())+offset+i*constant::RAW_WIB_TP_SUBFRAME_SIZE);
+     auto* sp = reinterpret_cast<types::TpSubframe*>( // NOLINT
+       ((uint8_t*)source.data())+offset+i*constant::RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT 
      if (!m_found_tp_header) {
         tf = new dunedaq::dataformats::RawWIBTp();
         const dunedaq::dataformats::TpHeader* tfh = tf->get_header();
-        tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp);
+        tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
         tf->set_timestamp(ts_next);
         ts_next += 25;
         m_found_tp_header = true;
@@ -260,20 +264,20 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
       }
       if (sp->word3 == 0xDEADBEEF) {
         const dunedaq::dataformats::TpPedinfo* tpi = tf->get_pedinfo();
-        tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp);
+        tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp); // NOLINT
         m_found_tp_header = false;
         payload_ptr->ped = *tpi;
         continue;
       }
-      dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp);
+      dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp); // NOLINT
       payload_ptr->block.set_tp(*td);
     }
  
     // queue in to actual DAQSink
     try {
       myqueue->push(std::move(payload_ptr), m_queue_timeout_ms);
-    } catch (...) { // RS TODO: ERS issues
-      std::runtime_error("Queue timed out...");
+    } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      // std::runtime_error("Queue timed out...");
     }
 
     // Count packet and limit rate if needed.
@@ -284,9 +288,6 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
   }
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Data generation thread " << linkid << " finished";
 }
-
-
-
 
 void
 FakeCardReader::run_stats()
@@ -306,7 +307,7 @@ FakeCardReader::run_stats()
   }
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
 DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FakeCardReader)

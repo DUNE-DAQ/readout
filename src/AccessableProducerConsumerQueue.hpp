@@ -69,7 +69,7 @@ template <class T> struct AccessableProducerConsumerQueue {
       size_t endIndex = writeIndex_;
       while (readIndex != endIndex) {
         records_[readIndex].~T();
-        if (++readIndex == size_) {
+        if (++readIndex == size_) { // NOLINT(runtime/increment_decrement)
           readIndex = 0;
         }
       }
@@ -206,14 +206,14 @@ template <class T> struct AccessableProducerConsumerQueue {
 private: // hardware_destructive_interference_size is set to 128.
          // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
 
-  char pad0_[folly::hardware_destructive_interference_size];
+  char pad0_[folly::hardware_destructive_interference_size];  // NOLINT(runtime/arrays)
   const uint32_t size_; // NOLINT
   T *const records_;
 
   alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_;  // NOLINT
   alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_; // NOLINT
 
-  char pad1_[folly::hardware_destructive_interference_size - sizeof(writeIndex_)];
+  char pad1_[folly::hardware_destructive_interference_size - sizeof(writeIndex_)]; // NOLINT(runtime/arrays)
 };
 
 } // namespace readout

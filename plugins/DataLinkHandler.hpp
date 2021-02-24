@@ -1,23 +1,23 @@
 /**
  * @file DataLinkHandler.hpp Generic readout module
- * Owns appfwk queue references and a DataLinkHandlerConcept implementation.
+ * that creates a DataLinkHandlerConcept implementation.
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_DATALINKHANDLER_HPP_
-#define UDAQ_READOUT_SRC_DATALINKHANDLER_HPP_
+#ifndef READOUT_PLUGINS_DATALINKHANDLER_HPP_
+#define READOUT_PLUGINS_DATALINKHANDLER_HPP_
 
 #include "readout/datalinkhandler/Structs.hpp"
+#include "CreateReadout.hpp"
 
 #include "appfwk/DAQModule.hpp"
-
-#include "CreateReadout.hpp"
 
 #include <string>
 #include <chrono>
 #include <vector>
+#include <memory>
 
 namespace dunedaq {
 namespace readout {
@@ -60,7 +60,7 @@ private:
   std::atomic<bool> m_run_marker;
 };
 
-} // namespace dunedaq::readout
-}
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_DATALINKHANDLER_HPP_
+#endif // READOUT_PLUGINS_DATALINKHANDLER_HPP_

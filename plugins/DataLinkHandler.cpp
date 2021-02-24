@@ -86,7 +86,7 @@ DataLinkHandler::do_stop(const data_t& args)
   m_readout_impl->stop(args);
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
 DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::DataLinkHandler)

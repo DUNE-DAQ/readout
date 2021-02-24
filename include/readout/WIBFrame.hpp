@@ -402,10 +402,10 @@ public:
   }
 
   // ColdataBlock channel mutators
-  void set_channel(const uint8_t block_num,
-                   const uint8_t adc,
-                   const uint8_t ch,
-                   const uint16_t new_val) // NOLINT(build/unsigned)
+  void set_channel(const uint8_t block_num, // NOLINT(build/unsigned)
+                   const uint8_t adc,       // NOLINT(build/unsigned)
+                   const uint8_t ch,        // NOLINT(build/unsigned)
+                   const uint16_t new_val)  // NOLINT(build/unsigned)
   {
     throw_if_invalid_block_index_(block_num);
     m_blocks[block_num].set_channel(adc, ch, new_val);
