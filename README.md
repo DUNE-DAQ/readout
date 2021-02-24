@@ -12,7 +12,7 @@ Before running the application, please download a small binary files that contai
 
     curl https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download -o /tmp/frames.bin
 
-If you download it to somewhere else, please update the path of the source file in the configuration that you will use below. 
+If you download it to a different destination, please update the path of the source file in the configuration that you will use below. 
 
 After succesfully building the package, from another terminal go to your `workarea` directory and set up the runtime environment:
 
