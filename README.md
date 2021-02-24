@@ -3,9 +3,7 @@ Appfwk DAQModules, utilities, and scripts for DUNE Upstream DAQ Readout Software
 
 ## Building
 
-Clone the package into a work area as defined under the instructions of DUNE-DAQ Build Tools:
-https://github.com/DUNE-DAQ/appfwk/wiki/Compiling-and-running
-
+Clone the package into a work area as defined under the instructions of [DUNE-DAQ Appfwk Wiki](https://github.com/DUNE-DAQ/appfwk/wiki/Compiling-and-running).
 
 ## Examples
 Before running the application, please download a small binary files that contains 120 WIB Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download). Like:
