@@ -1,26 +1,29 @@
-/*
+/**
 * @file WIBRequestHandler.hpp Trigger matching mechanism for WIB frames. 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_WIBREQUESTHANDLER_HPP_
-#define UDAQ_READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#define READOUT_SRC_WIBREQUESTHANDLER_HPP_
 
 #include "ReadoutIssues.hpp"
+#include "ReadoutStatistics.hpp"
 #include "DefaultRequestHandlerModel.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
-
-#include "ReadoutStatistics.hpp"
 
 #include <atomic>
 #include <thread>
 #include <functional>
 #include <future>
 #include <iomanip>
+#include <utility>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -47,8 +50,8 @@ public:
     // Call up to the base class, whose conf function does useful things
     DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
-    apa_number_ = config.apa_number;
-    link_number_ = config.link_number;
+    m_apa_number = config.apa_number;
+    m_link_number = config.link_number;
   }
   
 protected:
@@ -63,7 +66,7 @@ protected:
     fh.m_window_offset = dr.m_window_offset;
     fh.m_window_width = dr.m_window_width;
     fh.m_run_number = dr.m_run_number;
-    fh.m_link_id = { apa_number_, link_number_ };
+    fh.m_link_id = { m_apa_number, m_link_number };
     return std::move(fh);
   } 
 
@@ -78,14 +81,14 @@ protected:
 
     // Data availability is calculated here
     size_t occupancy_guess = occupancy_callback_(); 
-    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) ));
-    uint_fast64_t start_win_ts = dr.m_trigger_timestamp - dr.m_window_offset;
-    uint_fast64_t last_ts = front_wh.get_timestamp();
-    uint_fast64_t time_tick_diff = (start_win_ts - last_ts) / tick_dist_;
-    uint_fast32_t num_element_offset = time_tick_diff / frames_per_element_;
-    uint_fast32_t num_elements_in_window = dr.m_window_width / (tick_dist_ * frames_per_element_) + 1;
-    uint_fast32_t min_num_elements = (time_tick_diff + dr.m_window_width/tick_dist_) 
-                                   / frames_per_element_ + safe_num_elements_margin_;
+    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) )); // NOLINT
+    uint64_t start_win_ts = dr.m_trigger_timestamp - dr.m_window_offset;   // NOLINT
+    uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
+    uint64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
+    uint32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
+    uint32_t num_elements_in_window = dr.m_window_width / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
+    uint32_t min_num_elements = (time_tick_diff + dr.m_window_width/m_tick_dist)                    // NOLINT
+                                   / m_frames_per_element + m_safe_num_elements_margin;
     TLOG_DEBUG(2) << "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.m_trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
@@ -102,31 +105,27 @@ protected:
     if ( num_elements_in_window > max_requested_elements_ ) {
       frag_header.m_error_bits |= 0x2; // error bit too big window
       rres.result_code = ResultCode::kPass;
-      ++bad_requested_count_;
-    } 
-    else if ( last_ts > start_win_ts ) { // data is gone.
+      ++m_bad_requested_count;
+    } else if ( last_ts > start_win_ts ) { // data is gone.
       frag_header.m_error_bits |= 0x1; // error bit for not-found data
       rres.result_code = ResultCode::kNotFound;
-      ++bad_requested_count_;
-    } 
-    else if ( min_num_elements > occupancy_guess ) {
+      ++m_bad_requested_count;
+    } else if ( min_num_elements > occupancy_guess ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
       if(run_marker_.load()) {
-         rres.request_delay_us = (min_num_elements - occupancy_guess) * frames_per_element_ * tick_dist_ / 1000.;
-         if (rres.request_delay_us < min_delay_us_) { // minimum delay protection
-           rres.request_delay_us = min_delay_us_; 
+         rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
+         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
+           rres.request_delay_us = m_min_delay_us; 
          }
-      }
-      else {
+      } else {
           frag_header.m_error_bits |= 0x1; // error bit for not-found data
           rres.result_code = ResultCode::kNotFound;
-          ++bad_requested_count_;
+          ++m_bad_requested_count;
       }
-    }   
-    else {
+    } else {
       rres.result_code = ResultCode::kFound;
-      ++found_requested_count_;
+      ++m_found_requested_count;
     }
 
     // Find data in Latency Buffer
@@ -143,11 +142,13 @@ protected:
       TLOG() << oss.str();
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
-      for (uint_fast32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) {
+      for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
         auto* element = front_callback_(num_element_offset+idxoffset);
         if (element != nullptr) {
           frag_pieces.emplace_back( 
-            std::make_pair<void*, size_t>( (void*)(front_callback_(num_element_offset+idxoffset)), std::size_t(element_size_) )
+            std::make_pair<void*, size_t>(
+              static_cast<void*>(front_callback_(num_element_offset + idxoffset)), 
+              std::size_t(m_element_size))
           );
         }
       }
@@ -172,24 +173,24 @@ protected:
 
 private:
   // Constants
-  const uint_fast64_t tick_dist_ = 25; // 2 MHz@50MHz clock
-  const size_t wib_frame_size_ = 464;
-  const uint_fast8_t frames_per_element_ = 12;
-  const size_t element_size_ = wib_frame_size_ * frames_per_element_;
-  const uint_fast64_t safe_num_elements_margin_ = 10;
+  static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT
+  static const constexpr size_t m_wib_frame_size = 464;
+  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
+  static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
+  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT
 
-  const uint_fast32_t min_delay_us_ = 30000;
+  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT
 
   // Stats
-  stats::counter_t found_requested_count_{0};
-  stats::counter_t bad_requested_count_{0};
+  stats::counter_t m_found_requested_count{0};
+  stats::counter_t m_bad_requested_count{0};
 
-  uint32_t apa_number_;
-  uint32_t link_number_;
+  uint32_t m_apa_number; // NOLINT
+  uint32_t m_link_number; // NOLINT
 
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_WIBREQUESTHANDLER_HPP_

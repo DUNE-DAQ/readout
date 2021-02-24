@@ -12,6 +12,8 @@
 #include "logging/Logging.hpp"
 
 #include <fstream>
+#include <limits>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -71,7 +73,7 @@ public:
     return std::ref(m_element_count);
   }
 
-  std::vector<std::uint8_t>& get() {
+  std::vector<std::uint8_t>& get() { // NOLINT
     return std::ref(m_input_buffer);
   }
 
@@ -84,7 +86,7 @@ private:
 
   // Internals
   std::ifstream m_rawdata_ifs;
-  std::vector<std::uint8_t> m_input_buffer;
+  std::vector<std::uint8_t> m_input_buffer; // NOLINT
 };
 
 } // namespace readout

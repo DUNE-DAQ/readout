@@ -6,8 +6,10 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_READOUTCONCEPT_HPP_
-#define UDAQ_READOUT_SRC_READOUTCONCEPT_HPP_
+#ifndef READOUT_SRC_READOUTCONCEPT_HPP_
+#define READOUT_SRC_READOUTCONCEPT_HPP_
+
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -41,4 +43,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_READOUTCONCEPT_HPP_
+#endif // READOUT_SRC_READOUTCONCEPT_HPP_
