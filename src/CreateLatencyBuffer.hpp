@@ -1,17 +1,19 @@
 /**
 * @file CreateLatencyBuffer.hpp Implementation of latency buffer creator function
-* Thanks for Brett and Phil for the idea
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_CREATELATENCYBUFFER_HPP_
-#define UDAQ_READOUT_SRC_CREATELATENCYBUFFER_HPP_
+#ifndef READOUT_SRC_CREATELATENCYBUFFER_HPP_
+#define READOUT_SRC_CREATELATENCYBUFFER_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "LatencyBufferConcept.hpp"
 #include "ContinousLatencyBufferModel.hpp"
+
+#include <memory>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -22,8 +24,8 @@ createLatencyBuffer(const std::string& rawtype, int qsize,
                     std::function<size_t()>& occupancy_override,
                     std::function<void(std::unique_ptr<RawType>)>& write_override,
                     std::function<bool(RawType&)>& read_override,
-                    std::function<void(unsigned)>& pop_override,
-                    std::function<RawType*(unsigned)>& front_override) 
+                    std::function<void(unsigned)>& pop_override,       // NOLINT
+                    std::function<RawType*(unsigned)>& front_override) // NOLINT
 {
   if (rawtype == "wib") {
     return std::make_unique<ContinousLatencyBufferModel<RawType>>(qsize, 
@@ -41,7 +43,7 @@ createLatencyBuffer(const std::string& rawtype, int qsize,
   return nullptr;      
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_CREATELATENCYBUFFER_HPP_
+#endif // READOUT_SRC_CREATELATENCYBUFFER_HPP_

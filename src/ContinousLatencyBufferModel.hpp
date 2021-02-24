@@ -9,14 +9,16 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
-#define UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
+#ifndef READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
+#define READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "LatencyBufferConcept.hpp"
 
 //#include <folly/ProducerConsumerQueue.h>
 #include "AccessableProducerConsumerQueue.hpp"
+
+#include <memory>
 
 namespace dunedaq {
 namespace readout {
@@ -30,8 +32,8 @@ public:
                               std::function<size_t()>& occupancy_override,
                               std::function<void(std::unique_ptr<RawType>)>& write_override,
                               std::function<bool(RawType&)>& read_override,
-                              std::function<void(unsigned)>& pop_override,
-                              std::function<RawType*(unsigned)>& front_override)
+                              std::function<void(unsigned)>& pop_override,       // NOLINT
+                              std::function<RawType*(unsigned)>& front_override) // NOLINT
 //  : folly::ProducerConsumerQueue<RawType>(qsize)
   : AccessableProducerConsumerQueue<RawType>(qsize)
   , occupancy_override_(occupancy_override)
@@ -66,15 +68,15 @@ public:
   }
 
   void 
-  pop_data_from_buffer(unsigned num) 
+  pop_data_from_buffer(unsigned num) // NOLINT
   {
-    for (unsigned i=0; i<num; ++i) {
+    for (unsigned i=0; i<num; ++i) { // NOLINT
       this->popFront();
     }
   }
 
   RawType* 
-  front_data_of_buffer(unsigned idx)
+  front_data_of_buffer(unsigned idx) // NOLINT
   {
     if (idx == 0)
       return this->frontPtr();
@@ -86,12 +88,12 @@ private:
   std::function<size_t()>& occupancy_override_;
   std::function<void(std::unique_ptr<RawType>)>& write_override_;  
   std::function<bool(RawType&)>& read_override_;
-  std::function<void(unsigned)>& pop_override_;
-  std::function<RawType*(unsigned)>& front_override_;
+  std::function<void(unsigned)>& pop_override_;       // NOLINT
+  std::function<RawType*(unsigned)>& front_override_; // NOLINT
 
 };
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
+#endif // READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_

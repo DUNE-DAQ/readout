@@ -68,7 +68,7 @@ protected:
   };
 
   // Bookkeeping of OOB requests
-  std::map<dfmessages::DataRequest, int> request_counter_;
+  std::map<dfmessages::DataRequest, int> m_request_counter;
 
   virtual RequestResult cleanup_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
   virtual RequestResult data_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;

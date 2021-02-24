@@ -6,8 +6,8 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef UDAQ_READOUT_SRC_CREATEREADOUT_HPP_
-#define UDAQ_READOUT_SRC_CREATEREADOUT_HPP_
+#ifndef READOUT_SRC_CREATEREADOUT_HPP_
+#define READOUT_SRC_CREATEREADOUT_HPP_
 
 #include "appfwk/cmd/Structs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
@@ -16,6 +16,10 @@
 #include "ReadoutIssues.hpp"
 #include "ReadoutConcept.hpp"
 #include "ReadoutModel.hpp"
+
+#include <utility>
+#include <memory>
+#include <string>
 
 namespace dunedaq {
 namespace readout {
@@ -47,7 +51,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
 }
 
-}
-} // namespace dunedaq::readout
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_CREATEREADOUT_HPP_
+#endif // READOUT_SRC_CREATEREADOUT_HPP_

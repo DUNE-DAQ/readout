@@ -17,6 +17,8 @@
 // @author Bo Hu (bhu@fb.com)
 // @author Jordan DeLong (delong.j@fb.com)
 
+// Modification by Roland Sipos for DUNE-DAQ software framework
+
 #pragma once
 
 #include <atomic>
@@ -33,7 +35,7 @@
 namespace dunedaq {
 namespace readout {
 
-/*
+/**
  * AccessableProducerConsumerQueue is a one producer and one consumer queue without locks.
  * Modified version of the folly::ProducerConsumerQueue via adding a readPtr function.
  * Requires  well defined and followed constraints on the consumer side.
@@ -49,7 +51,7 @@ template <class T> struct AccessableProducerConsumerQueue {
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit AccessableProducerConsumerQueue(uint32_t size)
+  explicit AccessableProducerConsumerQueue(uint32_t size) // NOLINT
       : size_(size), records_(static_cast<T *>(std::malloc(sizeof(T) * size))), readIndex_(0),
         writeIndex_(0) {
     assert(size >= 2);
@@ -205,14 +207,14 @@ private: // hardware_destructive_interference_size is set to 128.
          // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
 
   char pad0_[folly::hardware_destructive_interference_size];
-  const uint32_t size_;
+  const uint32_t size_; // NOLINT
   T *const records_;
 
-  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_;
-  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_;
+  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_;  // NOLINT
+  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_; // NOLINT
 
   char pad1_[folly::hardware_destructive_interference_size - sizeof(writeIndex_)];
 };
 
-} // namespace folly
-}
+} // namespace readout
+} // namespace dunedaq

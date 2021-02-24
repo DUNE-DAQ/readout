@@ -41,7 +41,7 @@ public:
       occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
   {
     TLOG() << "WIBRequestHandler created...";
-    data_request_callback_ = std::bind(&WIBRequestHandler::tpc_data_request, 
+    m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 
       this, std::placeholders::_1, std::placeholders::_2);
   } 
 
@@ -80,8 +80,8 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
 
     // Data availability is calculated here
-    size_t occupancy_guess = occupancy_callback_(); 
-    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( front_callback_(0) )); // NOLINT
+    size_t occupancy_guess = m_occupancy_callback(); 
+    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_front_callback(0) )); // NOLINT
     uint64_t start_win_ts = dr.m_trigger_timestamp - dr.m_window_offset;   // NOLINT
     uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
     uint64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
@@ -102,7 +102,7 @@ protected:
     std::vector<std::pair<void*, size_t>> frag_pieces;
 
     // List of safe-extraction conditions
-    if ( num_elements_in_window > max_requested_elements_ ) {
+    if ( num_elements_in_window > m_max_requested_elements ) {
       frag_header.m_error_bits |= 0x2; // error bit too big window
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
@@ -113,7 +113,7 @@ protected:
     } else if ( min_num_elements > occupancy_guess ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
-      if(run_marker_.load()) {
+      if(m_run_marker.load()) {
          rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
          if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
            rres.request_delay_us = m_min_delay_us; 
@@ -141,13 +141,13 @@ protected:
         << "Occupancy=" << occupancy_guess;
       TLOG() << oss.str();
     } else {
-      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(front_callback_(num_element_offset)));
+      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = front_callback_(num_element_offset+idxoffset);
+        auto* element = m_front_callback(num_element_offset+idxoffset);
         if (element != nullptr) {
           frag_pieces.emplace_back( 
             std::make_pair<void*, size_t>(
-              static_cast<void*>(front_callback_(num_element_offset + idxoffset)), 
+              static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
               std::size_t(m_element_size))
           );
         }
@@ -162,7 +162,7 @@ protected:
         // Set header
         frag->set_header_fields(frag_header);
         // Push to Fragment queue
-        fragment_sink_->push( std::move(frag) );
+        m_fragment_sink->push( std::move(frag) );
       } 
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
