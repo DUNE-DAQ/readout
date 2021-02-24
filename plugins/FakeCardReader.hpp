@@ -67,29 +67,29 @@ private:
   void generate_tp_data(tp_sink_t* queue, int link_id);
 
   // Configuration
-  bool configured_;
+  bool m_configured;
   using module_conf_t = fakecardreader::Conf;
-  module_conf_t cfg_;
+  module_conf_t m_cfg;
 
   // appfwk Queues
-  std::chrono::milliseconds queue_timeout_ms_;
-  //std::vector<std::unique_ptr<sink_t>> output_queues_;
-  std::vector<sink_t*> output_queues_;
-  std::vector<tp_sink_t*> tp_output_queues_;
+  std::chrono::milliseconds m_queue_timeout_ms;
+  //std::vector<std::unique_ptr<sink_t>> m_output_queues;
+  std::vector<sink_t*> m_output_queues;
+  std::vector<tp_sink_t*> m_tp_output_queues;
 
   // Internals
-  std::unique_ptr<FileSourceBuffer> source_buffer_;
-  std::unique_ptr<FileSourceBuffer> tp_source_buffer_;
+  std::unique_ptr<FileSourceBuffer> m_source_buffer;
+  std::unique_ptr<FileSourceBuffer> m_tp_source_buffer;
 
   // Processor
-  std::vector<std::thread> worker_threads_;
+  std::vector<std::thread> m_worker_threads;
 
   // Threading
-  std::atomic<bool> run_marker_;
+  std::atomic<bool> m_run_marker;
 
   // Stats
-  stats::counter_t packet_count_{0};
-  ReusableThread stats_thread_;
+  stats::counter_t m_packet_count{0};
+  ReusableThread m_stats_thread;
   void run_stats();
 
   // raw WIB TP parsing
