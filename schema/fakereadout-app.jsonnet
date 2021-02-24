@@ -35,7 +35,8 @@ local qspec_list = [
         "rate_khz": 166,
         "raw_type": "wib",
         "data_filename": "/tmp/frames.bin",
-        "queue_timeout_ms": 2000
+        "queue_timeout_ms": 2000,
+        "set_t0_t0": -1
       }
       ),
       cmd.mcmd("fake-handler", {
