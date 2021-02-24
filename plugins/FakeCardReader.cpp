@@ -5,14 +5,13 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-
 #include "readout/fakecardreader/Nljs.hpp"
-
 #include "FakeCardReader.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
 //#include "dataformats/wib/WIBFrame.hpp"         // FIXME move to dataformats repo
+#include "logging/Logging.hpp"
 #include "readout/WIBFrame.hpp"                   // FIXME now using local copy
 #include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
 #include "appfwk/cmd/Nljs.hpp"
@@ -25,13 +24,20 @@
 #include <string>
 #include <vector>
 
-//#include <TRACE/trace.h>
-#include "logging/Logging.hpp"
-
 /**
  * @brief Name used by TRACE TLOG calls from this source file
 */
 #define TRACE_NAME "FakeCardReader" // NOLINT
+
+/**
+* @brief TRACE debug levels used in this source file
+ */
+enum
+{
+  TLVL_ENTER_EXIT_METHODS = 5,
+  TLVL_WORK_STEPS = 10,
+  TLVL_BOOKKEEPING = 15
+};
 
 namespace dunedaq {
 namespace readout { 
@@ -71,7 +77,7 @@ FakeCardReader::init(const data_t& args)
       throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
     }
   }
-  ERS_INFO("Init: # output queues: " << output_queues_.size() << "; # tp_output queues: " << tp_output_queues_.size());
+  TLOG() << "Init: # output queues: " << output_queues_.size() << "; # tp_output queues: " << tp_output_queues_.size();
 }
 
 void 
@@ -222,7 +228,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = tp_source_buffer_->num_elements();
   uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->timestamp();
-  ERS_INFO("First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid);
+  TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0;
 
   dunedaq::dataformats::RawWIBTp* tf{nullptr};
@@ -276,7 +282,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     ++packet_count_;
     rate_limiter.limit();
   }
-  ERS_DEBUG(0, "Data generation thread " << linkid << " finished");
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Data generation thread " << linkid << " finished";
 }
 
 

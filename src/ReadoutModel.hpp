@@ -96,7 +96,7 @@ public:
    }
     latency_buffer_size_ = conf.latency_buffer_size;
     source_queue_timeout_ms_ = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-    ERS_INFO("ReadoutModel creation for raw type: " << raw_type_name_); 
+    TLOG() << "ReadoutModel creation for raw type: " << raw_type_name_; 
 
     // Instantiate functionalities
     try {
