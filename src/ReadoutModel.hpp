@@ -11,6 +11,7 @@
 
 #include "appfwk/cmd/Structs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
+#include "appfwk/app/Nljs.hpp"
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
@@ -64,7 +65,7 @@ public:
   { }
 
   void init(const nlohmann::json& args, const std::string& raw_type_name) {
-    m_queue_config = args.get<appfwk::cmd::ModInit>();
+    m_queue_config = args.get<appfwk::app::ModInit>();
     m_raw_type_name = raw_type_name;
     // Reset queues
     for (const auto& qi : m_queue_config.qinfos) { 
@@ -275,7 +276,7 @@ private:
   std::atomic<bool>& m_run_marker;
 
   // CONFIGURATION
-  appfwk::cmd::ModInit m_queue_config;
+  appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
 
   // STATS

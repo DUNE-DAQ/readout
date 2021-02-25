@@ -11,6 +11,7 @@
 
 #include "appfwk/cmd/Structs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
+#include "appfwk/app/Nljs.hpp"
 
 #include "readout/ReadoutTypes.hpp"
 #include "ReadoutIssues.hpp"
@@ -28,7 +29,7 @@ std::unique_ptr<ReadoutConcept>
 createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 {
   std::string raw_type_name("");
-  auto queues = args.get<appfwk::cmd::ModInit>().qinfos;
+  auto queues = args.get<appfwk::app::ModInit>().qinfos;
   for (const auto& qi : queues) {
     if (qi.name == "raw_input") {
       auto& inst = qi.inst;

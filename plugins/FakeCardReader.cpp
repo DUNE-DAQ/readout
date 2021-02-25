@@ -14,6 +14,7 @@
 #include "logging/Logging.hpp"
 #include "readout/WIBFrame.hpp"                   // FIXME now using local copy
 #include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
+#include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -61,7 +62,7 @@ void
 FakeCardReader::init(const data_t& args)
 {
 
-  auto ini = args.get<appfwk::cmd::ModInit>();
+  auto ini = args.get<appfwk::app::ModInit>();
   for (const auto& qi : ini.qinfos) {
     if (qi.dir != "output") {
       continue;
