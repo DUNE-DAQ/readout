@@ -36,6 +36,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
       // IF WIB
       if (inst.find("wib") != std::string::npos) {
+        TLOG() << "Creating readout for a wib" ;
         raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>>(run_marker);
         readout_model->init(args, raw_type_name);

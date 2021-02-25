@@ -49,9 +49,10 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
 void
 DataLinkHandler::init(const data_t& args)
 {
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Initialiyze readout implementation...";
+  TLOG() << get_name() << "Initialiyze readout implementation...";
   m_readout_impl = createReadout(args, m_run_marker);
   if (m_readout_impl == nullptr) {
+    TLOG() << get_name() << "Initialiyze readout implementation FAILED...";
     throw std::runtime_error("Readout implementation creation failed...");
   }
 }
