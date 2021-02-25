@@ -57,7 +57,7 @@ def generate(
                         cmd.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
                         ] + [
-                        cmd.QueueInfo(name=f"tp_output_{idx}", inst=f"fake_link_{idx}", dir="output")
+                        cmd.QueueInfo(name=f"tp_output_{idx}", inst=f"tp_fake_link_{idx}", dir="output")
 			    for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
                         ]),
 
