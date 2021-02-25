@@ -40,7 +40,7 @@ def generate(
             cmd.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            cmd.QueueSpec(inst=f"fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            cmd.QueueSpec(inst=f"wib_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
             cmd.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
@@ -54,7 +54,7 @@ def generate(
 
     mod_specs = [
         mspec("fake_source", "FakeCardReader", [
-                        cmd.QueueInfo(name=f"output_{idx}", inst=f"fake_link_{idx}", dir="output")
+                        cmd.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
                         ] + [
                         cmd.QueueInfo(name=f"tp_output_{idx}", inst=f"fake_link_{idx}", dir="output")
@@ -63,7 +63,7 @@ def generate(
 
         ] + [
                 mspec(f"datahandler_{idx}", "DataLinkHandler", [
-                            cmd.QueueInfo(name="raw_input", inst=f"fake_link_{idx}", dir="input"),
+                            cmd.QueueInfo(name="raw_input", inst=f"wib_fake_link_{idx}", dir="input"),
                             cmd.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                             cmd.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
                             cmd.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
