@@ -9,6 +9,7 @@
 #ifndef READOUT_SRC_READOUTCONCEPT_HPP_
 #define READOUT_SRC_READOUTCONCEPT_HPP_
 
+#include "opmonlib/InfoCollector.hpp"
 #include <string>
 
 namespace dunedaq {
@@ -31,6 +32,7 @@ public:
   virtual void conf(const nlohmann::json& args) = 0;
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
+  virtual void get_info(opmonlib::InfoCollector & ci, int level) = 0;
 
   virtual void run_consume() = 0;
   virtual void run_timesync() = 0;
