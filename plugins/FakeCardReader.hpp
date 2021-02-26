@@ -89,9 +89,14 @@ private:
   // Threading
   std::atomic<bool> m_run_marker;
 
-  // Stats
+  // Opmon
   stats::counter_t m_packet_count{0};
   stats::counter_t m_packet_count_tot{0};
+  // Stats
+  stats::counter_t m_stat_packet_count{0};
+  stats::counter_t m_stat_packet_count_tot{0};
+  ReusableThread m_stats_thread;	   
+  void run_stats();
 
   // raw WIB TP parsing
   bool m_found_tp_header{false};

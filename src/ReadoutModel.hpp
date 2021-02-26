@@ -50,6 +50,7 @@ public:
   : m_raw_type_name("")
   , m_run_marker(run_marker)
   , m_fake_trigger(false)
+  , m_stats_thread(0)
   , m_consumer_thread(0)
   , m_source_queue_timeout_ms(0)
   , m_raw_data_source(nullptr)
@@ -131,6 +132,7 @@ public:
     m_request_handler_impl->conf(args);
 
     // Configure threads:
+    m_stats_thread.set_name("stats", conf.link_number);
     m_consumer_thread.set_name("consumer", conf.link_number);
     m_timesync_thread.set_name("timesync", conf.link_number);
     m_requester_thread.set_name("requests", conf.link_number);
@@ -139,6 +141,7 @@ public:
   void start(const nlohmann::json& args) {
     TLOG() << "Starting threads...";
     m_request_handler_impl->start(args);
+    m_stats_thread.set_work(&ReadoutModel<RawType>::run_stats, this);
     m_consumer_thread.set_work(&ReadoutModel<RawType>::run_consume, this);
     m_requester_thread.set_work(&ReadoutModel<RawType>::run_requests, this);
     m_timesync_thread.set_work(&ReadoutModel<RawType>::run_timesync, this);
@@ -155,6 +158,9 @@ public:
     }
     while (!m_requester_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));        
+    }
+    while (!m_stats_thread.get_readiness()) {	
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));         	
     }
     TLOG() << "Flushing latency buffer with occupancy: " << m_occupancy_callback();
     m_pop_callback(m_occupancy_callback());
@@ -178,6 +184,7 @@ private:
     m_rawq_timeout_count = 0;
     m_packet_count = 0;
     m_packet_count_tot = 0;
+    m_stats_packet_count = 0;
 
     TLOG() << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
@@ -197,6 +204,7 @@ private:
         m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
         ++m_packet_count_tot;
+        ++m_stats_packet_count;
       }
     }
     TLOG() << "Consumer thread joins... ";
@@ -261,6 +269,28 @@ private:
     TLOG() << "Requester thread joins... ";
   }
 
+  void run_stats() {
+    // Temporarily, for debugging, a rate checker thread...
+    TLOG() << "Statistics thread started...";
+    int new_packets = 0;
+    auto t0 = std::chrono::high_resolution_clock::now();
+    while (m_run_marker.load()) {
+      auto now = std::chrono::high_resolution_clock::now();
+      new_packets = m_stats_packet_count.exchange(0);
+      double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
+      TLOG() << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.) << " [kHz]";	
+      auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
+      if (rawq_timeouts > 0) {
+        TLOG() << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts) << " times!";
+      }
+      for (int i=0; i<100 && m_run_marker.load(); ++i) { // 100 x 100ms = 10s sleeps
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+      t0 = now;
+    }
+    TLOG() << "Statistics thread joins...";
+  }
+
   // Constuctor params
   std::string m_raw_type_name;
   std::atomic<bool>& m_run_marker;
@@ -275,6 +305,8 @@ private:
   stats::counter_t m_request_count{0};
   stats::counter_t m_request_count_tot{0};
   stats::counter_t m_rawq_timeout_count{0};
+  stats::counter_t m_stats_packet_count{0};
+  ReusableThread m_stats_thread;
 
   // CONSUMER
   ReusableThread m_consumer_thread;
