@@ -11,7 +11,7 @@
 #ifndef DATAFORMATS_INCLUDE_DATAFORMATS_WIB_WIBFRAME_HPP_
 #define DATAFORMATS_INCLUDE_DATAFORMATS_WIB_WIBFRAME_HPP_
 
-#include "ers/ers.h"
+#include "ers/Issue.hpp"
 
 #include <bitset>
 #include <iostream>
