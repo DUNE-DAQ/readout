@@ -60,13 +60,13 @@ protected:
   create_fragment_header(const dfmessages::DataRequest& dr) 
   {
     dataformats::FragmentHeader fh;
-    fh.m_size = sizeof(fh);
-    fh.m_trigger_number = dr.m_trigger_number;    
-    fh.m_trigger_timestamp = dr.m_trigger_timestamp;
-    fh.m_window_offset = dr.m_window_offset;
-    fh.m_window_width = dr.m_window_width;
-    fh.m_run_number = dr.m_run_number;
-    fh.m_link_id = { m_apa_number, m_link_number };
+    fh.size = sizeof(fh);
+    fh.trigger_number = dr.trigger_number;    
+    fh.trigger_timestamp = dr.trigger_timestamp;
+    fh.window_begin = dr.window_begin;
+    fh.window_end = dr.window_end;
+    fh.run_number = dr.run_number;
+    fh.link_id = { m_apa_number, m_link_number };
     return std::move(fh);
   } 
 
@@ -82,15 +82,15 @@ protected:
     // Data availability is calculated here
     size_t occupancy_guess = m_occupancy_callback(); 
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_front_callback(0) )); // NOLINT
-    uint64_t start_win_ts = dr.m_trigger_timestamp - dr.m_window_offset;   // NOLINT
+    uint64_t start_win_ts = dr.window_begin;   // NOLINT
     uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
     uint64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
     uint32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
-    uint32_t num_elements_in_window = dr.m_window_width / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
-    uint32_t min_num_elements = (time_tick_diff + dr.m_window_width/m_tick_dist)                    // NOLINT
+    uint32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
+    uint32_t min_num_elements = (time_tick_diff + (dr.window_end - dr.window_begin) /m_tick_dist)                    // NOLINT
                                    / m_frames_per_element + m_safe_num_elements_margin;
     TLOG_DEBUG(2) << "TPC (WIB frame) data request for " 
-      << "Trigger TS=" << dr.m_trigger_timestamp << " "
+      << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
       << "ElementsInWindow=" << num_elements_in_window << " "
@@ -103,11 +103,11 @@ protected:
 
     // List of safe-extraction conditions
     if ( num_elements_in_window > m_max_requested_elements ) {
-      frag_header.m_error_bits |= 0x2; // error bit too big window
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
     } else if ( last_ts > start_win_ts ) { // data is gone.
-      frag_header.m_error_bits |= 0x1; // error bit for not-found data
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
     } else if ( min_num_elements > occupancy_guess ) {
@@ -119,7 +119,7 @@ protected:
            rres.request_delay_us = m_min_delay_us; 
          }
       } else {
-          frag_header.m_error_bits |= 0x1; // error bit for not-found data
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
           rres.result_code = ResultCode::kNotFound;
           ++m_bad_requested_count;
       }
@@ -133,7 +133,7 @@ protected:
       std::ostringstream oss;
       oss << "***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
-        << "Trigger TS=" << dr.m_trigger_timestamp << " " 
+        << "Trigger TS=" << dr.trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
         << "ElementOffset=" << num_element_offset << ".th "
         << "ElementsInWindow=" << num_elements_in_window << " "
