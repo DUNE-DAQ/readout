@@ -11,11 +11,14 @@
 
 #include "appfwk/cmd/Structs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
+#include "appfwk/app/Nljs.hpp"
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
 #include "logging/Logging.hpp"
+
+#include "opmonlib/InfoCollector.hpp"
 
 #include "dataformats/ComponentRequest.hpp"
 #include "dataformats/Fragment.hpp"
@@ -24,6 +27,7 @@
 #include "dfmessages/DataRequest.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
+#include "readout/datalinkhandlerinfo/Nljs.hpp"
 
 #include "ReadoutIssues.hpp"
 #include "CreateRawDataProcessor.hpp"
@@ -64,7 +68,7 @@ public:
   { }
 
   void init(const nlohmann::json& args, const std::string& raw_type_name) {
-    m_queue_config = args.get<appfwk::cmd::ModInit>();
+    m_queue_config = args.get<appfwk::app::ModInit>();
     m_raw_type_name = raw_type_name;
     // Reset queues
     for (const auto& qi : m_queue_config.qinfos) { 
@@ -155,19 +159,33 @@ public:
     while (!m_requester_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));        
     }
-    while (!m_stats_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));         
+    while (!m_stats_thread.get_readiness()) {	
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));         	
     }
     TLOG() << "Flushing latency buffer with occupancy: " << m_occupancy_callback();
     m_pop_callback(m_occupancy_callback());
     m_raw_processor_impl->reset_last_daq_time();
   }
 
+  void get_info(opmonlib::InfoCollector & ci, int /*level*/) {
+    datalinkhandlerinfo::Info dli;
+    dli.packets = m_packet_count_tot.load();
+    dli.new_packets = m_packet_count.exchange(0);
+    dli.requests = m_request_count_tot.load();
+    dli.new_requests = m_request_count.exchange(0);
+
+    ci.add(dli);
+  }
+
+
 private:
 
   void run_consume() {
     m_rawq_timeout_count = 0;
     m_packet_count = 0;
+    m_packet_count_tot = 0;
+    m_stats_packet_count = 0;
+
     TLOG() << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
       std::unique_ptr<RawType> payload_ptr(nullptr);
@@ -185,6 +203,8 @@ private:
         m_write_callback(std::move(payload_ptr));
         m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
+        ++m_packet_count_tot;
+        ++m_stats_packet_count;
       }
     }
     TLOG() << "Consumer thread joins... ";
@@ -193,6 +213,7 @@ private:
   void run_timesync() {
     TLOG() << "TimeSync thread started...";
     m_request_count = 0;
+    m_request_count_tot = 0;
     auto once_per_run = true;
     while (m_run_marker.load()) {
       try {
@@ -212,6 +233,7 @@ private:
                 << " window_end=" << dr.window_end;
             m_request_handler_impl->issue_request(dr);
             ++m_request_count;
+            ++m_request_count_tot;
           }
         } else {
           if (once_per_run) {
@@ -232,12 +254,14 @@ private:
   void run_requests() {
     TLOG() << "Requester thread started...";
     m_request_count = 0;
+    m_request_count_tot = 0;
     while (m_run_marker.load() || m_request_source->can_pop()) {
       dfmessages::DataRequest data_request;
       try {
         m_request_source->pop(data_request, m_source_queue_timeout_ms);
         m_request_handler_impl->issue_request(data_request);
         ++m_request_count;
+        ++m_request_count_tot;
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // not an error, safe to continue
@@ -250,15 +274,12 @@ private:
     // Temporarily, for debugging, a rate checker thread...
     TLOG() << "Statistics thread started...";
     int new_packets = 0;
-    int new_requests = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
     while (m_run_marker.load()) {
       auto now = std::chrono::high_resolution_clock::now();
-      new_packets = m_packet_count.exchange(0);
-      new_requests = m_request_count.exchange(0);
+      new_packets = m_stats_packet_count.exchange(0);
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      TLOG() << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.)
-             << " [kHz] Consumed DataRequests: " << std::to_string(new_requests);
+      TLOG() << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.) << " [kHz]";	
       auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
       if (rawq_timeouts > 0) {
         TLOG() << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts) << " times!";
@@ -276,13 +297,16 @@ private:
   std::atomic<bool>& m_run_marker;
 
   // CONFIGURATION
-  appfwk::cmd::ModInit m_queue_config;
+  appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
 
   // STATS
   stats::counter_t m_packet_count{0};
+  stats::counter_t m_packet_count_tot{0};
   stats::counter_t m_request_count{0};
+  stats::counter_t m_request_count_tot{0};
   stats::counter_t m_rawq_timeout_count{0};
+  stats::counter_t m_stats_packet_count{0};
   ReusableThread m_stats_thread;
 
   // CONSUMER

@@ -6,6 +6,8 @@
  * received with this code.
 */
 #include "readout/fakecardreader/Nljs.hpp"
+#include "readout/fakecardreaderinfo/Nljs.hpp"
+
 #include "FakeCardReader.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
@@ -14,6 +16,7 @@
 #include "logging/Logging.hpp"
 #include "readout/WIBFrame.hpp"                   // FIXME now using local copy
 #include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
+#include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -49,6 +52,8 @@ FakeCardReader::FakeCardReader(const std::string& name)
   , m_configured(false)
   , m_run_marker{false}
   , m_packet_count{0}
+  , m_packet_count_tot{0}
+  , m_stat_packet_count{0}
   , m_stats_thread(0)
 {
   register_command("conf", &FakeCardReader::do_conf);
@@ -61,7 +66,7 @@ void
 FakeCardReader::init(const data_t& args)
 {
 
-  auto ini = args.get<appfwk::cmd::ModInit>();
+  auto ini = args.get<appfwk::app::ModInit>();
   for (const auto& qi : ini.qinfos) {
     if (qi.dir != "output") {
       continue;
@@ -69,7 +74,8 @@ FakeCardReader::init(const data_t& args)
 
     try {
       TLOG() << "Setting up queue: " << qi.inst;
-      if (qi.name == "tp_output") {
+      auto& name = qi.name;
+      if (name.find("tp_") != std::string::npos) {
         m_tp_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
       } else {
         m_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
@@ -80,6 +86,15 @@ FakeCardReader::init(const data_t& args)
     }
   }
   TLOG() << "Init: # output queues: " << m_output_queues.size() << "; # tp_output queues: " << m_tp_output_queues.size();
+}
+
+void
+FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/) {
+  fakecardreaderinfo::Info fcr;
+
+  fcr.packets = m_packet_count_tot.load();
+  fcr.new_packets = m_packet_count.exchange(0);
+  ci.add(fcr);
 }
 
 void 
@@ -103,7 +118,14 @@ FakeCardReader::do_conf(const data_t& args)
 
     if (m_cfg.tp_enabled == "true") {
       m_tp_source_buffer = std::make_unique<FileSourceBuffer>(m_cfg.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
-      m_tp_source_buffer->read(m_cfg.tp_data_filename);
+      TLOG() << "Reading binary file: " << m_cfg.tp_data_filename;
+      try {
+        m_tp_source_buffer->read(m_cfg.tp_data_filename);
+      } 
+      catch (const ers::Issue& ex) {
+        ers::fatal(ex);
+        throw ConfigurationError(ERS_HERE, "", ex);
+      }
     }
 
     // Mark configured
@@ -121,6 +143,8 @@ FakeCardReader::do_start(const data_t& /*args*/)
 {
   m_run_marker.store(true);
   m_packet_count = 0;
+  m_packet_count_tot = 0;
+  m_stat_packet_count = 0;
   m_stats_thread.set_work(&FakeCardReader::run_stats, this);
 
   if(m_source_buffer->num_elements() == 0) {
@@ -147,12 +171,10 @@ FakeCardReader::do_stop(const data_t& /*args*/)
   for (auto& work_thread : m_worker_threads) {
     work_thread.join();
   }
-  
   m_worker_threads.clear();
-
-  while (!m_stats_thread.get_readiness()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));            
-  }
+  while (!m_stats_thread.get_readiness()) {	
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));            	
+  } 
 }
 
 void 
@@ -211,6 +233,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
     // Count packet and limit rate if needed.
     ++offset;
     ++m_packet_count;
+    ++m_packet_count_tot;
+    ++m_stat_packet_count;
     rate_limiter.limit();
   }
   TLOG_DEBUG(0) << "Data generation thread " << linkid << " finished";
@@ -284,27 +308,29 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     offset += n*constant::RAW_WIB_TP_SUBFRAME_SIZE;
     //if (m_alloc_) { free(m_data_); }
     ++m_packet_count;
+    ++m_packet_count_tot;
+    ++m_stat_packet_count;
     rate_limiter.limit();
   }
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Data generation thread " << linkid << " finished";
 }
 
-void
-FakeCardReader::run_stats()
-{
-  // Temporarily, for debugging, a rate checker thread...
-  int new_packets = 0;
-  auto t0 = std::chrono::high_resolution_clock::now();
-  while (m_run_marker.load()) {
-    auto now = std::chrono::high_resolution_clock::now();
-    new_packets = m_packet_count.exchange(0);
-    double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";
-    for(int i=0; i<100 && m_run_marker.load(); ++i){ // 10 seconds sleep
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    t0 = now;
-  }
+void	
+FakeCardReader::run_stats()	
+{	
+  // Temporarily, for debugging, a rate checker thread...	
+  int new_packets = 0;	
+  auto t0 = std::chrono::high_resolution_clock::now();	
+  while (m_run_marker.load()) {	
+    auto now = std::chrono::high_resolution_clock::now();	
+    new_packets = m_stat_packet_count.exchange(0);	
+    double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;	
+    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";	
+    for(int i=0; i<100 && m_run_marker.load(); ++i){ // 10 seconds sleep	
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));	
+    }	
+    t0 = now;	
+  }	
 }
 
 } // namespace readout

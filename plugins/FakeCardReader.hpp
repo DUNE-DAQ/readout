@@ -54,6 +54,7 @@ public:
     delete; ///< FakeCardReader is not move-assignable
 
   void init(const data_t&) override;
+  void get_info(opmonlib::InfoCollector& ci, int level) override;
 
 private:
   using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
@@ -88,9 +89,13 @@ private:
   // Threading
   std::atomic<bool> m_run_marker;
 
-  // Stats
+  // Opmon
   stats::counter_t m_packet_count{0};
-  ReusableThread m_stats_thread;
+  stats::counter_t m_packet_count_tot{0};
+  // Stats
+  stats::counter_t m_stat_packet_count{0};
+  stats::counter_t m_stat_packet_count_tot{0};
+  ReusableThread m_stats_thread;	   
   void run_stats();
 
   // raw WIB TP parsing

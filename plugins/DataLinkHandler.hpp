@@ -41,6 +41,7 @@ public:
     delete; ///< DataLinkHandler is not move-assignable
 
   void init(const data_t& args) override;
+  void get_info(opmonlib::InfoCollector& ci, int level) override;
 
 private:
   // Commands

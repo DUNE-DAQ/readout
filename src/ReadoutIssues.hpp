@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_READOUTISSUES_HPP_
 #define READOUT_SRC_READOUTISSUES_HPP_
 
-#include <ers/Issue.h>
+#include <ers/Issue.hpp>
 
 #include <string>
 
@@ -37,6 +37,13 @@ namespace dunedaq {
     ERS_DECLARE_ISSUE(readout, QueueTimeoutError,
                       " Readout queue timed out: " << queuename,
                       ((std::string)queuename))
+
+    ERS_DECLARE_ISSUE_BASE(readout,
+                           FailedReadoutInitialization,
+                           readout::InitializationError,
+                           " Couldnt initialize Readout with current Init arguments " << initparams << ' ',
+                           ((std::string)name),
+                           ((std::string)initparams))
 
     ERS_DECLARE_ISSUE_BASE(readout,
                            NoImplementationAvailableError,
