@@ -49,11 +49,11 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
 void
 DataLinkHandler::init(const data_t& args)
 {
-  TLOG() << get_name() << "Initialiyze readout implementation...";
+  TLOG() << get_name() << "Initialize readout implementation...";
   m_readout_impl = createReadout(args, m_run_marker);
   if (m_readout_impl == nullptr) {
-    TLOG() << get_name() << "Initialiyze readout implementation FAILED...";
-    throw std::runtime_error("Readout implementation creation failed...");
+    TLOG() << get_name() << "Initialize readout implementation FAILED...";
+    throw FailedReadoutInitialization(ERS_HERE, get_name(), args.dump(4)); // 4 json ident
   }
 }
 

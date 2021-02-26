@@ -39,6 +39,13 @@ namespace dunedaq {
                       ((std::string)queuename))
 
     ERS_DECLARE_ISSUE_BASE(readout,
+                           FailedReadoutInitialization,
+                           readout::InitializationError,
+                           " Couldnt initialize Readout with current Init arguments " << initparams << ' ',
+                           ((std::string)name),
+                           ((std::string)initparams))
+
+    ERS_DECLARE_ISSUE_BASE(readout,
                            NoImplementationAvailableError,
                            readout::ConfigurationError,
                            " No " << impl << " implementation available for raw type: " << rawt << ' ',

@@ -51,6 +51,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
     }
   }
 
+  return nullptr;
 }
 
 } // namespace readout
