@@ -57,6 +57,10 @@ DataLinkHandler::init(const data_t& args)
   }
 }
 
+void DataLinkHandler::get_info(opmonlib::InfoCollector& ci, int level) {
+  m_readout_impl->get_info(ci, level);
+}
+
 void
 DataLinkHandler::do_conf(const data_t& args)
 {

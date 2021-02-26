@@ -7,6 +7,7 @@ daq_setup_environment()
 
 find_package(appfwk REQUIRED)
 find_package(logging REQUIRED)
+find_package(opmonlib REQUIRED)
 find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
