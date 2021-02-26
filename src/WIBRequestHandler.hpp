@@ -90,7 +90,7 @@ protected:
     uint32_t min_num_elements = (time_tick_diff + (dr.window_end - dr.window_begin) /m_tick_dist)                    // NOLINT
                                    / m_frames_per_element + m_safe_num_elements_margin;
     TLOG_DEBUG(2) << "TPC (WIB frame) data request for " 
-      << "Trigger TS=" << dr.m_trigger_timestamp << " "
+      << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
       << "ElementsInWindow=" << num_elements_in_window << " "
