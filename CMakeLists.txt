@@ -12,10 +12,14 @@ find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
 
+daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
+
 ##############################################################################
 # Dependency sets
 set(READOUT_DEPENDENCIES 
+  ers::ers 
   logging::logging
+  opmonlib::opmonlib
   dataformats::dataformats
   dfmessages::dfmessages
   Folly::folly ${TBB} ${TBB_IMPORTED_TARGETS}
@@ -29,8 +33,8 @@ daq_add_library(
 
 ##############################################################################
 # Plugins
-daq_add_plugin(FakeCardReader duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(DataLinkHandler duneDAQModule SCHEMA LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests

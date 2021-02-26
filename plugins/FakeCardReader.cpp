@@ -14,6 +14,7 @@
 #include "logging/Logging.hpp"
 #include "readout/WIBFrame.hpp"                   // FIXME now using local copy
 #include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
+#include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 
 #include <fstream>
@@ -61,7 +62,7 @@ void
 FakeCardReader::init(const data_t& args)
 {
 
-  auto ini = args.get<appfwk::cmd::ModInit>();
+  auto ini = args.get<appfwk::app::ModInit>();
   for (const auto& qi : ini.qinfos) {
     if (qi.dir != "output") {
       continue;
@@ -69,7 +70,8 @@ FakeCardReader::init(const data_t& args)
 
     try {
       TLOG() << "Setting up queue: " << qi.inst;
-      if (qi.name == "tp_output") {
+      auto& name = qi.name;
+      if (name.find("tp_") != std::string::npos) {
         m_tp_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
       } else {
         m_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
@@ -103,7 +105,14 @@ FakeCardReader::do_conf(const data_t& args)
 
     if (m_cfg.tp_enabled == "true") {
       m_tp_source_buffer = std::make_unique<FileSourceBuffer>(m_cfg.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
-      m_tp_source_buffer->read(m_cfg.tp_data_filename);
+      TLOG() << "Reading binary file: " << m_cfg.tp_data_filename;
+      try {
+        m_tp_source_buffer->read(m_cfg.tp_data_filename);
+      } 
+      catch (const ers::Issue& ex) {
+        ers::fatal(ex);
+        throw ConfigurationError(ERS_HERE, "", ex);
+      }
     }
 
     // Mark configured

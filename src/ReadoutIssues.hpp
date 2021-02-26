@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_READOUTISSUES_HPP_
 #define READOUT_SRC_READOUTISSUES_HPP_
 
-#include <ers/Issue.h>
+#include <ers/Issue.hpp>
 
 #include <string>
 
