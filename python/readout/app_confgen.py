@@ -6,8 +6,8 @@ moo.io.default_load_path = get_moo_model_path()
 # Load configuration types
 import moo.otypes
 moo.otypes.load_types('appfwk/cmd.jsonnet')
-moo.otypes.load_types('readout/FakeCardReader.jsonnet')
-moo.otypes.load_types('readout/DataLinkHandler.jsonnet')
+moo.otypes.load_types('readout/fakecardreader.jsonnet')
+moo.otypes.load_types('readout/datalinkhandler.jsonnet')
 
 # Import new types
 import dunedaq.appfwk.cmd as cmd # AddressedCmd, 
