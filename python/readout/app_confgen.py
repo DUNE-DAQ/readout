@@ -5,16 +5,22 @@ moo.io.default_load_path = get_moo_model_path()
 
 # Load configuration types
 import moo.otypes
+moo.otypes.load_types('cmdlib/cmd.jsonnet')
+moo.otypes.load_types('rcif/cmd.jsonnet')
 moo.otypes.load_types('appfwk/cmd.jsonnet')
+moo.otypes.load_types('appfwk/app.jsonnet')
 moo.otypes.load_types('readout/fakecardreader.jsonnet')
 moo.otypes.load_types('readout/datalinkhandler.jsonnet')
 
 # Import new types
+import dunedaq.cmdlib.cmd as basecmd # AddressedCmd, 
+import dunedaq.rcif.cmd as rccmd # AddressedCmd, 
+import dunedaq.appfwk.app as app # AddressedCmd, 
 import dunedaq.appfwk.cmd as cmd # AddressedCmd, 
 import dunedaq.readout.fakecardreader as fcr
 import dunedaq.readout.datalinkhandler as dlh
 
-from appfwk.utils import mcmd, mspec
+from appfwk.utils import mcmd, mrccmd, mspec
 
 import json
 import math
@@ -34,54 +40,56 @@ def generate(
 
     # Define modules and queues
     queue_bare_specs = [
-            cmd.QueueSpec(inst="time_sync_q", kind='FollyMPMCQueue', capacity=100),
-            cmd.QueueSpec(inst="data_fragments_q", kind='FollyMPMCQueue', capacity=100),
+            app.QueueSpec(inst="time_sync_q", kind='FollyMPMCQueue', capacity=100),
+            app.QueueSpec(inst="data_fragments_q", kind='FollyMPMCQueue', capacity=100),
         ] + [
-            cmd.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
+            app.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            cmd.QueueSpec(inst=f"wib_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"wib_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            cmd.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS) 
         ]
     
 
     # Only needed to reproduce the same order as when using jsonnet
-    queue_specs = cmd.QueueSpecs(sorted(queue_bare_specs, key=lambda x: x.inst))
+    queue_specs = app.QueueSpecs(sorted(queue_bare_specs, key=lambda x: x.inst))
 
 
     mod_specs = [
         mspec("fake_source", "FakeCardReader", [
-                        cmd.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
+                        app.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
                         ] + [
-                        cmd.QueueInfo(name=f"tp_output_{idx}", inst=f"tp_fake_link_{idx}", dir="output")
+                        app.QueueInfo(name=f"tp_output_{idx}", inst=f"tp_fake_link_{idx}", dir="output")
 			    for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
                         ]),
 
         ] + [
                 mspec(f"datahandler_{idx}", "DataLinkHandler", [
-                            cmd.QueueInfo(name="raw_input", inst=f"wib_fake_link_{idx}", dir="input"),
-                            cmd.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
-                            cmd.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
-                            cmd.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
+                            app.QueueInfo(name="raw_input", inst=f"wib_fake_link_{idx}", dir="input"),
+                            app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
+                            app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
+                            app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
 
-    init_specs = cmd.Init(queues=queue_specs, modules=mod_specs)
+    init_specs = app.Init(queues=queue_specs, modules=mod_specs)
 
     jstr = json.dumps(init_specs.pod(), indent=4, sort_keys=True)
     print(jstr)
 
-    initcmd = cmd.Command(
-        id=cmd.CmdId("init"),
+    initcmd = rccmd.RCCommand(
+        id=basecmd.CmdId("init"),
+        entry_state="NONE",
+        exit_state="INITIAL",
         data=init_specs
     )
 
 
-    confcmd = mcmd("conf", [
+    confcmd = mrccmd("conf", "INITIAL", "CONFIGURED", [
                 ("fake_source",fcr.Conf(
                             link_ids=list(range(NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)),
                             # input_limit=10485100, # default
@@ -110,8 +118,8 @@ def generate(
     jstr = json.dumps(confcmd.pod(), indent=4, sort_keys=True)
     print(jstr)
 
-    startpars = cmd.StartParams(run=RUN_NUMBER)
-    startcmd = mcmd("start", [
+    startpars = rccmd.StartParams(run=RUN_NUMBER)
+    startcmd = mrccmd("start", "CONFIGURED", "RUNNING", [
             ("datahandler_.*", startpars),
             ("fake_source", startpars),
         ])
@@ -119,9 +127,9 @@ def generate(
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
     print("="*80+"\nStart\n\n", jstr)
 
-    emptypars = cmd.EmptyParams()
+    emptypars = rccmd.EmptyParams()
 
-    stopcmd = mcmd("stop", [
+    stopcmd = mrccmd("stop", "RUNNING", "CONFIGURED", [
             ("fake_source", emptypars),
             ("datahandler_.*", emptypars),
         ])
@@ -129,7 +137,7 @@ def generate(
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
     print("="*80+"\nStop\n\n", jstr)
 
-    scrapcmd = mcmd("scrap", [
+    scrapcmd = mrccmd("scrap", "CONFIGURED", "INITIAL", [
             ("", emptypars)
         ])
 
