@@ -78,7 +78,7 @@ FakeCardReader::init(const data_t& args)
       if (name.find("tp_") != std::string::npos) {
         m_tp_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
       } else {
-        m_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>(qi.inst));
+        m_output_queues.emplace_back(new appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>(qi.inst));
       }
     }
     catch (const ers::Issue& excpt) {
@@ -178,7 +178,7 @@ FakeCardReader::do_stop(const data_t& /*args*/)
 }
 
 void 
-FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>* myqueue, int linkid) 
+FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myqueue, int linkid) 
 {
   pthread_setname_np(pthread_self(), get_name().c_str());
   // Init ratelimiter, element offset and source buffer ref
@@ -209,15 +209,16 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
         offset = 0;
       } 
       // Create next superchunk
-      std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
+      //std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT> payload_ptr = std::make_unique<types::WIB_SUPERCHUNK_STRUCT>();
+      types::WIB_SUPERCHUNK_STRUCT payload;
       // Memcpy from file buffer to flat char array
-      ::memcpy(static_cast<void*>(&payload_ptr->data),
+      ::memcpy(static_cast<void*>(payload.data),
                static_cast<void*>(source.data() + offset * constant::WIB_SUPERCHUNK_SIZE), 
                constant::WIB_SUPERCHUNK_SIZE);
 
       // fake the timestamp
       for (unsigned int i=0; i<12; ++i) { // NOLINT
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload_ptr.get())+i*464); // NOLINT
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload.data)+i*464); // NOLINT
 	auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header()); 
         wfh->set_timestamp(ts_next);
         ts_next += 25;
@@ -225,7 +226,7 @@ FakeCardReader::generate_data(appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCH
 
       // queue in to actual DAQSink
       try {
-        myqueue->push(std::move(payload_ptr), m_queue_timeout_ms);
+        myqueue->push(std::move(payload), m_queue_timeout_ms);
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // std::runtime_error("Queue timed out...");
       }
