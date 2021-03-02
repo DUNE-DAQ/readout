@@ -254,7 +254,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = m_tp_source_buffer->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->timestamp(); // NOLINT
+  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->get_timestamp(); // NOLINT
   TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0; // NOLINT
 
