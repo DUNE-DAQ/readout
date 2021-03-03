@@ -24,20 +24,20 @@ namespace readout {
 
 class ReusableThread {
 public:
-  explicit ReusableThread(int m_threadid)
-    : m_m_threadid(m_threadid)
-    , m_m_taskexecuted(true)
-    , m_m_taskassigned(false)
-    , m_m_threadquit(false)
+  explicit ReusableThread(int threadid)
+    : m_thread_id(threadid)
+    , m_task_executed(true)
+    , m_task_assigned(false)
+    , m_thread_quit(false)
     , m_worker_done(false)
-    , m_thread(&ReusableThread::m_threadworker, this) 
+    , m_thread(&ReusableThread::thread_worker, this) 
   { }
 
   ~ReusableThread() {
-    while (m_m_taskassigned) {
+    while (m_task_assigned) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    m_m_threadquit = true;
+    m_thread_quit = true;
     while (!m_worker_done) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       m_cv.notify_all();
@@ -55,10 +55,10 @@ public:
     = delete; ///< ReusableThread is not move-assignable
 
   // Set thread ID
-  void set_thread_id(int tid) { m_m_threadid = tid; }
+  void set_thread_id(int tid) { m_thread_id = tid; }
 
   // Get thread ID
-  int get_thread_id() const { return m_m_threadid; }
+  int get_thread_id() const { return m_thread_id; }
 
   // Set name for pthread handle
   void set_name(const std::string& name, int tid) {
@@ -70,14 +70,14 @@ public:
   }
 
   // Check for completed task execution
-  bool get_readiness() const { return m_m_taskexecuted; }
+  bool get_readiness() const { return m_task_executed; }
 
   // Set task to be executed
   template <typename Function, typename... Args> 
   bool set_work(Function &&f, Args &&... args) {
-    if (!m_m_taskassigned && m_m_taskexecuted.exchange(false)) {
+    if (!m_task_assigned && m_task_executed.exchange(false)) {
       m_task = std::bind(f, args...);
-      m_m_taskassigned = true;
+      m_task_assigned = true;
       m_cv.notify_all();
       return true;
     }
@@ -86,10 +86,10 @@ public:
 
 private:
   // Internals
-  int m_m_threadid;
-  std::atomic<bool> m_m_taskexecuted;
-  std::atomic<bool> m_m_taskassigned;
-  std::atomic<bool> m_m_threadquit;
+  int m_thread_id;
+  std::atomic<bool> m_task_executed;
+  std::atomic<bool> m_task_assigned;
+  std::atomic<bool> m_thread_quit;
   std::atomic<bool> m_worker_done;
   std::function<void()> m_task;
 
@@ -99,14 +99,14 @@ private:
   std::thread m_thread;
 
   // Actual worker thread
-  void m_threadworker() {
+  void thread_worker() {
     std::unique_lock<std::mutex> lock(m_mtx);
 
-    while (!m_m_threadquit) {
-      if (!m_m_taskexecuted && m_m_taskassigned) {
+    while (!m_thread_quit) {
+      if (!m_task_executed && m_task_assigned) {
         m_task();
-        m_m_taskexecuted = true;
-        m_m_taskassigned = false;
+        m_task_executed = true;
+        m_task_assigned = false;
       } else {
         m_cv.wait(lock);
       }
