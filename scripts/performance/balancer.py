@@ -40,7 +40,7 @@ for proc in psutil.process_iter():
   if process_name in proc.name():
 
     pid = proc.pid
-    print('------------------ Found daq_application pid: ', pid, ' ----------------------------')
+    print('------------------ Found', process_name, 'pid:', pid, ' ----------------------------')
     print('\n-> Command line info:')
     print("   -", proc.cmdline())
 
