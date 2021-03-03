@@ -22,7 +22,7 @@ template <class RawType>
 std::unique_ptr<LatencyBufferConcept> 
 createLatencyBuffer(const std::string& rawtype, int qsize,
                     std::function<size_t()>& occupancy_override,
-                    std::function<void(std::unique_ptr<RawType>)>& write_override,
+                    std::function<void(RawType)>& write_override,
                     std::function<bool(RawType&)>& read_override,
                     std::function<void(unsigned)>& pop_override,       // NOLINT
                     std::function<RawType*(unsigned)>& front_override) // NOLINT

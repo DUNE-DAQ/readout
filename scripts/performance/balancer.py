@@ -40,7 +40,7 @@ for proc in psutil.process_iter():
   if process_name in proc.name():
 
     pid = proc.pid
-    print('------------------ Found daq_application pid: ', pid, ' ----------------------------')
+    print('------------------ Found', process_name, 'pid:', pid, ' ----------------------------')
     print('\n-> Command line info:')
     print("   -", proc.cmdline())
 
@@ -56,18 +56,21 @@ for proc in psutil.process_iter():
     threads = proc.threads()
     print("\n-> Threads:")
     for t in threads:
-      tp = psutil.Process(t.id)
-      print('   - ' + str(tp))
-      affinity = tp.cpu_affinity()
+      tid = psutil.Process(t.id)
+      print('   - ' + str(tid))
+      affinity = tid.cpu_affinity()
       new_aff = []
       notfound = None
       try:
         # TODO: remove hardcoded args idx.
         #  (In daqling arg[1] was the name of the module, which is a UID.)
-        new_aff = affinity_dict[proc.cmdline()[0]][tp.name()]
+        # FIXED: for appfwk look for --name arg + 1 idx for app name
+        app_name = proc.cmdline()[proc.cmdline().index('--name') + 1]
+        new_aff = affinity_dict[app_name][tid.name()]
       except Exception as e:
          notfound = True
       print('     affinity to set: ', new_aff, '\n')
-      tp.cpu_affinity(new_aff)
+      tid.cpu_affinity(new_aff)
 
     print('------------------------------------------------------------------------\n\n')
+
