@@ -57,8 +57,8 @@ protected:
       } else if (m_do_fake_ts) {
         uint64_t ts_next = m_previous_ts + 25;
         for (unsigned int i=0; i<12; ++i) { // NOLINT
-          //auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload.data)+i*464); // NOLINT
-          auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wfptr->get_wib_header());
+          auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)+i*464); // NOLINT
+          auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
           wfh->set_timestamp(ts_next);
           ts_next += 25;
         }
