@@ -12,7 +12,6 @@ find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
-find_package(Boost 1.70.0 COMPONENTS unit_test_framework REQUIRED)
 
 daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 
