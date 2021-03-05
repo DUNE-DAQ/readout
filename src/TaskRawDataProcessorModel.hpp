@@ -11,6 +11,7 @@
 
 #include "RawDataProcessorConcept.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "tbb/flow_graph.h"
 
@@ -19,6 +20,8 @@
 #include <utility>
 #include <string>
 #include <vector>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -41,7 +44,7 @@ public:
   }
 
   void conf(const nlohmann::json& /*cfg*/) {
-    TLOG() << "Setting up async task tree.";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Setting up async task tree.";
   }
 
   void process_item(RawType* item) {

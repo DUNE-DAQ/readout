@@ -28,6 +28,7 @@
 
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/Nljs.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "ReadoutIssues.hpp"
 #include "CreateRawDataProcessor.hpp"
@@ -39,6 +40,8 @@
 #include <utility>
 #include <memory>
 #include <string>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -102,7 +105,7 @@ public:
    }
     m_latency_buffer_size = conf.latency_buffer_size;
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-    TLOG() << "ReadoutModel creation for raw type: " << m_raw_type_name; 
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation for raw type: " << m_raw_type_name;
 
     // Instantiate functionalities
     try {
@@ -139,7 +142,7 @@ public:
   }
 
   void start(const nlohmann::json& args) {
-    TLOG() << "Starting threads...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_request_handler_impl->start(args);
     m_stats_thread.set_work(&ReadoutModel<RawType>::run_stats, this);
     m_consumer_thread.set_work(&ReadoutModel<RawType>::run_consume, this);
@@ -148,7 +151,7 @@ public:
   }
 
   void stop(const nlohmann::json& args) {    
-    TLOG() << "Stoppping threads...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Stoppping threads...";
     m_request_handler_impl->stop(args);
     while (!m_timesync_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         
@@ -162,7 +165,7 @@ public:
     while (!m_stats_thread.get_readiness()) {	
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         	
     }
-    TLOG() << "Flushing latency buffer with occupancy: " << m_occupancy_callback();
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_occupancy_callback();
     m_pop_callback(m_occupancy_callback());
     m_raw_processor_impl->reset_last_daq_time();
   }
@@ -186,7 +189,7 @@ private:
     m_packet_count_tot = 0;
     m_stats_packet_count = 0;
 
-    TLOG() << "Consumer thread started...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
       std::unique_ptr<RawType> payload_ptr(nullptr);
       // Try to acquire data
@@ -207,11 +210,11 @@ private:
         ++m_stats_packet_count;
       }
     }
-    TLOG() << "Consumer thread joins... ";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
   }   
 
   void run_timesync() {
-    TLOG() << "TimeSync thread started...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "TimeSync thread started...";
     m_request_count = 0;
     m_request_count_tot = 0;
     auto once_per_run = true;
@@ -228,7 +231,7 @@ private:
             auto offset = 100;
             dr.window_begin = dr.trigger_timestamp - offset;
             dr.window_end = dr.window_begin + width;
-            TLOG_DEBUG(2) << "Issuing fake trigger based on timesync. "
+            TLOG_DEBUG(TLVL_TAKE_NOTE) << "Issuing fake trigger based on timesync. "
               << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                 << " window_end=" << dr.window_end;
             m_request_handler_impl->issue_request(dr);
@@ -248,11 +251,11 @@ private:
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     once_per_run = true;
-    TLOG() << "TimeSync thread joins...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "TimeSync thread joins...";
   } 
 
   void run_requests() {
-    TLOG() << "Requester thread started...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread started...";
     m_request_count = 0;
     m_request_count_tot = 0;
     while (m_run_marker.load() || m_request_source->can_pop()) {
@@ -267,12 +270,12 @@ private:
         // not an error, safe to continue
       }
     }
-    TLOG() << "Requester thread joins... ";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread joins... ";
   }
 
   void run_stats() {
     // Temporarily, for debugging, a rate checker thread...
-    TLOG() << "Statistics thread started...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread started...";
     int new_packets = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
     while (m_run_marker.load()) {
@@ -289,7 +292,7 @@ private:
       }
       t0 = now;
     }
-    TLOG() << "Statistics thread joins...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread joins...";
   }
 
   // Constuctor params

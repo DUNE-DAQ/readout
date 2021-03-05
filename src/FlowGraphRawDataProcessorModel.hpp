@@ -10,6 +10,8 @@
 #define READOUT_SRC_FLOWGRAPHRAWDATAPROCESSORMODEL_HPP_
 
 #include "RawDataProcessorConcept.hpp"
+#include "readout/ReadoutLogging.hpp"
+
 #include "logging/Logging.hpp"
 
 #include "tbb/flow_graph.h"
@@ -17,6 +19,8 @@
 #include <functional>
 #include <string>
 #include <vector>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -41,7 +45,7 @@ public:
   }
 
   void conf(const nlohmann::json& cfg) {
-    TLOG() << "Setting up flow grap.";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Setting up flow grap.";
     if (!parallel_task_nodes_.empty()){
       for (long unsigned int i=0; i<parallel_task_nodes_.size(); ++i) { // NOLINT
         tbb::flow::make_edge(graph_input_, parallel_task_nodes_[i]);

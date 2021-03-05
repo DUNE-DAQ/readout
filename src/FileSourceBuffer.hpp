@@ -9,11 +9,15 @@
 #define READOUT_SRC_FILESOURCEBUFFER_HPP_
 
 #include "ReadoutIssues.hpp"
+#include "readout/ReadoutLogging.hpp"
+
 #include "logging/Logging.hpp"
 
 #include <fstream>
 #include <limits>
 #include <string>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -65,8 +69,8 @@ public:
     m_rawdata_ifs.seekg(0, std::ios::beg);
     m_input_buffer.reserve(filesize);
     m_input_buffer.insert(m_input_buffer.begin(), std::istreambuf_iterator<char>(m_rawdata_ifs), std::istreambuf_iterator<char>());
-    TLOG() << "Available elements: " << std::to_string(m_element_count) 
-           << " | In bytes: " << std::to_string(m_input_buffer.size());
+    TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available elements: " << std::to_string(m_element_count) 
+                                 << " | In bytes: " << std::to_string(m_input_buffer.size());
   }
 
   const int& num_elements() {

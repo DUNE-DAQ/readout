@@ -14,6 +14,7 @@
 #include "readout/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
@@ -29,6 +30,8 @@
 #include <utility>
 #include <memory>
 #include <string>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -60,7 +63,7 @@ public:
   , m_occupancy(0)
   , m_stats_thread(0)
   {
-    TLOG() << "DefaultRequestHandlerModel created...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
     m_cleanup_request_callback = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
       this, std::placeholders::_1, std::placeholders::_2);
     m_data_request_callback = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
@@ -87,7 +90,7 @@ public:
 		<< "auto-pop limit: "<< m_pop_limit_pct*100.0f << "% "
 		<< "auto-pop size: " << m_pop_size_pct*100.0f  << "% "
 		<< "max requested elements: " << m_max_requested_elements;
-        TLOG() << oss.str();
+        TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
   }
 
   void start(const nlohmann::json& /*args*/)
@@ -162,7 +165,7 @@ protected:
           fut.wait(); // trigger execution
           auto reqres = fut.get();
           if (reqres.result_code == ResultCode::kNotYet && m_run_marker.load()) { // give it another chance
-            TLOG_DEBUG(1) << "Re-queue request. "
+            TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
               << "delay [us] " << reqres.request_delay_us;
             issue_request(reqres.data_request, reqres.request_delay_us);
@@ -173,7 +176,7 @@ protected:
   }
 
   void run_stats() {
-    TLOG() << "Statistics thread started...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread started...";
     int new_pop_reqs = 0;
     int new_pop_count = 0;
     int new_occupancy = 0;
@@ -184,7 +187,7 @@ protected:
       new_pop_count = m_pops_count.exchange(0);
       new_occupancy = m_occupancy;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      TLOG_DEBUG(1) << "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
+      TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
           << " Dropped: " << new_pop_count
           << " Occupancy: " << new_occupancy;
       for(int i=0; i<50 && m_run_marker.load(); ++i){
@@ -192,7 +195,7 @@ protected:
       }
       t0 = now;
     }
-    TLOG() << "Statistics thread stopped...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread stopped...";
   }
 
   // Data access (LB interfaces)

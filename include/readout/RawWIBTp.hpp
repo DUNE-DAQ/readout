@@ -28,7 +28,7 @@ struct TpHeader
 
   uint64_t get_timestamp() const  // NOLINT(build/unsigned)
   {
-    uint64_t timestamp = static_cast<uint64_t>(m_timestamp_1) | (static_cast<int64_t>(m_timestamp_2) << 32);  // NOLINT(build/unsigned)
+    uint64_t timestamp = m_timestamp_1 | (static_cast<int64_t>(m_timestamp_2) << 32);  // NOLINT(build/unsigned)
     return timestamp;
   }
 
