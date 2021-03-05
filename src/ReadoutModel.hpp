@@ -191,24 +191,26 @@ private:
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
-      std::unique_ptr<RawType> payload_ptr(nullptr);
+      //std::unique_ptr<RawType> payload_ptr(nullptr);
+      RawType payload;
       // Try to acquire data
       try {
-        m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
+        //m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
+        m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ++m_rawq_timeout_count;
         //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
       // Only process if data was acquired
-      if (payload_ptr != nullptr) {
-        m_process_callback(payload_ptr.get());
-        m_write_callback(std::move(payload_ptr));
+      //if (payload != nullptr) { // payload_ptr
+        m_process_callback(&payload); // payload_ptr.get()
+        m_write_callback(std::move(payload)); // payload_ptr
         m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;
-      }
+      //}
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
   }   
@@ -317,7 +319,7 @@ private:
 
   // RAW SOURCE
   std::chrono::milliseconds m_source_queue_timeout_ms;
-  using raw_source_qt = appfwk::DAQSource<std::unique_ptr<RawType>>;
+  using raw_source_qt = appfwk::DAQSource<RawType>;
   std::unique_ptr<raw_source_qt> m_raw_data_source;
 
   // REQUEST SOURCE
@@ -334,7 +336,7 @@ private:
   size_t m_latency_buffer_size;
   std::unique_ptr<LatencyBufferConcept> m_latency_buffer_impl;
   std::function<size_t()> m_occupancy_callback;
-  std::function<void(std::unique_ptr<RawType>)> m_write_callback;
+  std::function<void(RawType)> m_write_callback;
   std::function<bool(RawType&)> m_read_callback;
   std::function<void(unsigned)> m_pop_callback;
   std::function<RawType*(unsigned)> m_front_callback;

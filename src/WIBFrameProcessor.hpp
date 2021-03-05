@@ -48,6 +48,8 @@ protected:
   bool m_first_ts_missmatch = true;
   stats::counter_t m_ts_error_ctr{0};
 
+  bool m_do_fake_ts = true;
+
   void timestamp_check(frameptr fp) {
     auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
     m_current_ts = wfptr->get_wib_header()->get_timestamp();
@@ -55,9 +57,18 @@ protected:
       ++m_ts_error_ctr;
       if (m_first_ts_missmatch) {
         m_first_ts_missmatch = false;
+      } else if (m_do_fake_ts) {
+        uint64_t ts_next = m_previous_ts + 25;
+        for (unsigned int i=0; i<12; ++i) { // NOLINT
+          auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)+i*464); // NOLINT
+          auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+          wfh->set_timestamp(ts_next);
+          ts_next += 25;
+        }
       } else {
         TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
                << " next: "+std::to_string(m_current_ts);
+        m_ts_error_ctr++;
       }
     }
     m_previous_ts = m_current_ts;

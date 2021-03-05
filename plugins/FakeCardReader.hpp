@@ -57,7 +57,7 @@ public:
   void get_info(opmonlib::InfoCollector& ci, int level) override;
 
 private:
-  using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+  using sink_t = appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>;
   using tp_sink_t = appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>;
   // Commands
   void do_conf(const data_t& /*args*/);
@@ -75,7 +75,6 @@ private:
 
   // appfwk Queues
   std::chrono::milliseconds m_queue_timeout_ms;
-  //std::vector<std::unique_ptr<sink_t>> m_output_queues;
   std::vector<sink_t*> m_output_queues;
   std::vector<tp_sink_t*> m_tp_output_queues;
 

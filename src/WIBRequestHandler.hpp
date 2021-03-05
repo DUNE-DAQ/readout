@@ -132,7 +132,7 @@ protected:
     }
 
     // Find data in Latency Buffer
-    if ( rres.result_code != ResultCode::kFound ) {
+    if ( rres.result_code != ResultCode::kFound && rres.result_code != ResultCode::kNotYet ) {
       std::ostringstream oss;
       oss << "***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
