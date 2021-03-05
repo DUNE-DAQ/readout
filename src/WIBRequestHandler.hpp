@@ -70,7 +70,7 @@ protected:
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
     fh.link_id = { m_apa_number, m_link_number };
-    fh.fragment_type = static_cast<fragment_type_t>(dataformats::FragmentType::kTPCData);
+    fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData);
     return std::move(fh);
   } 
 
