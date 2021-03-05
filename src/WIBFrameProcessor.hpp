@@ -15,12 +15,15 @@
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "tbb/flow_graph.h"
 
 #include <string>
 #include <atomic>
 #include <functional>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -63,10 +66,9 @@ protected:
           ts_next += 25;
         }
       } else {
-
+        TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
+               << " next: "+std::to_string(m_current_ts);
         m_ts_error_ctr++;
-        //TLOG() << "Timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
-        //       << " next: "+std::to_string(m_current_ts);
       }
     }
     m_previous_ts = m_current_ts;

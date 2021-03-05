@@ -14,6 +14,7 @@
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <atomic>
 #include <thread>
@@ -24,6 +25,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -40,7 +43,7 @@ public:
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
       occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
   {
-    TLOG() << "WIBRequestHandler created...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
     m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 
       this, std::placeholders::_1, std::placeholders::_2);
   } 
@@ -89,7 +92,7 @@ protected:
     uint32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
     uint32_t min_num_elements = (time_tick_diff + (dr.window_end - dr.window_begin) /m_tick_dist)                    // NOLINT
                                    / m_frames_per_element + m_safe_num_elements_margin;
-    TLOG_DEBUG(2) << "TPC (WIB frame) data request for " 
+    TLOG_DEBUG(TLVL_TAKE_NOTE) << "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
@@ -139,7 +142,7 @@ protected:
         << "ElementsInWindow=" << num_elements_in_window << " "
         << "MinNumElements=" << min_num_elements << " "
         << "Occupancy=" << occupancy_guess;
-      TLOG() << oss.str();
+      TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT

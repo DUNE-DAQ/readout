@@ -7,6 +7,7 @@
 */
 #include "readout/fakecardreader/Nljs.hpp"
 #include "readout/fakecardreaderinfo/Nljs.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "FakeCardReader.hpp"
 #include "ReadoutIssues.hpp"
@@ -29,20 +30,7 @@
 #include <chrono>
 #include <utility>
 
-/**
- * @brief Name used by TRACE TLOG calls from this source file
-*/
-#define TRACE_NAME "FakeCardReader" // NOLINT
-
-/**
-* @brief TRACE debug levels used in this source file
- */
-enum
-{
-  TLVL_ENTER_EXIT_METHODS = 5,
-  TLVL_WORK_STEPS = 10,
-  TLVL_BOOKKEEPING = 15
-};
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout { 
@@ -65,7 +53,7 @@ FakeCardReader::FakeCardReader(const std::string& name)
 void
 FakeCardReader::init(const data_t& args)
 {
-
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering init() method";
   auto ini = args.get<appfwk::app::ModInit>();
   for (const auto& qi : ini.qinfos) {
     if (qi.dir != "output") {
@@ -73,7 +61,7 @@ FakeCardReader::init(const data_t& args)
     }
 
     try {
-      TLOG() << "Setting up queue: " << qi.inst;
+      TLOG_DEBUG(TLVL_WORK_STEPS) << get_name() << ": Setting up queue: " << qi.inst;
       auto& name = qi.name;
       if (name.find("tp_") != std::string::npos) {
         m_tp_output_queues.emplace_back(new appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>(qi.inst));
@@ -85,7 +73,9 @@ FakeCardReader::init(const data_t& args)
       throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
     }
   }
-  TLOG() << "Init: # output queues: " << m_output_queues.size() << "; # tp_output queues: " << m_tp_output_queues.size();
+  TLOG_DEBUG(TLVL_BOOKKEEPING) << "Number of WIB output queues: " << m_output_queues.size() 
+                               << "; Number of raw WIB TP output queues: " << m_tp_output_queues.size();
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting init() method";
 }
 
 void
@@ -100,14 +90,16 @@ FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/) {
 void 
 FakeCardReader::do_conf(const data_t& args)
 {
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_conf() method";
+
   if (m_configured) {
-    ers::error(ConfigurationError(ERS_HERE, "This module is already configured!"));
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "This module is already configured!";
   } else {
     m_cfg = args.get<fakecardreader::Conf>();
 
     // Read input
     m_source_buffer = std::make_unique<FileSourceBuffer>(m_cfg.input_limit, constant::WIB_SUPERCHUNK_SIZE);
-    TLOG() << "Reading binary file: " << m_cfg.data_filename;
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Reading binary file: " << m_cfg.data_filename;
     try {
       m_source_buffer->read(m_cfg.data_filename);
     }
@@ -118,7 +110,7 @@ FakeCardReader::do_conf(const data_t& args)
 
     if (m_cfg.tp_enabled == "true") {
       m_tp_source_buffer = std::make_unique<FileSourceBuffer>(m_cfg.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
-      TLOG() << "Reading binary file: " << m_cfg.tp_data_filename;
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Reading binary file: " << m_cfg.tp_data_filename;
       try {
         m_tp_source_buffer->read(m_cfg.tp_data_filename);
       } 
@@ -130,17 +122,26 @@ FakeCardReader::do_conf(const data_t& args)
 
     // Mark configured
     m_configured = true;
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "This module is successfully configured!";
   }
+ 
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_conf() method";
 }
 
 void
 FakeCardReader::do_scrap(const data_t& /*args*/)
 {
-     m_configured = false;
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_scrap() method";
+
+  m_configured = false;
+
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_scrap() method";
 }
 void 
 FakeCardReader::do_start(const data_t& /*args*/)
 {
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
+
   m_run_marker.store(true);
   m_packet_count = 0;
   m_packet_count_tot = 0;
@@ -162,11 +163,15 @@ FakeCardReader::do_start(const data_t& /*args*/)
       ++idx;
     }
   }
+
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_start() method";
 }
 
 void 
 FakeCardReader::do_stop(const data_t& /*args*/)
 {
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_stop() method"; 
+
   m_run_marker.store(false);
   for (auto& work_thread : m_worker_threads) {
     work_thread.join();
@@ -174,12 +179,16 @@ FakeCardReader::do_stop(const data_t& /*args*/)
   m_worker_threads.clear();
   while (!m_stats_thread.get_readiness()) {	
     std::this_thread::sleep_for(std::chrono::milliseconds(100));            	
-  } 
+  }
+
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_stop() method"; 
 }
 
 void 
 FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myqueue, int linkid) 
 {
+  TLOG_DEBUG(TLVL_WORK_STEPS) << "WIB data generation thread " << linkid << " started";
+
   pthread_setname_np(pthread_self(), get_name().c_str());
   // Init ratelimiter, element offset and source buffer ref
   dunedaq::readout::RateLimiter rate_limiter(m_cfg.rate_khz);
@@ -190,15 +199,18 @@ FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myq
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = m_source_buffer->num_elements();
   if (num_elem == 0) {
-    TLOG_DEBUG(2) << "num_elem=0; sleeping...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "No WIB elements to read from buffer! Sleeping...";
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     num_elem = m_source_buffer->num_elements();
   }
   auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(source.data()); // NOLINT
-  TLOG_DEBUG(2) << "num_elem=" << num_elem << " wfptr=" << wfptr;
+  TLOG_DEBUG(TLVL_BOOKKEEPING) << "Number of elements to read from buffer: " << num_elem
+                               << "; wfptr is: " << wfptr; 
+
   // set the initial timestamp to a configured value, otherwise just use the timestamp from the wib header
   uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : wfptr->get_wib_header()->get_timestamp(); // NOLINT
-  TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
+  TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the WIB source file: " << ts_0
+                               << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0; // NOLINT
 
   // Run until stop marker
@@ -238,15 +250,15 @@ FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myq
     ++m_stat_packet_count;
     rate_limiter.limit();
   }
-  TLOG_DEBUG(0) << "Data generation thread " << linkid << " finished";
+  TLOG_DEBUG(TLVL_WORK_STEPS) << "WIB data generation thread " << linkid << " finished";
 }
 
 void
 FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>* myqueue, int linkid)
 {
-  std::stringstream ss;
-  ss << "card-reader-" << linkid;
-  pthread_setname_np(pthread_self(), ss.str().c_str());
+  TLOG_DEBUG(TLVL_WORK_STEPS) << "Raw WIB TP data generation thread " << linkid << " started";
+
+  pthread_setname_np(pthread_self(), get_name().c_str());
   // Init ratelimiter, element offset and source buffer ref
   dunedaq::readout::RateLimiter rate_limiter(m_cfg.tp_rate_khz);
   rate_limiter.init();
@@ -255,8 +267,18 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
 
   // This should be changed in case of a generic Fake ELink reader (exercise with TPs dumps)
   int num_elem = m_tp_source_buffer->num_elements();
-  uint64_t ts_0 = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data())->get_header()->get_timestamp(); // NOLINT
-  TLOG() << "First timestamp in the source file: " << ts_0 << "; linkid is: " << linkid;
+  if (num_elem == 0) {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "No raw WIB TP elements to read from buffer! Sleeping...";
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    num_elem = m_tp_source_buffer->num_elements();
+  }
+  auto rwtpptr = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data()); // NOLINT
+  TLOG_DEBUG(TLVL_BOOKKEEPING) << "Number of raw WIB TP elements to read from buffer: " << num_elem
+                               << "; rwtpptr is: " << rwtpptr;
+
+  uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : rwtpptr->get_header()->get_timestamp(); // NOLINT
+  TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the raw WIB TP source file: " << ts_0
+                               << "; linkid is: " << linkid;
   uint64_t ts_next = ts_0; // NOLINT
 
   dunedaq::dataformats::RawWIBTp* tf{nullptr};
@@ -313,7 +335,7 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     ++m_stat_packet_count;
     rate_limiter.limit();
   }
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Data generation thread " << linkid << " finished";
+  TLOG_DEBUG(TLVL_WORK_STEPS) << "Raw WIB TP data generation thread " << linkid << " finished";
 }
 
 void	
@@ -326,7 +348,7 @@ FakeCardReader::run_stats()
     auto now = std::chrono::high_resolution_clock::now();	
     new_packets = m_stat_packet_count.exchange(0);	
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;	
-    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";	
+    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";
     for(int i=0; i<100 && m_run_marker.load(); ++i){ // 10 seconds sleep	
       std::this_thread::sleep_for(std::chrono::milliseconds(100));	
     }	

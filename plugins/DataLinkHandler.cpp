@@ -6,6 +6,8 @@
  * received with this code.
 */
 #include "readout/datalinkhandler/Nljs.hpp"
+#include "readout/ReadoutLogging.hpp"
+
 #include "DataLinkHandler.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
@@ -16,20 +18,7 @@
 #include <string>
 #include <vector>
 
-/**
- * @brief Name used by TRACE TLOG calls from this source file
-*/
-#define TRACE_NAME "DataLinkHandler" // NOLINT
-
-/**
- * @brief TRACE debug levels used in this source file
- */
-enum
-{
-  TLVL_ENTER_EXIT_METHODS = 5,
-  TLVL_WORK_STEPS = 10,
-  TLVL_BOOKKEEPING = 15
-};
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout { 
@@ -50,12 +39,13 @@ void
 DataLinkHandler::init(const data_t& args)
 {
 
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Initialize readout implementation...";
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering init() method";
   m_readout_impl = createReadout(args, m_run_marker);
   if (m_readout_impl == nullptr) {
     TLOG() << get_name() << "Initialize readout implementation FAILED...";
     throw FailedReadoutInitialization(ERS_HERE, get_name(), args.dump()); // 4 json ident
   }
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting init() method";
 }
 
 void DataLinkHandler::get_info(opmonlib::InfoCollector& ci, int level) {
@@ -65,31 +55,35 @@ void DataLinkHandler::get_info(opmonlib::InfoCollector& ci, int level) {
 void
 DataLinkHandler::do_conf(const data_t& args)
 {
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Configure readout implementation...";
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_conf() method";
   m_readout_impl->conf(args);
   m_configured = true;
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_conf() method";
 }
 
 void
 DataLinkHandler::do_scrap(const data_t& /*args*/)
 {
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Scrap readout implementation...";
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_scrap() method";
   m_configured = false;
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_scrap() method";
 }
 void 
 DataLinkHandler::do_start(const data_t& args)
 {
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Start readout implementeation...";
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
   m_run_marker.store(true);
   m_readout_impl->start(args);
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_start() method";
 }
 
 void 
 DataLinkHandler::do_stop(const data_t& args)
 {
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << "Stop readout implementation...";
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_stop() method";
   m_run_marker.store(false);
   m_readout_impl->stop(args);
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_stop() method";
 }
 
 } // namespace readout

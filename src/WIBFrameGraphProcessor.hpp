@@ -13,12 +13,15 @@
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "tbb/flow_graph.h"
 
 #include <functional>
 #include <atomic>
 #include <string>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -33,7 +36,7 @@ public:
   explicit WIBFrameGraphProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
   : GraphRawProcessor<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
   {
-    TLOG() << "Creating WIB specific GraphRawProcessor workflow.";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << get_name() << "Creating WIB specific GraphRawProcessor workflow.";
 
     // We need to alter parallel tasks
     parallel_task_nodes_.emplace_back(funcnode_t(task_graph_, tbb::flow::unlimited, timestamp_check()));
@@ -59,10 +62,10 @@ public:
         ++counter;
         if (first) {
           wfptr->wib_header()->print();
-          TLOG() << "First TS mismatch is fine | previous: " << ts_prev << " next: " << ts_next;
+          TLOG_DEBUG(TLVL_BOOKKEEPING) << get_name() << "First TS mismatch is fine | previous: " << ts_prev << " next: " << ts_next;
           first = false;
         }
-        TLOG() << "SCREAM | previous: " << ts_prev << " next: " << ts_next;
+        TLOG_DEBUG(TLVL_BOOKKEEPING) << get_name() << "SCREAM | previous: " << ts_prev << " next: " << ts_next;
       }
       ts_prev = ts_next;
       return fp;

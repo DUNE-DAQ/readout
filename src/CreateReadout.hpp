@@ -14,6 +14,8 @@
 #include "appfwk/app/Nljs.hpp"
 
 #include "readout/ReadoutTypes.hpp"
+#include "readout/ReadoutLogging.hpp"
+
 #include "ReadoutIssues.hpp"
 #include "ReadoutConcept.hpp"
 #include "ReadoutModel.hpp"
@@ -21,6 +23,8 @@
 #include <utility>
 #include <memory>
 #include <string>
+
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
@@ -36,7 +40,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
       // IF WIB
       if (inst.find("wib") != std::string::npos) {
-        TLOG_DEBUG(10) << "Creating readout for a wib" ;
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib" ;
         raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>>(run_marker);
         readout_model->init(args, raw_type_name);

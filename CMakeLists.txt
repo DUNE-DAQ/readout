@@ -12,6 +12,7 @@ find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
+find_package(Boost 1.70.0 COMPONENTS unit_test_framework REQUIRED)
 
 daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 
@@ -44,6 +45,10 @@ daq_add_application(readout_test_ratelimiter test_ratelimiter_app.cxx TEST LINK_
 ##############################################################################
 # Test configurations
 file(COPY test/fakereadout-commands.json DESTINATION test)
+
+##############################################################################
+# Unit Tests
+daq_add_unit_test(RawWIBTp_test                LINK_LIBRARIES readout)
 
 ##############################################################################
 # Installation
