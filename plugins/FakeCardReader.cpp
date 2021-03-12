@@ -228,13 +228,13 @@ FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myq
                static_cast<void*>(source.data() + offset * constant::WIB_SUPERCHUNK_SIZE), 
                constant::WIB_SUPERCHUNK_SIZE);
 
-      // fake the timestamp
-      for (unsigned int i=0; i<12; ++i) { // NOLINT
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload.data)+i*464); // NOLINT
-	auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header()); 
-        wfh->set_timestamp(ts_next);
-        ts_next += 25;
-      }  
+      // don't fake the timestamp, RawProcessor handles EMULATOR mode
+      //for (unsigned int i=0; i<12; ++i) { // NOLINT
+      //  auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)payload.data)+i*464); // NOLINT
+      //  auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header()); 
+      //  wfh->set_timestamp(ts_next);
+      //  ts_next += 25;
+      //} 
 
       // queue in to actual DAQSink
       try {
