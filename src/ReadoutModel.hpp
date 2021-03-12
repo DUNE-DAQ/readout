@@ -132,6 +132,7 @@ public:
 
     // Configure implementations:
     m_raw_processor_impl->conf(args);
+    m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
 
     // Configure threads:

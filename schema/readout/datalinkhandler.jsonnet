@@ -31,9 +31,13 @@ local datalinkhandler = {
     raw_type : s.string("RawType", moo.re.ident,
                   doc="A string field"),
 
+    choice : s.boolean("Choice"),
+
     conf: s.record("Conf", [
         s.field("raw_type", self.raw_type, "wib",
                 doc="Raw type"),
+        s.field("emulator_mode", self.choice, false,
+                doc="If the input data is from an emulator."),
         s.field("source_queue_timeout_ms", self.count, 2000,
                 doc="Timeout for source queue"),
         s.field("fake_trigger_flag", self.count, 0,

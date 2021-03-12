@@ -31,8 +31,10 @@ namespace readout {
 class WIBFrameProcessor : public TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT> {
 
 public:
+  using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
+
 
   explicit WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
   : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
@@ -46,35 +48,53 @@ protected:
   time::timestamp_t m_previous_ts = 0;
   time::timestamp_t m_current_ts = 0;
   bool m_first_ts_missmatch = true;
+  bool m_problem_reported = false;
   stats::counter_t m_ts_error_ctr{0};
 
-  bool m_do_fake_ts = true;
-
+  /**
+   * Pipeline Stage 1.: Check proper timestamp increments in WIB frame
+   * */
   void timestamp_check(frameptr fp) {
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
-    m_current_ts = wfptr->get_wib_header()->get_timestamp();
-    if (m_current_ts - m_previous_ts != 300) {
-      ++m_ts_error_ctr;
-      if (m_first_ts_missmatch) {
-        m_first_ts_missmatch = false;
-      } else if (m_do_fake_ts) {
-        uint64_t ts_next = m_previous_ts + 25;
-        for (unsigned int i=0; i<12; ++i) { // NOLINT
-          auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)+i*464); // NOLINT
-          auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
-          wfh->set_timestamp(ts_next);
-          ts_next += 25;
-        }
-      } else {
-        TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
-               << " next: "+std::to_string(m_current_ts);
-        m_ts_error_ctr++;
+    // If EMU data, emulate perfectly incrementing timestamp
+    if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
+      uint64_t ts_next = m_previous_ts + 300;
+      for (unsigned int i=0; i<12; ++i) { // NOLINT
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)+i*464); // NOLINT
+        auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+        wfh->set_timestamp(ts_next);
+        ts_next += 25;
       }
     }
+
+    // Acquire timestamp
+    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
+    m_current_ts = wfptr->get_wib_header()->get_timestamp();
+
+    // Check timestamp
+    if (m_current_ts - m_previous_ts != 300) {
+      ++m_ts_error_ctr;
+      if (m_first_ts_missmatch) { // log once
+        TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
+          << " current: "+std::to_string(m_current_ts);
+        m_first_ts_missmatch = false;
+      }
+    }
+
+    if (m_ts_error_ctr > 1000) {
+      if (!m_problem_reported) {
+        TLOG() << "*** Data Integrity ERROR *** Timestamp continuity is completely broken! "
+               << "Something is wrong with the FE source or with the configuration!";
+        m_problem_reported = true;
+      }
+    }
+
     m_previous_ts = m_current_ts;
     m_last_processed_daq_ts = m_current_ts;
   }
 
+  /**
+   * Pipeline Stage 2.: Check WIB headers for error flags
+   * */
   void frame_error_check(frameptr /*fp*/) {
     // check error fields
   }

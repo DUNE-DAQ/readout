@@ -34,8 +34,11 @@ public:
   virtual void conf(const nlohmann::json& cfg) = 0;
   time::timestamp_t get_last_daq_time() { return m_last_processed_daq_ts.load(); }
   void reset_last_daq_time() { m_last_processed_daq_ts.store(0); }
+  void set_emulator_mode(bool do_emu) { m_emulator_mode = do_emu; }
+  bool get_emulator_mode() { return m_emulator_mode; }
 
 protected:
+  bool m_emulator_mode{false};
   std::atomic<time::timestamp_t> m_last_processed_daq_ts{0};
 
 private:
