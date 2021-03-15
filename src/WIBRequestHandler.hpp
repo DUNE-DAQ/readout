@@ -136,7 +136,7 @@ protected:
     // Find data in Latency Buffer
     if ( rres.result_code != ResultCode::kFound && rres.result_code != ResultCode::kNotYet ) {
       std::ostringstream oss;
-      oss << " Timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
+      oss << "EmptyFramgment! TS match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
         << "Trigger TS=" << dr.trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
