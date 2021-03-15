@@ -38,6 +38,10 @@ namespace dunedaq {
                       " Readout queue timed out: " << queuename,
                       ((std::string)queuename))
 
+    ERS_DECLARE_ISSUE(readout, TriggerMatchingFailed,
+                      " Trigger Matching Failed: " << trmfail,
+                      ((std::string)trmfail))
+
     ERS_DECLARE_ISSUE_BASE(readout,
                            FailedReadoutInitialization,
                            readout::InitializationError,

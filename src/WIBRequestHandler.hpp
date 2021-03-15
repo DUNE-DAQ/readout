@@ -87,6 +87,7 @@ protected:
     size_t occupancy_guess = m_occupancy_callback(); 
     dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_front_callback(0) )); // NOLINT
     uint64_t start_win_ts = dr.window_begin;   // NOLINT
+    uint64_t end_win_ts = dr.window_end;   // NOLINT
     uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
     uint64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
     uint32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
@@ -114,7 +115,7 @@ protected:
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
-    } else if ( min_num_elements > occupancy_guess ) {
+    } else if (end_win_ts > (last_ts+(occupancy_guess*m_frames_per_element*m_tick_dist)) ) { // Fix from GLM
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
       if(m_run_marker.load()) {
@@ -135,7 +136,7 @@ protected:
     // Find data in Latency Buffer
     if ( rres.result_code != ResultCode::kFound && rres.result_code != ResultCode::kNotYet ) {
       std::ostringstream oss;
-      oss << "***ERROR: timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
+      oss << " Timestamp match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
         << "Trigger TS=" << dr.trigger_timestamp << " " 
         << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
@@ -143,7 +144,8 @@ protected:
         << "ElementsInWindow=" << num_elements_in_window << " "
         << "MinNumElements=" << min_num_elements << " "
         << "Occupancy=" << occupancy_guess;
-      TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+      //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+      ers::warning(dunedaq::readout::TriggerMatchingFailed(ERS_HERE, oss.str()));
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
