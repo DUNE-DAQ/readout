@@ -94,7 +94,7 @@ protected:
     uint32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
     uint32_t min_num_elements = (time_tick_diff + (dr.window_end - dr.window_begin) /m_tick_dist)                    // NOLINT
                                    / m_frames_per_element + m_safe_num_elements_margin;
-    TLOG_DEBUG(TLVL_TAKE_NOTE) << "TPC (WIB frame) data request for " 
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
       << "ElementOffset=" << num_element_offset << " "
@@ -145,7 +145,7 @@ protected:
         << "MinNumElements=" << min_num_elements << " "
         << "Occupancy=" << occupancy_guess;
       //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
-      ers::warning(dunedaq::readout::TriggerMatchingFailed(ERS_HERE, oss.str()));
+      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
     } else {
       //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT

@@ -38,9 +38,9 @@ namespace dunedaq {
                       " Readout queue timed out: " << queuename,
                       ((std::string)queuename))
 
-    ERS_DECLARE_ISSUE(readout, TriggerMatchingFailed,
-                      " Trigger Matching Failed: " << trmfail,
-                      ((std::string)trmfail))
+    ERS_DECLARE_ISSUE(readout, TrmWithEmptyFragment,
+                      " Trigger Matching result with empty fragment: " << trmdetails,
+                      ((std::string)trmdetails))
 
     ERS_DECLARE_ISSUE_BASE(readout,
                            FailedReadoutInitialization,
