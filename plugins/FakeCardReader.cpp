@@ -348,7 +348,7 @@ FakeCardReader::run_stats()
     auto now = std::chrono::high_resolution_clock::now();	
     new_packets = m_stat_packet_count.exchange(0);	
     double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;	
-    TLOG() << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";
+    TLOG_DEBUG(TLVL_TAKE_NOTE) << "Produced Packet rate: " << new_packets/seconds/1000. << " [kHz]";
     for(int i=0; i<100 && m_run_marker.load(); ++i){ // 10 seconds sleep	
       std::this_thread::sleep_for(std::chrono::milliseconds(100));	
     }	

@@ -285,10 +285,10 @@ private:
       auto now = std::chrono::high_resolution_clock::now();
       new_packets = m_stats_packet_count.exchange(0);
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      TLOG() << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.) << " [kHz]";	
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.) << " [kHz]";	
       auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
       if (rawq_timeouts > 0) {
-        TLOG() << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts) << " times!";
+        TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts) << " times!";
       }
       for (int i=0; i<100 && m_run_marker.load(); ++i) { // 100 x 100ms = 10s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
