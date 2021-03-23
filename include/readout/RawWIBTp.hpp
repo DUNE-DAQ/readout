@@ -41,6 +41,7 @@ struct TpHeader
   // Print functions for debugging.
   std::ostream& print(std::ostream& o) const
   {
+    o << "Printing raw WIB TP header:\n";
     o << "flags:" << unsigned(m_flags) << " slot:" << unsigned(m_slot_no) << " wire:" << unsigned(m_wire_no) 
       << " fiber:" << unsigned(m_fiber_no) << " crate:" << unsigned(m_crate_no)
       << " timestamp:" << get_timestamp();
@@ -57,20 +58,24 @@ struct TpHeader
 
   std::ostream& print_bits(std::ostream& o) const
   {
-    return o << "flags:" << std::bitset<13>(m_flags)
-             << " slot:" << std::bitset<3>(m_slot_no) << " wire:" << std::bitset<8>(m_wire_no)
-             << " fiber:" << std::bitset<3>(m_fiber_no) << " crate:" << std::bitset<5>(m_crate_no) 
-             << " timestamp: " << get_timestamp() << '\n';
+    o << "Printing raw WIB TP header:\n";
+    o << "flags:" << std::bitset<13>(m_flags)
+      << " slot:" << std::bitset<3>(m_slot_no) << " wire:" << std::bitset<8>(m_wire_no)
+      << " fiber:" << std::bitset<3>(m_fiber_no) << " crate:" << std::bitset<5>(m_crate_no) 
+      << " timestamp:" << get_timestamp(); 
+    return o << '\n';
   }
 };
 
 inline std::ostream&
 operator<<(std::ostream& o, TpHeader const& h)
 {
-  return o << "flags:" << std::bitset<13>(h.m_flags)
-           << " slot:" << std::bitset<3>(h.m_slot_no) << " wire:" << std::bitset<8>(h.m_wire_no)
-           << " fiber:" << std::bitset<3>(h.m_fiber_no) << " crate:" << std::bitset<5>(h.m_crate_no) 
-           << " timestamp: " << h.get_timestamp() << '\n';
+  o << "Printing raw WIB TP header:\n";
+  o << "flags:" << unsigned(h.m_flags)
+    << " slot:" << unsigned(h.m_slot_no) << " wire:" << unsigned(h.m_wire_no)
+    << " fiber:" << unsigned(h.m_fiber_no) << " crate:" << unsigned(h.m_crate_no) 
+    << " timestamp:" << h.get_timestamp(); 
+  return o << '\n';
 }
 
 
@@ -83,34 +88,48 @@ struct TpData
   // pattern in the TP block.
   tp_word_t m_end_time: 16, m_start_time: 16;
   tp_word_t m_peak_time: 16, m_peak_adc: 16;
-  tp_word_t m_hit_continue: 1, m_flags: 15, m_sum_adc: 16;
+  tp_word_t m_hit_continue: 1, m_tp_flags: 15, m_sum_adc: 16;
 
   std::ostream& print(std::ostream& o) const
   {
-    return o << "end_time:" << unsigned(m_end_time) << " start_time:" << unsigned(m_start_time)
-           << " peak_time:" << unsigned(m_peak_time) << " peak_adc:" << unsigned(m_peak_adc)
-           << " hit_continue:" << unsigned(m_hit_continue) << " flags:" << unsigned(m_flags) 
-           << " sum_adc:" << unsigned(m_sum_adc) 
-           << '\n';
+    o << "Printing raw WIB TP:\n"; 
+    o << "start_time:" << unsigned(m_start_time) << " end_time:" << unsigned(m_end_time)
+      << " peak_adc:" << unsigned(m_peak_adc) << " peak_time:" << unsigned(m_peak_time)
+      << " sum_adc:" << unsigned(m_sum_adc) << " flags:" << unsigned(m_tp_flags)
+      << " hit_continue:" << unsigned(m_hit_continue);
+    return o  << '\n';
   }
 
   std::ostream& print_hex(std::ostream& o) const
   {
-    return o << std::hex << "end_time:" << m_end_time << " start_time:" << m_start_time 
-              << " peak_time:" << m_peak_time << " peak_adc:" << m_peak_adc 
-              << " hit_continue:" << m_hit_continue << " flags:" << m_flags 
-              << " sum_adc:" << m_sum_adc << std::dec << '\n';
+    o << "Printing raw WIB TP:\n";
+    o << std::hex << "start_time:" << m_start_time << " end_time:" << m_end_time 
+      << " peak_adc:" << m_peak_adc << " peak_time:" << m_peak_time 
+      << " sum_adc:" << m_sum_adc << " flags:" << m_tp_flags 
+      << " hit_continue:" << m_hit_continue; 
+    return o << std::dec << '\n';
+  }
+
+  std::ostream& print_bits(std::ostream& o) const
+  {
+    o << "Printing raw WIB TP:\n";
+    o << "start_time:" << std::bitset<16>(m_start_time) << " end_time:" << std::bitset<16>(m_end_time) 
+      << " peak_adc:" << std::bitset<16>(m_peak_adc) << " peak_time:" << std::bitset<16>(m_peak_time)
+      << " sum_adc:" << std::bitset<16>(m_sum_adc) << " flags:" << std::bitset<15>(m_tp_flags)
+      << " hit_continue:" << std::bitset<1>(m_hit_continue);
+    return o << '\n';
   }
 };
 
 inline std::ostream&
 operator<<(std::ostream& o, TpData const& tp)
 {
-  return o << "end_time:" << unsigned(tp.m_end_time) << " start_time:" << unsigned(tp.m_start_time)
-           << " peak_time:" << unsigned(tp.m_peak_time) << " peak_adc:" << unsigned(tp.m_peak_adc)
-           << " hit_continue:" << unsigned(tp.m_hit_continue) << " flags:" << unsigned(tp.m_flags)
-           << " sum_adc:" << unsigned(tp.m_sum_adc)
-           << '\n';
+  o << "Printing raw WIB TP:\n";
+  o << "start_time:" << unsigned(tp.m_start_time) << " end_time:" << unsigned(tp.m_end_time)
+    << " peak_adc:" << unsigned(tp.m_peak_adc) << " peak_time:" << unsigned(tp.m_peak_time)
+    << " sum_adc:" << unsigned(tp.m_sum_adc) << " flags:" << unsigned(tp.m_tp_flags)
+    << " hit_continue:" << unsigned(tp.m_hit_continue);
+  return o  << '\n';
 }
 
 
@@ -126,10 +145,11 @@ struct TpPedinfo
 
   std::ostream& print(std::ostream& o) const 
   {
-    return o << "median:" << unsigned(m_median) << " accumulator:" << unsigned(m_accumulator)
-             << " padding_1:" << m_padding_1 << " padding_2:" << m_padding_2
-             << " padding_3: "<< m_padding_3 << " padding_4:" << m_padding_4
-             << '\n';
+    o << "Printing raw WIB TP pedinfo:\n";
+    o << "median:" << unsigned(m_median) << " accumulator:" << unsigned(m_accumulator)
+      << " padding_1:" << unsigned(m_padding_1) << " padding_2:" << unsigned(m_padding_2)
+      << " padding_3:" << unsigned(m_padding_3) << " padding_4:" << unsigned(m_padding_4);
+    return o << '\n';
   }
 
   std::ostream& print_hex(std::ostream& o) const
@@ -137,20 +157,29 @@ struct TpPedinfo
     o << "Printing raw WIB TP pedinfo:\n";
     o << std::hex << "median:" << m_median << " accumulator:" << m_accumulator 
       << " padding_1:" << m_padding_1 << " padding_2:" << m_padding_2 
-      << " padding_3: "<< m_padding_3 << " padding_4:" << m_padding_4;
+      << " padding_3:" << m_padding_3 << " padding_4:" << m_padding_4;
     return o << std::dec << '\n';
+  }
+  
+  std::ostream& print_bits(std::ostream& o) const
+  {
+    o << "Printing raw WIB TP pedinfo:\n";
+    o << "median:" << std::bitset<16>(m_accumulator) << " accumulator:" << std::bitset<16>(m_median)
+      << " padding_1:" << std::bitset<16>(m_padding_1) << " padding_2:" << std::bitset<16>(m_padding_2)
+      << " padding_3:" << std::bitset<16>(m_padding_3) << " padding_4:" << std::bitset<16>(m_padding_4);
+    return o << '\n';
   }
 };
 
 inline std::ostream&
 operator<<(std::ostream& o, TpPedinfo const& p)
 {
-  return o << "median:" << unsigned(p.m_median) << " accumulator:" << unsigned(p.m_accumulator)
-           << " padding_1:" << p.m_padding_1 << " padding_2:" << p.m_padding_2
-           << " padding_3: "<< p.m_padding_3 << " padding_4:" << p.m_padding_4
-           << '\n';
+  o << "Printing raw WIB TP pedinfo:\n";
+  o << "median:" << unsigned(p.m_median) << " accumulator:" << unsigned(p.m_accumulator)
+    << " padding_1:" << unsigned(p.m_padding_1) << " padding_2:" << unsigned(p.m_padding_2)
+    << " padding_3:" << unsigned(p.m_padding_3) << " padding_4:" << unsigned(p.m_padding_4);
+  return o << '\n';
 }
-
 
 //========================
 // TpData block
@@ -174,15 +203,32 @@ struct TpDataBlock
     return block.size()*sizeof(TpData);
   }
 
-  int num_tp_per_block() const
+  int get_num_tp_per_block() const
   {
     return block.size();
   }
 
+
   std::ostream& print(std::ostream& o) const
   {
+    int i=0;
+    o << "Printing raw WIB TP data block:\n";
     for (auto b : block) {
-      o << b;
+      o << i << ": ";
+      b.print(o);
+      ++i;
+    }
+    return o;
+  }
+
+  std::ostream& print_bits(std::ostream& o) const
+  {
+    int i=0;
+    o << "Printing raw WIB TP data block:\n";
+    for (auto b: block) {
+      o << i << ": ";
+      b.print_bits(o);
+      ++i;
     }
     return o;
   }
@@ -192,8 +238,8 @@ struct TpDataBlock
     int i=0;
     o << "Printing raw WIB TP data block:\n";
     for (auto b: block) {
-      o << "Printing raw WIB TP " << i << ":\n";
-      o << b;
+      o << i << ": ";
+      b.print_hex(o);
       ++i;
     }
     return o;
@@ -203,14 +249,14 @@ struct TpDataBlock
 inline std::ostream&
 operator<<(std::ostream& o, TpDataBlock const& db)
 {
-   int i=0;
-    o << "Printing raw WIB TP data block:\n";
-    for (auto b: db.block) {
-      o << "Printing raw WIB TP " << i << ":\n";
-      o << b;
-      ++i;
-    }
-    return o;
+  int i=0;
+  o << "Printing raw WIB TP data block:\n";
+  for (auto b: db.block) {
+    o << i << ": ";
+    o << b;
+    ++i;
+  }
+  return o;
 }
 
 //=============
@@ -225,21 +271,50 @@ public:
   static constexpr size_t m_num_pedinfo_words = 3;
 
   // TP header accessors
-  uint8_t slot_no() const { return m_head.m_slot_no; }           // NOLINT(build/unsigned)
-  uint8_t wire_no() const { return m_head.m_wire_no; }           // NOLINT(build/unsigned)
-  uint8_t fiber_no() const { return m_head.m_fiber_no; }         // NOLINT(build/unsigned)
-  uint8_t crate_no() const { return m_head.m_crate_no; }         // NOLINT(build/unsigned)
-  uint64_t timestamp() const { return m_head.get_timestamp(); }  // NOLINT(build/unsigned)
+  uint8_t  get_crate_no() const { return m_head.m_crate_no; }         // NOLINT(build/unsigned)
+  uint8_t  get_fiber_no() const { return m_head.m_fiber_no; }         // NOLINT(build/unsigned)
+  uint8_t  get_wire_no() const { return m_head.m_wire_no; }           // NOLINT(build/unsigned)
+  uint8_t  get_slot_no() const { return m_head.m_slot_no; }           // NOLINT(build/unsigned)
+  uint16_t get_flags() const {return m_head.m_flags; }                // NOLINT(build/unsigned)
+  uint64_t get_timestamp() const { return m_head.get_timestamp(); }   // NOLINT(build/unsigned)
   // TP header mutators
+  void set_crate_no(const uint8_t new_crate_no) { m_head.m_crate_no = new_crate_no; }  // NOLINT(build/unsigned)
+  void set_fiber_no(const uint8_t new_fiber_no) { m_head.m_fiber_no = new_fiber_no; }  // NOLINT(build/unsigned)
+  void set_flags(uint64_t new_flags) { m_head.m_flags = new_flags; }                   // NOLINT(build/unsigned)
   void set_slot_no(const uint8_t new_slot_no) { m_head.m_slot_no = new_slot_no; }      // NOLINT(build/unsigned)
   void set_wire_no(const uint8_t new_wire_no) { m_head.m_wire_no = new_wire_no; }      // NOLINT(build/unsigned)
-  void set_fiber_no(const uint8_t new_fiber_no) { m_head.m_fiber_no = new_fiber_no; }  // NOLINT(build/unsigned)
-  void set_crate_no(const uint8_t new_crate_no) { m_head.m_crate_no = new_crate_no; }  // NOLINT(build/unsigned)
   void set_timestamp(uint64_t new_timestamp) { m_head.set_timestamp(new_timestamp); }  // NOLINT(build/unsigned)
-
   // TP data accessors
-  int num_tp_per_block() const { return m_data.num_tp_per_block(); }
+  int get_num_tp_per_block() const { return m_data.get_num_tp_per_block(); }
+  uint16_t get_start_time(const TpData& tp) const { return tp.m_start_time; }          // NOLINT(build/unsigned)
+  uint16_t get_end_time(const TpData& tp) const { return tp.m_end_time; }              // NOLINT(build/unsigned)
+  uint16_t get_peak_adc(const TpData& tp) const { return tp.m_peak_adc; }              // NOLINT(build/unsigned)
+  uint16_t get_peak_time(const TpData& tp) const { return tp.m_peak_time; }            // NOLINT(build/unsigned)
+  uint16_t get_sum_adc(const TpData& tp) const { return tp.m_sum_adc; }                // NOLINT(build/unsigned)
+  uint16_t get_tp_flags(const TpData& tp) const { return tp.m_tp_flags; }              // NOLINT(build/unsigned)
+  uint8_t  get_hit_continue(const TpData& tp) const { return tp.m_hit_continue; }      // NOLINT(build/unsigned)
   // TP data mutators
+  void set_start_time(TpData& tp, const uint16_t new_start_time) { tp.m_start_time = new_start_time; } // NOLINT(build/unsigned)
+  void set_end_time(TpData& tp, const uint16_t new_end_time) { tp.m_end_time = new_end_time; }         // NOLINT(build/unsigned)
+  void set_peak_adc(TpData& tp, const uint16_t new_peak_adc) { tp.m_peak_adc = new_peak_adc; }         // NOLINT(build/unsigned)
+  void set_peak_time(TpData& tp, const uint16_t new_peak_time) { tp.m_peak_time = new_peak_time; }     // NOLINT(build/unsigned)
+  void set_sum_adc(TpData& tp, const uint16_t new_sum_adc) { tp.m_sum_adc = new_sum_adc; }             // NOLINT(build/unsigned)
+  void set_tp_flags(TpData& tp, const uint16_t new_tp_flags) { tp.m_tp_flags = new_tp_flags; }         // NOLINT(build/unsigned)
+  void set_hit_continue(TpData& tp, const uint8_t new_hit_continue) { tp.m_hit_continue = new_hit_continue; } // NOLINT(build/unsigned)
+  // Pedinfo accessors
+  uint16_t get_accumulator() const { return m_pedinfo.m_accumulator; } // NOLINT(build/unsigned)
+  uint16_t get_median() const { return m_pedinfo.m_median; }           // NOLINT(build/unsigned)
+  uint16_t get_padding_1() const { return m_pedinfo.m_padding_1; }     // NOLINT(build/unsigned)
+  uint16_t get_padding_2() const { return m_pedinfo.m_padding_2; }     // NOLINT(build/unsigned)
+  uint16_t get_padding_3() const { return m_pedinfo.m_padding_3; }     // NOLINT(build/unsigned)
+  uint16_t get_padding_4() const { return m_pedinfo.m_padding_4; }     // NOLINT(build/unsigned)
+  // Pedinfo mutators
+  void set_accumulator(const uint16_t new_accumulator) { m_pedinfo.m_accumulator = new_accumulator; } // NOLINT(build/unsigned)
+  void set_median(const uint16_t new_median) { m_pedinfo.m_median = new_median; }                     // NOLINT(build/unsigned)
+  void set_padding_1(const uint16_t new_padding_1) { m_pedinfo.m_padding_1 = new_padding_1; }         // NOLINT(build/unsigned)
+  void set_padding_2(const uint16_t new_padding_2) { m_pedinfo.m_padding_2 = new_padding_2; }         // NOLINT(build/unsigned)
+  void set_padding_3(const uint16_t new_padding_3) { m_pedinfo.m_padding_3 = new_padding_3; }         // NOLINT(build/unsigned)
+  void set_padding_4(const uint16_t new_padding_4) { m_pedinfo.m_padding_4 = new_padding_4; }         // NOLINT(build/unsigned)
 
   // Const struct accessors
   const TpHeader*     get_header() const { return &m_head; }
@@ -264,7 +339,7 @@ private:
 inline std::ostream&
 operator<<(std::ostream& o, RawWIBTp const& rwtp)
 {
-  o << "Printing raw WIB TP:" << '\n';
+  o << "Printing raw WIB TP frame:" << '\n';
   o << rwtp.m_head << '\n';
   o << rwtp.m_data << '\n';
   o << rwtp.m_pedinfo << '\n';
