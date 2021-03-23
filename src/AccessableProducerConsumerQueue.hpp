@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <iomanip>
 
 namespace dunedaq {
 namespace readout {
@@ -58,6 +59,18 @@ template <class T> struct AccessableProducerConsumerQueue {
     if (!records_) {
       throw std::bad_alloc();
     }
+
+    ptrlogger = std::thread([&](){
+      while(true) {
+        auto const currentRead = readIndex_.load(std::memory_order_relaxed);
+        auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+        std::cout << "BEG:" << std::hex << &records_[0] << " END:" << &records_[size] << std::dec 
+                  << " R:" << currentRead << " - W:" << currentWrite 
+                  << " OFLOW:" << overflow_ctr << '\n';
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    });
+
   }
 
   ~AccessableProducerConsumerQueue() {
@@ -97,6 +110,9 @@ template <class T> struct AccessableProducerConsumerQueue {
       return true;
     }
     // queue is full
+    
+    ++overflow_ctr;
+
     return false;
   }
 
@@ -138,15 +154,32 @@ template <class T> struct AccessableProducerConsumerQueue {
       // queue is empty
       return nullptr;
     }
+
+    if (currentRead-1000 < writeIndex_.load(std::memory_order_acquire)) {
+      std::cout << "SCREAM -> Writer too close!\n";
+    }
+
     auto recordIdx = currentRead + index;
+
     if (recordIdx > size_) {
       recordIdx -= size_;
       if (recordIdx > size_) { // don't stomp out
         return nullptr;
       }
     }
+    //std::cout << "RIDX: " << recordIdx << ' ';
     return &records_[recordIdx];
   }
+
+  size_t readIdx() {
+    auto const cr = readIndex_.load(std::memory_order_relaxed);
+    return cr;
+  } 
+
+  size_t writeIdx() {
+    auto const wr = writeIndex_.load(std::memory_order_relaxed);
+    return wr;
+  } 
 
   // queue must not be empty
   void popFront() {
@@ -205,6 +238,10 @@ template <class T> struct AccessableProducerConsumerQueue {
 
 private: // hardware_destructive_interference_size is set to 128.
          // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
+
+  std::atomic<int> overflow_ctr{0};
+
+  std::thread ptrlogger;
 
   char pad0_[folly::hardware_destructive_interference_size];  // NOLINT(runtime/arrays)
   const uint32_t size_; // NOLINT

@@ -74,6 +74,23 @@ protected:
     return std::move(fh);
   } 
 
+  inline void
+  dump_to_buffer(const void* data, std::size_t size,
+                 void* buffer, uint32_t buffer_pos, // NOLINT
+                 const std::size_t& buffer_size)
+  {
+    auto bytes_to_copy = size; // NOLINT
+    while(bytes_to_copy > 0) {
+      auto n = std::min(bytes_to_copy, buffer_size-buffer_pos); // NOLINT
+      std::memcpy(static_cast<char*>(buffer)+buffer_pos, static_cast<const char*>(data), n);
+      buffer_pos += n;
+      bytes_to_copy -= n;
+      if(buffer_pos == buffer_size) {
+        buffer_pos = 0;
+      }
+    }
+  }
+
   RequestResult
   tpc_data_request(dfmessages::DataRequest dr, unsigned delay_us) {
     if (delay_us > 0) {
@@ -108,33 +125,102 @@ protected:
 
     // List of safe-extraction conditions
     if ( num_elements_in_window > m_max_requested_elements ) {
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
     } else if ( last_ts > start_win_ts ) { // data is gone.
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
     } else if (end_win_ts > (last_ts+(occupancy_guess*m_frames_per_element*m_tick_dist)) ) { // Fix from GLM
       rres.result_code = ResultCode::kNotYet; // give it another chance
       //rres.request_delay_us = 1000;
       if(m_run_marker.load()) {
-         rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
-         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
-           rres.request_delay_us = m_min_delay_us; 
-         }
+        rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
+        if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
+          rres.request_delay_us = m_min_delay_us; 
+        }
+        return rres; // If kNotYet, return immediately, don't check for fragment pieces.
       } else {
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-          rres.result_code = ResultCode::kNotFound;
-          ++m_bad_requested_count;
+        rres.result_code = ResultCode::kNotFound;
+        ++m_bad_requested_count;
       }
     } else {
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count;
     }
 
-    // Find data in Latency Buffer
-    if ( rres.result_code != ResultCode::kFound && rres.result_code != ResultCode::kNotYet ) {
+    std::ostringstream oss;
+    oss << "TS match result: " << resultCodeAsString(rres.result_code) << ' ' 
+        << "Triggered window first ts: " << start_win_ts << " "
+        << "Trigger TS=" << dr.trigger_timestamp << " " 
+        << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
+        << "ElementOffset=" << num_element_offset << ".th "
+        << "ElementsInWindow=" << num_elements_in_window << " "
+        << "MinNumElements=" << min_num_elements << " "
+        << "Occupancy=" << occupancy_guess;
+    TLOG() << oss.str();
+
+    // Find data in Latency Buffer only if kFound
+    if ( rres.result_code == ResultCode::kFound ) {
+      size_t total_size = num_elements_in_window * m_element_size;
+      TLOG() << "TOTAL SIZE FOR PAYLOAD: " << total_size;
+      char* data = new char[total_size];
+      TLOG() << "DATA ptr:" << &data << " total_size:" << total_size; 
+ 
+      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
+      auto bytes_copied = 0;
+      auto elements_handled = 0;
+      bool firstfew = true;
+      auto few = 1;
+      for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
+        auto* element = static_cast<void*>(m_front_callback(num_element_offset+idxoffset));
+
+        if (element != nullptr) {
+          if (firstfew) {
+            TLOG() << "Handling addr: " << element << " few: " << few;
+            --few;
+            firstfew = (few >= 0) ? true : false;
+          }
+
+          dump_to_buffer(element, m_element_size, static_cast<void*>(data), bytes_copied, total_size);
+          bytes_copied += m_element_size;
+          elements_handled++;
+          //TLOG() << "Elements handled: " << elements_handled;
+        } else {
+          TLOG() << "NULLPTR NOHANDLE";
+        }
+      }
+
+      TLOG() << "Elements handled: " << elements_handled;
+
+      // Create fragment from pieces
+      auto frag = std::make_unique<dataformats::Fragment>(static_cast<void*>(data), total_size);
+
+      delete data;
+
+      // Set header
+      frag->set_header_fields(frag_header);
+      // Push to Fragment queue
+      m_fragment_sink->push( std::move(frag) );
+
+      //frag_pieces.emplace_back(static_cast<void*>(data), total_size); 
+
+      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
+      //for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
+      //  auto* element = m_front_callback(num_element_offset+idxoffset);
+      //  if (element != nullptr) {
+      //    frag_pieces.emplace_back( 
+      //      std::make_pair<void*, size_t>(
+      //        static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
+      //        std::size_t(m_element_size))
+      //    );
+      //  }
+      //}
+      
+
+    } else {
       std::ostringstream oss;
       oss << "EmptyFramgment! TS match result: " << resultCodeAsString(rres.result_code) << ' ' 
         << "Triggered window first ts: " << start_win_ts << " "
@@ -146,22 +232,17 @@ protected:
         << "Occupancy=" << occupancy_guess;
       //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
       ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
-    } else {
-      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
-      for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = m_front_callback(num_element_offset+idxoffset);
-        if (element != nullptr) {
-          frag_pieces.emplace_back( 
-            std::make_pair<void*, size_t>(
-              static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
-              std::size_t(m_element_size))
-          );
-        }
-      }
     }
 
+    /*
+    TLOG() << "TOTAL elements:" << frag_pieces.size();
+    if (frag_pieces.size() > 0) {
+      TLOG() << "idx[a] addr:" << frag_pieces[0].first << " occup:" << m_occupancy_callback();
+      TLOG() << "idx[o] addr:" << frag_pieces[frag_pieces.size()-1].first << " occup:" << m_occupancy_callback();
+    }*/
+
     // Finish Request handling with Fragment creation
-    if (rres.result_code != ResultCode::kNotYet) { // Don't send out fragment for requeued request
+    if (rres.result_code != ResultCode::kFound) { // Don't send out fragment for requeued request
       try {
         // Create fragment from pieces
         auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
