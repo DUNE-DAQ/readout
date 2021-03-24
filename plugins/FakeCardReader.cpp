@@ -240,6 +240,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myq
       try {
         myqueue->push(std::move(payload), m_queue_timeout_ms);
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        TLOG() << "Cannot put new data into queue";
+
         // std::runtime_error("Queue timed out...");
       }
 

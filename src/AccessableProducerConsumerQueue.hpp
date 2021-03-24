@@ -22,6 +22,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <cassert>
 #include <cstdlib>
 #include <cxxabi.h>
@@ -59,7 +60,7 @@ template <class T> struct AccessableProducerConsumerQueue {
     if (!records_) {
       throw std::bad_alloc();
     }
-
+/*
     ptrlogger = std::thread([&](){
       while(true) {
         auto const currentRead = readIndex_.load(std::memory_order_relaxed);
@@ -70,7 +71,7 @@ template <class T> struct AccessableProducerConsumerQueue {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     });
-
+*/
   }
 
   ~AccessableProducerConsumerQueue() {
@@ -91,6 +92,7 @@ template <class T> struct AccessableProducerConsumerQueue {
   }
 
   template <class... Args> bool write(Args &&... recordArgs) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
     auto nextRecord = currentWrite + 1;
     if (nextRecord == size_) {
@@ -153,10 +155,6 @@ template <class T> struct AccessableProducerConsumerQueue {
       // RS FIXME -> not enough assumption. More strict check on writeIndex is needed
       // queue is empty
       return nullptr;
-    }
-
-    if (currentRead-1000 < writeIndex_.load(std::memory_order_acquire)) {
-      std::cout << "SCREAM -> Writer too close!\n";
     }
 
     auto recordIdx = currentRead + index;
@@ -236,9 +234,13 @@ template <class T> struct AccessableProducerConsumerQueue {
   // maximum number of items in the queue.
   size_t capacity() const { return size_ - 1; }
 
+  void lock() { m_mutex.lock(); TLOG()<< "Buffer locked.";}
+  void unlock() {m_mutex.unlock(); TLOG()<< "Buffer unlocked.";}
+
 private: // hardware_destructive_interference_size is set to 128.
          // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
 
+  std::mutex m_mutex;
   std::atomic<int> overflow_ctr{0};
 
   std::thread ptrlogger;

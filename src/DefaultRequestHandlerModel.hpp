@@ -45,11 +45,15 @@ public:
                                       std::function<bool(RawType&)>& read_callback,
                                       std::function<void(unsigned)>& pop_callback,
                                       std::function<RawType*(unsigned)>& front_callback,
+                                      std::function<void()>& lock_callback,
+                                      std::function<void()>& unlock_callback,
                                       std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
   : m_occupancy_callback(m_occupancycallback)
   , m_read_callback(read_callback)
   , m_pop_callback(pop_callback)
   , m_front_callback(front_callback)
+  , m_lock_callback(lock_callback)
+  , m_unlock_callback(unlock_callback)
   , m_fragment_sink(fragment_sink)
   , m_run_marker(marker)
   , m_raw_type_name(rawtype)
@@ -203,6 +207,8 @@ protected:
   std::function<bool(RawType&)>& m_read_callback; 
   std::function<void(unsigned)>& m_pop_callback;
   std::function<RawType*(unsigned)>& m_front_callback;
+  std::function<void()>& m_lock_callback;
+  std::function<void()>& m_unlock_callback;
 
   // Request source and Fragment sink
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;

@@ -110,7 +110,7 @@ public:
     // Instantiate functionalities
     try {
       m_latency_buffer_impl = createLatencyBuffer<RawType>(m_raw_type_name, m_latency_buffer_size, 
-          m_occupancy_callback, m_write_callback, m_read_callback, m_pop_callback, m_front_callback);
+          m_occupancy_callback, m_write_callback, m_read_callback, m_pop_callback, m_front_callback, m_lock_callback, m_unlock_callback);
     }
     catch (const std::bad_alloc& be) {
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
@@ -125,7 +125,7 @@ public:
     }
 
     m_request_handler_impl = createRequestHandler<RawType>(m_raw_type_name, m_run_marker, 
-        m_occupancy_callback,  m_read_callback, m_pop_callback, m_front_callback, m_fragment_sink);
+        m_occupancy_callback,  m_read_callback, m_pop_callback, m_front_callback, m_lock_callback, m_unlock_callback, m_fragment_sink);
     if(m_request_handler_impl.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", m_raw_type_name));
     }
@@ -341,6 +341,8 @@ private:
   std::function<bool(RawType&)> m_read_callback;
   std::function<void(unsigned)> m_pop_callback;
   std::function<RawType*(unsigned)> m_front_callback;
+  std::function<void()> m_lock_callback;
+  std::function<void()> m_unlock_callback;
 
   // RAW PROCESSING:
   std::unique_ptr<RawDataProcessorConcept> m_raw_processor_impl;
