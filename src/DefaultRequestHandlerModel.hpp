@@ -19,6 +19,7 @@
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <tbb/concurrent_queue.h>
 
@@ -45,12 +46,14 @@ public:
                                       std::function<bool(RawType&)>& read_callback,
                                       std::function<void(unsigned)>& pop_callback,
                                       std::function<RawType*(unsigned)>& front_callback,
-                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
+                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                                      std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
   : m_occupancy_callback(m_occupancycallback)
   , m_read_callback(read_callback)
   , m_pop_callback(pop_callback)
   , m_front_callback(front_callback)
   , m_fragment_sink(fragment_sink)
+  , m_snb_sink(snb_sink)
   , m_run_marker(marker)
   , m_raw_type_name(rawtype)
   , m_pop_limit_pct(0.0f)
@@ -111,6 +114,7 @@ public:
  
   void auto_cleanup_check()
   {
+    //TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
     auto size_guess = m_occupancy_callback();
     if (size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
@@ -123,6 +127,7 @@ public:
   // DataRequest struct!?
   void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT
   {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
     auto reqfut = std::async(std::launch::async, m_data_request_callback, datarequest, delay_us);
     m_completion_queue.push(std::move(reqfut));
   }
@@ -137,7 +142,19 @@ protected:
       ++m_pop_reqs;
       unsigned to_pop = m_pop_size_pct * m_occupancy_callback();
       m_pops_count += to_pop;
-      m_pop_callback(to_pop);
+
+      // SNB handling
+      RawType element;
+      for (uint i = 0; i < to_pop; ++i) {
+        if (m_read_callback(element)) {
+          m_snb_sink->push(element);
+        } else {
+          // Change this to throw an error
+          TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not read from buffer";
+        }
+        m_pop_callback(1);
+      }
+
       m_occupancy = m_occupancy_callback();
       m_pops_count.store(m_pops_count.load()+to_pop);
     }
@@ -206,6 +223,9 @@ protected:
 
   // Request source and Fragment sink
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
+
+  // Sink for SNB data
+  std::unique_ptr<appfwk::DAQSink<RawType>>& m_snb_sink;
 
   // Requests
   using request_callback_t = std::function<RequestResult(dfmessages::DataRequest, unsigned)>;

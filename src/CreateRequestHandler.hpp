@@ -26,11 +26,12 @@ createRequestHandler(const std::string& rawtype,
                      std::function<bool(RawType&)>& read_callback,
                      std::function<void(unsigned)>& pop_callback,       // NOLINT
                      std::function<RawType*(unsigned)>& front_callback, // NOLINT
-                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
+                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                     std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
 {
   if (rawtype == "wib") {
     return std::make_unique<WIBRequestHandler>(rawtype, run_marker,
-      occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink);
+      occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink, snb_sink);
   }
 
   if (rawtype == "pd") {

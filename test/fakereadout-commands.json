@@ -37,6 +37,11 @@
                                 "dir": "output",
                                 "inst": "frags-out",
                                 "name": "fragments"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "snb-out",
+                                "name": "snb"
                             }
                         ]
                     },
@@ -64,6 +69,11 @@
                     "capacity": 1000,
                     "inst": "ts-sync-out",
                     "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "snb-out",
+                    "kind": "FollySPSCQueue"
                 }
             ]
         },

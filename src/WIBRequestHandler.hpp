@@ -39,9 +39,10 @@ public:
                              std::function<bool(types::WIB_SUPERCHUNK_STRUCT&)>& read_callback,
                              std::function<void(unsigned)>& pop_callback,
                              std::function<types::WIB_SUPERCHUNK_STRUCT*(unsigned)>& front_callback,
-                             std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
+                             std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                             std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
-      occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
+      occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink, snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
     m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 

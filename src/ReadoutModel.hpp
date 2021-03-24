@@ -84,6 +84,8 @@ public:
           m_timesync_sink.reset(new timesync_sink_qt(qi.inst));
         } else if (qi.name == "fragments") {
           m_fragment_sink.reset(new fragment_sink_qt(qi.inst));
+        } else if (qi.name == "snb") {
+          m_snb_sink.reset(new snb_sink_qt(qi.inst));
         } else {
           // throw error
           ers::error(ResourceQueueError(ERS_HERE, "Unknown queue requested!", qi.name, ""));
@@ -125,7 +127,7 @@ public:
     }
 
     m_request_handler_impl = createRequestHandler<RawType>(m_raw_type_name, m_run_marker, 
-        m_occupancy_callback,  m_read_callback, m_pop_callback, m_front_callback, m_fragment_sink);
+        m_occupancy_callback,  m_read_callback, m_pop_callback, m_front_callback, m_fragment_sink, m_snb_sink);
     if(m_request_handler_impl.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", m_raw_type_name));
     }
@@ -332,6 +334,11 @@ private:
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
   using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
   std::unique_ptr<fragment_sink_qt> m_fragment_sink;
+
+  // SNB SINK
+  std::chrono::milliseconds m_snb_queue_timeout_ms;
+  using snb_sink_qt = appfwk::DAQSink<RawType>;
+  std::unique_ptr<snb_sink_qt> m_snb_sink;
 
   // LATENCY BUFFER:
   size_t m_latency_buffer_size;
