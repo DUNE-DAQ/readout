@@ -12,6 +12,8 @@ find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS program_options system log log_setup iostreams REQUIRED)
+set(BOOST_LIBS Boost::program_options Boost::log Boost::log_setup Boost::iostreams ${Boost_LIBRARIES})
 
 daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 
@@ -36,6 +38,7 @@ daq_add_library(
 # Plugins
 daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(SNBWriter duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
 
 ##############################################################################
 # Integration tests

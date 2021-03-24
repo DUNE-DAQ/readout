@@ -20,6 +20,19 @@
                         "qinfos": [
                             {
                                 "dir": "input",
+                                "inst": "snb-link",
+                                "name": "snb"
+                            }
+                        ]
+                    },
+                    "inst": "snb-writer",
+                    "plugin": "SNBWriter"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
                                 "inst": "wib-fakelink-0",
                                 "name": "raw_input"
                             },
@@ -40,7 +53,7 @@
                             },
                             {
                                 "dir": "output",
-                                "inst": "snb-out",
+                                "inst": "snb-link",
                                 "name": "snb"
                             }
                         ]
@@ -72,7 +85,7 @@
                 },
                 {
                     "capacity": 1000,
-                    "inst": "snb-out",
+                    "inst": "snb-link",
                     "kind": "FollySPSCQueue"
                 }
             ]
