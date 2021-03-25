@@ -34,9 +34,14 @@ namespace dunedaq {
                       " Source Buffer is empty, check file: " << filename,
                       ((std::string)filename))
 
-    ERS_DECLARE_ISSUE(readout, QueueTimeoutError,
-                      " Readout queue timed out: " << queuename,
+    ERS_DECLARE_ISSUE(readout, CannotReadFromQueue,
+                      " Failed attempt to read from the queue: " << queuename,
                       ((std::string)queuename))
+
+    ERS_DECLARE_ISSUE(readout, CannotWriteToQueue,
+                      " Failed attempt to write to the queue: " << queuename <<". Data will be lost!",
+                      ((std::string)queuename))
+
 
     ERS_DECLARE_ISSUE(readout, TrmWithEmptyFragment,
                       " Trigger Matching result with empty fragment: " << trmdetails,

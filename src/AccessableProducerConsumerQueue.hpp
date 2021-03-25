@@ -92,7 +92,7 @@ template <class T> struct AccessableProducerConsumerQueue {
   }
 
   template <class... Args> bool write(Args &&... recordArgs) {
-    const std::lock_guard<std::mutex> lock(m_mutex);
+    //const std::lock_guard<std::mutex> lock(m_mutex);
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
     auto nextRecord = currentWrite + 1;
     if (nextRecord == size_) {
@@ -158,14 +158,12 @@ template <class T> struct AccessableProducerConsumerQueue {
     }
 
     auto recordIdx = currentRead + index;
-
-    if (recordIdx > size_) {
+    if (recordIdx >= size_) {
       recordIdx -= size_;
       if (recordIdx > size_) { // don't stomp out
         return nullptr;
       }
     }
-    //std::cout << "RIDX: " << recordIdx << ' ';
     return &records_[recordIdx];
   }
 

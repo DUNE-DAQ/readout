@@ -164,11 +164,11 @@ protected:
       } else {
         bool success = m_completion_queue.try_pop(fut);
         if (!success) {
-          //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
+          ers::error(CannotReadFromQueue(ERS_HERE, "RequestsCompletionQueue."));
         } else {
-          m_lock_callback();
+          //m_lock_callback();
           fut.wait(); // trigger execution
-          m_unlock_callback();
+          //m_unlock_callback();
           auto reqres = fut.get();
           //TLOG() << "Request result handled: " << resultCodeAsString(reqres.result_code);
           if (reqres.result_code == ResultCode::kNotYet && m_run_marker.load()) { // give it another chance

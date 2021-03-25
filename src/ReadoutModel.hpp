@@ -226,7 +226,12 @@ private:
         auto timesyncmsg = dfmessages::TimeSync(m_raw_processor_impl->get_last_daq_time());
         //TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.daq_time != 0) {
-          m_timesync_sink->push(std::move(timesyncmsg));
+          try {
+            m_timesync_sink->push(std::move(timesyncmsg));
+          } catch (const ers::Issue &excpt) {
+            ers::warning(CannotWriteToQueue(ERS_HERE, "timesync message queue", excpt));
+          }
+
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
             dr.trigger_timestamp = timesyncmsg.daq_time - 500*time::us;

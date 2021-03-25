@@ -158,7 +158,6 @@ protected:
 
     // Requeue if needed
     if ( rres.result_code == ResultCode::kNotYet ) {
-    /*
      if (m_run_marker.load()) {
         rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
@@ -166,11 +165,10 @@ protected:
         }
         return rres; // If kNotYet, return immediately, don't check for fragment pieces.
       } else {
-     */
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
         ++m_bad_requested_count;
-      //}
+      }
     } 
 
     // Build fragment
@@ -182,7 +180,7 @@ protected:
       << "Start of window TS=" << start_win_ts << " "
       << "End of window TS=" << end_win_ts << " "
       << "Estimated newest stored TS=" << newest_ts;
-    TLOG() << oss.str();
+    TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
 
     if ( rres.result_code != ResultCode::kFound ) {
       ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
@@ -190,14 +188,10 @@ protected:
 
       auto elements_handled = 0;
       
-      //lock latency buffer here
-      //m_lock_callback();
-
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
         auto* element = static_cast<void*>(m_front_callback(num_element_offset+idxoffset));
 
         if (element != nullptr) {
-          //TLOG() << "Handling addr: " << element << "; elements handled: " << elements_handled;
           frag_pieces.emplace_back( 
             std::make_pair<void*, size_t>(
               static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
@@ -214,10 +208,7 @@ protected:
    // Create fragment from pieces
 
    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
-   TLOG() << "Created fragment from " << frag_pieces.size() << " pieces.";
 
-  // unlock latency buffer here
-   //m_unlock_callback();
 
    // Set header
    frag->set_header_fields(frag_header);
@@ -225,8 +216,10 @@ protected:
    try {
      m_fragment_sink->push( std::move(frag) );
    }
-   catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-     ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
+   catch (const ers::Issue& excpt) {
+     std::ostringstream oss;
+     oss << "fragments output queueu for link " << m_link_number ;
+     ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
    }
   return rres; 
   }
