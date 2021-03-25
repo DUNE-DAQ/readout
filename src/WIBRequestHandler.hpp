@@ -191,7 +191,7 @@ protected:
       auto elements_handled = 0;
       
       //lock latency buffer here
-      m_lock_callback();
+      //m_lock_callback();
 
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
         auto* element = static_cast<void*>(m_front_callback(num_element_offset+idxoffset));
@@ -217,7 +217,7 @@ protected:
    TLOG() << "Created fragment from " << frag_pieces.size() << " pieces.";
 
   // unlock latency buffer here
-   m_unlock_callback();
+   //m_unlock_callback();
 
    // Set header
    frag->set_header_fields(frag_header);

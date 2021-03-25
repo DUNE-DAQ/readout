@@ -234,8 +234,8 @@ template <class T> struct AccessableProducerConsumerQueue {
   // maximum number of items in the queue.
   size_t capacity() const { return size_ - 1; }
 
-  void lock() { m_mutex.lock(); TLOG()<< "Buffer locked.";}
-  void unlock() {m_mutex.unlock(); TLOG()<< "Buffer unlocked.";}
+  void lock() { m_mutex.lock(); }
+  void unlock() {m_mutex.unlock(); }
 
 private: // hardware_destructive_interference_size is set to 128.
          // (Assuming cache line size of 64, so we use a cache line pair size of 128 )

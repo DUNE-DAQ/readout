@@ -166,8 +166,11 @@ protected:
         if (!success) {
           //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
         } else {
+          m_lock_callback();
           fut.wait(); // trigger execution
+          m_unlock_callback();
           auto reqres = fut.get();
+          //TLOG() << "Request result handled: " << resultCodeAsString(reqres.result_code);
           if (reqres.result_code == ResultCode::kNotYet && m_run_marker.load()) { // give it another chance
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
