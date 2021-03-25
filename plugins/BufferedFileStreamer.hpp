@@ -15,12 +15,20 @@
 #include "readout/bufferedfilestreamer/Structs.hpp"
 #include "readout/ReadoutTypes.hpp"
 
+#include <boost/align/aligned_allocator.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/stream_buffer.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <atomic>
 
 namespace dunedaq {
   namespace readout {
+    using io_sink_t = boost::iostreams::file_descriptor_sink;
+    using aligned_allocator_t = boost::alignment::aligned_allocator<io_sink_t::char_type, 4096>;
+    using stream_t = boost::iostreams::stream<io_sink_t, std::char_traits<io_sink_t::char_type>, aligned_allocator_t>;
 
     class BufferedFileStreamer : public dunedaq::appfwk::DAQModule {
     public:
@@ -48,6 +56,8 @@ namespace dunedaq {
       int fd;
       std::string m_output_file;
       std::mutex m_start_lock;
+      data_t m_conf;
+      stream_t m_output_stream;
     };
   }
 }

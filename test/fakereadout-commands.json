@@ -120,6 +120,13 @@
                         "source_queue_timeout_ms": 2000
                     },
                     "match": "fake-handler"
+                },
+                {
+                    "data": {
+                        "output_file": "test.out",
+                        "stream_buffer_size": 8388608
+                    },
+                    "match": "snb-writer"
                 }
             ]
         },

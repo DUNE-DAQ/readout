@@ -8,11 +8,11 @@
 local moo = import "moo.jsonnet";
 
 // A schema builder in the given path (namespace)
-local ns = "dunedaq.readout.datalinkhandler";
+local ns = "dunedaq.readout.bufferedfilestreamer";
 local s = moo.oschema.schema(ns);
 
 // Object structure used by the test/fake producer module
-local datalinkhandler = {
+local bufferedfilestreamer = {
     size: s.number("Size", "u8",
                    doc="A count of very many things"),
 
@@ -28,17 +28,19 @@ local datalinkhandler = {
     pct : s.number("Percent", "f4",
                    doc="Testing float number"),
 
-    raw_type : s.string("RawType", moo.re.ident,
+    file_name : s.string("FileName", moo.re.ident,
                   doc="A string field"),
 
     choice : s.boolean("Choice"),
 
     conf: s.record("Conf", [
-        s.field("raw_type", self.raw_type, "wib",
-                doc="Raw type")
+        s.field("output_file", self.file_name, "output.out",
+                doc="Name of the output file to write to"),
+        s.field("stream_buffer_size", self.size, 8388608,
+                doc="Buffer size of the stream buffer")
     ], doc="SNBWriter configuration"),
 
 };
 
-moo.oschema.sort_select(datalinkhandler, ns)
+moo.oschema.sort_select(bufferedfilestreamer, ns)
 
