@@ -39,9 +39,11 @@ public:
                              std::function<bool(types::WIB_SUPERCHUNK_STRUCT&)>& read_callback,
                              std::function<void(unsigned)>& pop_callback,
                              std::function<types::WIB_SUPERCHUNK_STRUCT*(unsigned)>& front_callback,
+                             std::function<void()>& lock_callback,
+                             std::function<void()>& unlock_callback,
                              std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
-      occupancy_callback, read_callback, pop_callback, front_callback, fragment_sink)
+      occupancy_callback, read_callback, pop_callback, front_callback, lock_callback, unlock_callback, fragment_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
     m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 
@@ -74,6 +76,23 @@ protected:
     return std::move(fh);
   } 
 
+  inline void
+  dump_to_buffer(const void* data, std::size_t size,
+                 void* buffer, uint32_t buffer_pos, // NOLINT
+                 const std::size_t& buffer_size)
+  {
+    auto bytes_to_copy = size; // NOLINT
+    while(bytes_to_copy > 0) {
+      auto n = std::min(bytes_to_copy, buffer_size-buffer_pos); // NOLINT
+      std::memcpy(static_cast<char*>(buffer)+buffer_pos, static_cast<const char*>(data), n);
+      buffer_pos += n;
+      bytes_to_copy -= n;
+      if(buffer_pos == buffer_size) {
+        buffer_pos = 0;
+      }
+    }
+  }
+
   RequestResult
   tpc_data_request(dfmessages::DataRequest dr, unsigned delay_us) {
     if (delay_us > 0) {
@@ -89,92 +108,120 @@ protected:
     uint64_t start_win_ts = dr.window_begin;   // NOLINT
     uint64_t end_win_ts = dr.window_end;   // NOLINT
     uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
-    uint64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
-    uint32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
-    uint32_t num_elements_in_window = (dr.window_end - dr.window_begin) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
-    uint32_t min_num_elements = (time_tick_diff + (dr.window_end - dr.window_begin) /m_tick_dist)                    // NOLINT
-                                   / m_frames_per_element + m_safe_num_elements_margin;
+    uint64_t newest_ts = last_ts + (occupancy_guess-m_safe_num_elements_margin) * m_tick_dist * m_frames_per_element; // NOLINT
+    int64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
+    int32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
+    uint32_t num_elements_in_window = (end_win_ts - start_win_ts) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
+    int32_t min_num_elements = num_element_offset + num_elements_in_window + m_safe_num_elements_margin; //NOLINT
+     
+
     TLOG_DEBUG(TLVL_WORK_STEPS) << "TPC (WIB frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
-      << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
-      << "ElementOffset=" << num_element_offset << " "
-      << "ElementsInWindow=" << num_elements_in_window << " "
-      << "MinNumElements=" << min_num_elements << " "
-      << "Occupancy=" << occupancy_guess;
+      << "Oldest stored TS=" << last_ts << " "
+      << "Start of window TS=" << start_win_ts << " "
+      << "End of window TS=" << end_win_ts << " "
+      << "Estimated newest stored TS=" << newest_ts;
+
+     // << "ElementOffset=" << num_element_offset << " "
+     // << "ElementsInWindow=" << num_elements_in_window << " "
+     // << "MinNumElements=" << min_num_elements << " "
+     // << "Occupancy=" << occupancy_guess;
 
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
-    std::vector<std::pair<void*, size_t>> frag_pieces;
 
     // List of safe-extraction conditions
-    if ( num_elements_in_window > m_max_requested_elements ) {
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
+    //
+    if ( num_elements_in_window > m_max_requested_elements ) { // too big window, cannot handle it yet
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
-    } else if ( last_ts > start_win_ts ) { // data is gone.
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+    }
+    else if (last_ts < start_win_ts && end_win_ts < newest_ts) { // data is there
+      rres.result_code = ResultCode::kFound;
+      ++m_found_requested_count; 
+    }
+    else if ( last_ts > start_win_ts ) { // data is gone.
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
-    } else if (end_win_ts > (last_ts+(occupancy_guess*m_frames_per_element*m_tick_dist)) ) { // Fix from GLM
+    }
+    else if ( newest_ts < end_win_ts ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
-      //rres.request_delay_us = 1000;
-      if(m_run_marker.load()) {
-         rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
-         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
-           rres.request_delay_us = m_min_delay_us; 
-         }
-      } else {
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-          rres.result_code = ResultCode::kNotFound;
-          ++m_bad_requested_count;
-      }
-    } else {
-      rres.result_code = ResultCode::kFound;
-      ++m_found_requested_count;
+    }
+    else {
+      TLOG() << "Don't know how to categorise this request";
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+      rres.result_code = ResultCode::kNotFound;
+      ++m_bad_requested_count;
     }
 
-    // Find data in Latency Buffer
-    if ( rres.result_code != ResultCode::kFound && rres.result_code != ResultCode::kNotYet ) {
-      std::ostringstream oss;
-      oss << "EmptyFramgment! TS match result: " << resultCodeAsString(rres.result_code) << ' ' 
-        << "Triggered window first ts: " << start_win_ts << " "
-        << "Trigger TS=" << dr.trigger_timestamp << " " 
-        << "Last TS=" << last_ts << " Tickdiff=" << time_tick_diff << " "
-        << "ElementOffset=" << num_element_offset << ".th "
-        << "ElementsInWindow=" << num_elements_in_window << " "
-        << "MinNumElements=" << min_num_elements << " "
-        << "Occupancy=" << occupancy_guess;
-      //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+    // Requeue if needed
+    if ( rres.result_code == ResultCode::kNotYet ) {
+     if (m_run_marker.load()) {
+        rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
+        if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
+          rres.request_delay_us = m_min_delay_us; 
+        }
+        return rres; // If kNotYet, return immediately, don't check for fragment pieces.
+      } else {
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+        rres.result_code = ResultCode::kNotFound;
+        ++m_bad_requested_count;
+      }
+    } 
+
+    // Build fragment
+    std::vector<std::pair<void*, size_t> > frag_pieces;
+    std::ostringstream oss;
+    oss << "TS match result on link " << m_link_number << ": " << resultCodeAsString(rres.result_code) << ' ' 
+      << "Trigger number=" << dr.trigger_number << " "
+      << "Oldest stored TS=" << last_ts << " "
+      << "Start of window TS=" << start_win_ts << " "
+      << "End of window TS=" << end_win_ts << " "
+      << "Estimated newest stored TS=" << newest_ts;
+    TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+
+    if ( rres.result_code != ResultCode::kFound ) {
       ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
     } else {
-      //auto fromheader = *(reinterpret_cast<const dataformats::WIBHeader*>(m_front_callback(num_element_offset)));
+
+      auto elements_handled = 0;
+      
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = m_front_callback(num_element_offset+idxoffset);
+        auto* element = static_cast<void*>(m_front_callback(num_element_offset+idxoffset));
+
         if (element != nullptr) {
           frag_pieces.emplace_back( 
             std::make_pair<void*, size_t>(
               static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
               std::size_t(m_element_size))
           );
+          elements_handled++;
+          //TLOG() << "Elements handled: " << elements_handled;
+        } else {
+          TLOG() << "NULLPTR NOHANDLE";
+          break;
         }
       }
-    }
+   }
+   // Create fragment from pieces
 
-    // Finish Request handling with Fragment creation
-    if (rres.result_code != ResultCode::kNotYet) { // Don't send out fragment for requeued request
-      try {
-        // Create fragment from pieces
-        auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
-        // Set header
-        frag->set_header_fields(frag_header);
-        // Push to Fragment queue
-        m_fragment_sink->push( std::move(frag) );
-      } 
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(QueueTimeoutError(ERS_HERE, " fragment sink "));
-      }
-    }
-    return rres;
+   auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+
+
+   // Set header
+   frag->set_header_fields(frag_header);
+   // Push to Fragment queue
+   try {
+     m_fragment_sink->push( std::move(frag) );
+   }
+   catch (const ers::Issue& excpt) {
+     std::ostringstream oss;
+     oss << "fragments output queueu for link " << m_link_number ;
+     ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+   }
+  return rres; 
   }
 
 private:

@@ -239,7 +239,8 @@ FakeCardReader::generate_data(appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>* myq
       // queue in to actual DAQSink
       try {
         myqueue->push(std::move(payload), m_queue_timeout_ms);
-      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      } catch (ers::Issue &excpt) {
+        ers::warning(CannotWriteToQueue(ERS_HERE, "raw data input queue", excpt));
         // std::runtime_error("Queue timed out...");
       }
 
@@ -323,7 +324,8 @@ FakeCardReader::generate_tp_data(appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_
     // queue in to actual DAQSink
     try {
       myqueue->push(std::move(payload_ptr), m_queue_timeout_ms);
-    } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+    } catch (const ers::Issue& excpt) {
+         ers::warning(CannotWriteToQueue(ERS_HERE, "TP input queue", excpt));
       // std::runtime_error("Queue timed out...");
     }
 
