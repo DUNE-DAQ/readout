@@ -147,7 +147,11 @@ protected:
       RawType element;
       for (uint i = 0; i < to_pop; ++i) {
         if (m_read_callback(element)) {
-          m_snb_sink->push(element);
+          try {
+            m_snb_sink->push(element, std::chrono::milliseconds(100));
+          } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+
+          }
         } else {
           // Change this to throw an error
           TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not read from buffer";

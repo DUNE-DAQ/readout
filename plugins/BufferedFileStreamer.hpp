@@ -6,15 +6,14 @@
  * received with this code.
 */
 
-#ifndef READOUT_PLUGINS_SNBWRITER_HPP_
-#define READOUT_PLUGINS_SNBWRITER_HPP_
+#ifndef READOUT_PLUGINS_BUFFERED_FILE_STREAMER_HPP_
+#define READOUT_PLUGINS_BUFFERED_FILE_STREAMER_HPP_
 
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
-#include "readout/snbwriter/Structs.hpp"
+#include "readout/bufferedfilestreamer/Structs.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include <boost/align/aligned_allocator.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -23,14 +22,14 @@
 namespace dunedaq {
   namespace readout {
 
-    class SNBWriter : public dunedaq::appfwk::DAQModule {
+    class BufferedFileStreamer : public dunedaq::appfwk::DAQModule {
     public:
-      explicit SNBWriter(const std::string& name);
+      explicit BufferedFileStreamer(const std::string& name);
 
-      SNBWriter(const SNBWriter&) = delete;
-      SNBWriter& operator=(const SNBWriter&) = delete;
-      SNBWriter(SNBWriter&&) = delete;
-      SNBWriter& operator=(SNBWriter&&) = delete;
+      BufferedFileStreamer(const BufferedFileStreamer&) = delete;
+      BufferedFileStreamer& operator=(const BufferedFileStreamer&) = delete;
+      BufferedFileStreamer(BufferedFileStreamer&&) = delete;
+      BufferedFileStreamer& operator=(BufferedFileStreamer&&) = delete;
 
       void init(const nlohmann::json& obj) override;
       void get_info(opmonlib::InfoCollector& ci, int level) override;
@@ -53,4 +52,4 @@ namespace dunedaq {
   }
 }
 
-#endif //READOUT_PLUGINS_SNBWRITER_HPP_
+#endif //READOUT_PLUGINS_BUFFERED_FILE_STREAMER_HPP_

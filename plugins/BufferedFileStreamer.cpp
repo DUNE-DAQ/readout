@@ -5,10 +5,10 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#include "readout/snbwriter/Nljs.hpp"
+#include "readout/bufferedfilestreamer/Nljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
-#include "SNBWriter.hpp"
+#include "BufferedFileStreamer.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
@@ -24,16 +24,16 @@ using namespace dunedaq::readout::logging;
 namespace dunedaq {
   namespace readout {
 
-    SNBWriter::SNBWriter(const std::string& name)
+    BufferedFileStreamer::BufferedFileStreamer(const std::string& name)
         : DAQModule(name)
-        , m_thread(std::bind(&SNBWriter::do_work, this, std::placeholders::_1))
+        , m_thread(std::bind(&BufferedFileStreamer::do_work, this, std::placeholders::_1))
         , m_start_lock{} {
-      register_command("conf", &SNBWriter::do_conf);
-      register_command("start", &SNBWriter::do_start);
-      register_command("stop", &SNBWriter::do_stop);
+      register_command("conf", &BufferedFileStreamer::do_conf);
+      register_command("start", &BufferedFileStreamer::do_start);
+      register_command("stop", &BufferedFileStreamer::do_stop);
     }
 
-    void SNBWriter::init(const data_t& args) {
+    void BufferedFileStreamer::init(const data_t& args) {
       try {
         auto qi = appfwk::queue_index(args, {"snb"});
         m_input_queue.reset(new source_t(qi["snb"].inst));
@@ -44,23 +44,23 @@ namespace dunedaq {
       m_thread.start_working_thread(get_name());
     }
 
-    void SNBWriter::get_info(opmonlib::InfoCollector& ci, int level) {
+    void BufferedFileStreamer::get_info(opmonlib::InfoCollector& ci, int level) {
 
     }
 
-    void SNBWriter::do_conf(const data_t& args) {
+    void BufferedFileStreamer::do_conf(const data_t& args) {
 
     }
 
-    void SNBWriter::do_start(const data_t& args) {
+    void BufferedFileStreamer::do_start(const data_t& args) {
       m_start_lock.unlock();
     }
 
-    void SNBWriter::do_stop(const data_t& args) {
+    void BufferedFileStreamer::do_stop(const data_t& args) {
       m_thread.stop_working_thread();
     }
 
-    void SNBWriter::do_work(std::atomic<bool>& running_flag) {
+    void BufferedFileStreamer::do_work(std::atomic<bool>& running_flag) {
       std::lock_guard<std::mutex> lock_guard(m_start_lock);
       std::string output_file = "output_" + get_name();
       if (remove(output_file.c_str()) == 0) {
@@ -97,4 +97,4 @@ namespace dunedaq {
   } // namespace readout
 } // namespace dunedaq
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::SNBWriter)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::BufferedFileStreamer)

@@ -38,7 +38,7 @@ daq_add_library(
 # Plugins
 daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(SNBWriter duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
+daq_add_plugin(BufferedFileStreamer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
 
 ##############################################################################
 # Integration tests
