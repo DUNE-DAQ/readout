@@ -25,11 +25,13 @@ createLatencyBuffer(const std::string& rawtype, int qsize,
                     std::function<void(RawType)>& write_override,
                     std::function<bool(RawType&)>& read_override,
                     std::function<void(unsigned)>& pop_override,       // NOLINT
-                    std::function<RawType*(unsigned)>& front_override) // NOLINT
+                    std::function<RawType*(unsigned)>& front_override,
+                    std::function<void()>& lock_override,
+                    std::function<void()>& unlock_override) // NOLINT
 {
   if (rawtype == "wib") {
     return std::make_unique<ContinousLatencyBufferModel<RawType>>(qsize, 
-        occupancy_override, write_override, read_override, pop_override, front_override);
+        occupancy_override, write_override, read_override, pop_override, front_override, lock_override, unlock_override);
   }
 
   if (rawtype == "pd") {

@@ -46,12 +46,16 @@ public:
                                       std::function<bool(RawType&)>& read_callback,
                                       std::function<void(unsigned)>& pop_callback,
                                       std::function<RawType*(unsigned)>& front_callback,
+                                      std::function<void()>& lock_callback,
+                                      std::function<void()>& unlock_callback,
                                       std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
                                       std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
   : m_occupancy_callback(m_occupancycallback)
   , m_read_callback(read_callback)
   , m_pop_callback(pop_callback)
   , m_front_callback(front_callback)
+  , m_lock_callback(lock_callback)
+  , m_unlock_callback(unlock_callback)
   , m_fragment_sink(fragment_sink)
   , m_snb_sink(snb_sink)
   , m_run_marker(marker)
@@ -148,6 +152,7 @@ protected:
       for (uint i = 0; i < to_pop; ++i) {
         if (m_read_callback(element)) {
           //try {
+          std::cout << "Push to queue" << std::endl;
             m_snb_sink->push(element, std::chrono::milliseconds(0));
           //} catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
             //TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not write to queue";
@@ -181,10 +186,13 @@ protected:
       } else {
         bool success = m_completion_queue.try_pop(fut);
         if (!success) {
-          //ers::error(CommandFacilityError(ERS_HERE, "Can't get from completion queue."));
+          ers::error(CannotReadFromQueue(ERS_HERE, "RequestsCompletionQueue."));
         } else {
+          //m_lock_callback();
           fut.wait(); // trigger execution
+          //m_unlock_callback();
           auto reqres = fut.get();
+          //TLOG() << "Request result handled: " << resultCodeAsString(reqres.result_code);
           if (reqres.result_code == ResultCode::kNotYet && m_run_marker.load()) { // give it another chance
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
@@ -224,6 +232,8 @@ protected:
   std::function<bool(RawType&)>& m_read_callback; 
   std::function<void(unsigned)>& m_pop_callback;
   std::function<RawType*(unsigned)>& m_front_callback;
+  std::function<void()>& m_lock_callback;
+  std::function<void()>& m_unlock_callback;
 
   // Request source and Fragment sink
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;

@@ -1,0 +1,1035 @@
+[
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "time_sync_q",
+                                "name": "time_sync_source"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "token_q",
+                                "name": "token_source"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "trigger_decision_q",
+                                "name": "trigger_decision_sink"
+                            }
+                        ]
+                    },
+                    "inst": "tde",
+                    "plugin": "TriggerDecisionEmulator"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "trigger_decision_q",
+                                "name": "trigger_decision_input_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "trigger_decision_copy_for_bookkeeping",
+                                "name": "trigger_decision_for_event_building"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_0",
+                                "name": "data_request_0_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_1",
+                                "name": "data_request_1_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_2",
+                                "name": "data_request_2_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_3",
+                                "name": "data_request_3_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_4",
+                                "name": "data_request_4_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_5",
+                                "name": "data_request_5_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_6",
+                                "name": "data_request_6_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_7",
+                                "name": "data_request_7_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_8",
+                                "name": "data_request_8_output_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_requests_9",
+                                "name": "data_request_9_output_queue"
+                            }
+                        ]
+                    },
+                    "inst": "rqg",
+                    "plugin": "RequestGenerator"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "trigger_decision_copy_for_bookkeeping",
+                                "name": "trigger_decision_input_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "trigger_record_q",
+                                "name": "trigger_record_output_queue"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_fragments_q",
+                                "name": "data_fragment_input_queue"
+                            }
+                        ]
+                    },
+                    "inst": "ffr",
+                    "plugin": "FragmentReceiver"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "trigger_record_q",
+                                "name": "trigger_record_input_queue"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "token_q",
+                                "name": "token_output_queue"
+                            }
+                        ]
+                    },
+                    "inst": "datawriter",
+                    "plugin": "DataWriter"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_0",
+                                "name": "output_0"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_1",
+                                "name": "output_1"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_2",
+                                "name": "output_2"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_3",
+                                "name": "output_3"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_4",
+                                "name": "output_4"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_5",
+                                "name": "output_5"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_6",
+                                "name": "output_6"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_7",
+                                "name": "output_7"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_8",
+                                "name": "output_8"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib_fake_link_9",
+                                "name": "output_9"
+                            }
+                        ]
+                    },
+                    "inst": "fake_source",
+                    "plugin": "FakeCardReader"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_0",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_0",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_0",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_1",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_1",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_1",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_2",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_2",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_2",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_3",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_3",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_3",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_4",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_4",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_4",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_5",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_5",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_5",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_6",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_6",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_6",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_7",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_7",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_7",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_8",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_8",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_8",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib_fake_link_9",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_9",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_9",
+                    "plugin": "DataLinkHandler"
+                }
+            ],
+            "queues": [
+                {
+                    "capacity": 100,
+                    "inst": "data_fragments_q",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_0",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_1",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_2",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_3",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_4",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_5",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_6",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_7",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_8",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "data_requests_9",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100,
+                    "inst": "time_sync_q",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "token_q",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "trigger_decision_copy_for_bookkeeping",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "trigger_decision_q",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 20,
+                    "inst": "trigger_record_q",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_0",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_1",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_2",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_3",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_4",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_5",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_6",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_7",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_8",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib_fake_link_9",
+                    "kind": "FollySPSCQueue"
+                }
+            ]
+        },
+        "entry_state": "NONE",
+        "exit_state": "INITIAL",
+        "id": "init"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "clock_frequency_hz": 50000000,
+                        "links": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9
+                        ],
+
+                        "max_links_in_request": 1,
+                        "max_readout_window_ticks": 5000000,
+                        "min_links_in_request": 1,
+                        "min_readout_window_ticks": 5000000,
+                        "repeat_trigger_count": 1,
+                        "stop_burst_count": 0,
+                        "trigger_delay_ticks": 25000000,
+                        "trigger_interval_ticks": 1000000,
+                        "trigger_offset": 0,
+                        "trigger_window_offset": 0
+
+
+                    },
+                    "match": "tde"
+                },
+                {
+                    "data": {
+                        "map": [
+                            {
+                                "apa": 0,
+                                "link": 0,
+                                "queueinstance": "data_requests_0"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 1,
+                                "queueinstance": "data_requests_1"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 2,
+                                "queueinstance": "data_requests_2"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 3,
+                                "queueinstance": "data_requests_3"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 4,
+                                "queueinstance": "data_requests_4"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 5,
+                                "queueinstance": "data_requests_5"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 6,
+                                "queueinstance": "data_requests_6"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 7,
+                                "queueinstance": "data_requests_7"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 8,
+                                "queueinstance": "data_requests_8"
+                            },
+                            {
+                                "apa": 0,
+                                "link": 9,
+                                "queueinstance": "data_requests_9"
+                            }
+                        ]
+                    },
+                    "match": "rqg"
+                },
+                {
+                    "data": {
+                        "general_queue_timeout": 100,
+                        "max_timestamp_diff": 50000000
+                    },
+                    "match": "ffr"
+                },
+                {
+                    "data": {
+                        "data_storage_prescale": 1,
+                        "data_store_parameters": {
+                            "directory_path": ".",
+                            "disable_unique_filename_suffix": false,
+                            "file_layout_parameters": {
+                                "apa_name_prefix": "APA",
+                                "detector_name": "TPC",
+                                "digits_for_apa_number": 3,
+                                "digits_for_link_number": 2,
+                                "digits_for_trigger_number": 5,
+                                "link_name_prefix": "Link",
+                                "trigger_record_name_prefix": "TriggerRecord"
+                            },
+                            "filename_parameters": {
+                                "digits_for_file_index": 4,
+                                "digits_for_run_number": 6,
+                                "file_index_prefix": "file",
+                                "overall_prefix": "fake_minidaqapp",
+                                "run_number_prefix": "run"
+                            },
+                            "max_file_size_bytes": 1073741834,
+                            "mode": "all-per-file",
+                            "name": "data_store",
+                            "type": "HDF5DataStore"
+                        },
+                        "initial_token_count": 10
+                    },
+                    "match": "datawriter"
+                },
+                {
+                    "data": {
+                        "data_filename": "./frames.bin",
+                        "input_limit": 10485100,
+                        "link_ids": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9
+                        ],
+                        "queue_timeout_ms": 100,
+                        "rate_khz": 166.66666666666666,
+                        "raw_type": "wib",
+                        "set_t0_to": 50000000,
+                        "tp_data_filename": "/tmp/tp_frames.bin",
+                        "tp_enabled": "false",
+                        "tp_rate_khz": 66.0
+                    },
+                    "match": "fake_source"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 0,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_0"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 1,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_1"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 2,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_2"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 3,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_3"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 4,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_4"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 5,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_5"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 6,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_6"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 7,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_7"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 8,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_8"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 0,
+                        "latency_buffer_size": 833333,
+                        "link_number": 9,
+                        "pop_limit_pct": 0.9,
+                        "pop_size_pct": 0.5,
+                        "raw_type": "wib",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_9"
+                }
+            ]
+        },
+        "entry_state": "INITIAL",
+        "exit_state": "CONFIGURED",
+        "id": "conf"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "disable_data_storage": true,
+                        "run": 333,
+                        "trigger_interval_ticks": 500000000
+                    },
+                    "match": "datawriter"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": true,
+                        "run": 333,
+                        "trigger_interval_ticks": 500000000
+                    },
+                    "match": "ffr"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": true,
+                        "run": 333,
+                        "trigger_interval_ticks": 500000000
+                    },
+                    "match": "datahandler_.*"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": true,
+                        "run": 333,
+                        "trigger_interval_ticks": 500000000
+                    },
+                    "match": "fake_source"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": true,
+                        "run": 333,
+                        "trigger_interval_ticks": 500000000
+                    },
+                    "match": "rqg"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": true,
+                        "run": 333,
+                        "trigger_interval_ticks": 500000000
+                    },
+                    "match": "tde"
+                }
+            ]
+        },
+        "entry_state": "CONFIGURED",
+        "exit_state": "RUNNING",
+        "id": "start"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "match": "tde"
+                },
+                {
+                    "match": "rqg"
+                },
+                {
+                    "match": "fake_source"
+                },
+                {
+                    "match": "datahandler_.*"
+                },
+                {
+                    "match": "ffr"
+                },
+                {
+                    "match": "datawriter"
+                }
+            ]
+        },
+        "entry_state": "RUNNING",
+        "exit_state": "CONFIGURED",
+        "id": "stop"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "match": ""
+                }
+            ]
+        },
+        "entry_state": "RUNNING",
+        "exit_state": "RUNNING",
+        "id": "pause"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "trigger_interval_ticks": 50000000
+                    },
+                    "match": "tde"
+                }
+            ]
+        },
+        "entry_state": "RUNNING",
+        "exit_state": "RUNNING",
+        "id": "resume"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "match": ""
+                }
+            ]
+        },
+        "id": "scrap"
+    }
+]
