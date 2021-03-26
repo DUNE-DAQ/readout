@@ -103,7 +103,7 @@ def generate(
                 ("fake_source",fcr.Conf(
                             link_ids=list(range(NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)),
                             # input_limit=10485100, # default
-                            rate_khz = CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR*1000),
+                            rate_khz = 166,
                             raw_type = "wib",
                             data_filename = DATA_FILE,
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
@@ -119,7 +119,7 @@ def generate(
                         fake_trigger_flag=1,
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
                         pop_limit_pct = 0.8,
-                        pop_size_pct = 0.1,
+                        pop_size_pct = 0.3,
                         apa_number = 0,
                         link_number = idx
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
