@@ -152,7 +152,6 @@ protected:
       for (uint i = 0; i < to_pop; ++i) {
         if (m_read_callback(element)) {
           //try {
-          std::cout << "Push to queue" << std::endl;
             m_snb_sink->push(element, std::chrono::milliseconds(0));
           //} catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
             //TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not write to queue";
@@ -197,7 +196,7 @@ protected:
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
               << "delay [us] " << reqres.request_delay_us;
-            issue_request(reqres.data_request, reqres.request_delay_us);
+            issue_request(reqres.data_request, 0);
           }
         }
       }
