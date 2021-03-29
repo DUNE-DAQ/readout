@@ -63,12 +63,13 @@ namespace dunedaq {
       }
 
       io_sink_t io_sink(fd, boost::iostreams::file_descriptor_flags::close_handle);
-      m_output_stream.open(io_sink, conf.stream_buffer_size);
+      m_output_stream.push(boost::iostreams::zstd_compressor(boost::iostreams::zstd::best_speed));
+      m_output_stream.push(io_sink, conf.stream_buffer_size);
 
-      if (!m_output_stream.is_open()) {
+      /*if (!m_output_stream.is_open()) {
         TLOG() << "Could not open stream" << std::endl;
         throw ConfigurationError(ERS_HERE, "Could not open output stream");
-      }
+      }*/
     }
 
     void BufferedFileStreamer::do_start(const data_t& /* args */) {
@@ -93,6 +94,7 @@ namespace dunedaq {
           continue;
         }
       }
+      m_output_stream.flush();
     }
 
   } // namespace readout
