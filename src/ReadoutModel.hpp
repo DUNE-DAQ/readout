@@ -210,7 +210,9 @@ private:
       // Only process if data was acquired
       //if (payload != nullptr) { // payload_ptr
         m_process_callback(&payload); // payload_ptr.get()
-        m_write_callback(std::move(payload)); // payload_ptr
+        if (!m_write_callback(std::move(payload))) {
+          TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
+        }
         m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
         ++m_packet_count_tot;
@@ -351,7 +353,7 @@ private:
   size_t m_latency_buffer_size;
   std::unique_ptr<LatencyBufferConcept> m_latency_buffer_impl;
   std::function<size_t()> m_occupancy_callback;
-  std::function<void(RawType)> m_write_callback;
+  std::function<bool(RawType)> m_write_callback;
   std::function<bool(RawType&)> m_read_callback;
   std::function<void(unsigned)> m_pop_callback;
   std::function<RawType*(unsigned)> m_front_callback;
