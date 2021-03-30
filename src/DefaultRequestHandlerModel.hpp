@@ -160,7 +160,6 @@ protected:
           // Change this to throw an error
           TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not read from buffer";
         }
-        m_pop_callback(1);
       }
 
       m_occupancy = m_occupancy_callback();
