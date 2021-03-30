@@ -17,11 +17,6 @@
 #include "logging/Logging.hpp"
 #include "ReadoutIssues.hpp"
 
-#include <boost/align/aligned_allocator.hpp>
-#include <boost/iostreams/stream.hpp>
-#include <boost/iostreams/stream_buffer.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
-
 using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
@@ -66,28 +61,8 @@ namespace dunedaq {
       if (remove(output_file.c_str()) == 0) {
         TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run" << std::endl;
       }
-      fd = open(output_file.c_str(), O_CREAT | O_RDWR | O_DIRECT);
-      if (fd == -1) {
-        throw ConfigurationError(ERS_HERE, "Could not open output file.");
-      }
 
-      io_sink_t io_sink(fd, boost::iostreams::file_descriptor_flags::close_handle);
-      if (m_conf.compression_algorithm == "zstd") {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Using zstd compression" << std::endl;
-        m_output_stream.push(boost::iostreams::zstd_compressor(boost::iostreams::zstd::best_speed));
-      } else if (m_conf.compression_algorithm == "lzma") {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Using lzma compression" << std::endl;
-        m_output_stream.push(boost::iostreams::lzma_compressor(boost::iostreams::lzma::best_speed));
-      } else if (m_conf.compression_algorithm == "zlib") {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Using zlib compression" << std::endl;
-        m_output_stream.push(boost::iostreams::zlib_compressor(boost::iostreams::zlib::best_speed));
-      } else if (m_conf.compression_algorithm == "None") {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Running without compression" << std::endl;
-      } else {
-        throw ConfigurationError(ERS_HERE, "Non-recognized compression algorithm: " + m_conf.compression_algorithm);
-      }
-
-      m_output_stream.push(io_sink, m_conf.stream_buffer_size);
+      m_buffered_writer.open(m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm);
     }
 
     void BufferedFileStreamer::do_start(const data_t& /* args */) {
@@ -108,14 +83,14 @@ namespace dunedaq {
           m_input_queue->pop(element, std::chrono::milliseconds(100));
           m_packets_processed_total++;
           m_packets_processed_since_last_info++;
-          if (!m_output_stream.write((char*)&element, sizeof(element))) {
+          if (!m_buffered_writer.write(element)) {
             throw CannotWriteToFile(ERS_HERE, m_conf.output_file);
           }
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
           continue;
         }
       }
-      m_output_stream.flush();
+      m_buffered_writer.flush();
     }
 
   } // namespace readout

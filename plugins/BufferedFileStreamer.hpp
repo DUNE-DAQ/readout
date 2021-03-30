@@ -15,15 +15,7 @@
 #include "readout/bufferedfilestreamer/Structs.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
-
-#include <boost/align/aligned_allocator.hpp>
-#include <boost/iostreams/stream.hpp>
-#include <boost/iostreams/stream_buffer.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/zstd.hpp>
-#include <boost/iostreams/filter/lzma.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
+#include "BufferedWriter.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -31,10 +23,6 @@
 
 namespace dunedaq {
   namespace readout {
-    using io_sink_t = boost::iostreams::file_descriptor_sink;
-    using aligned_allocator_t = boost::alignment::aligned_allocator<io_sink_t::char_type, 4096>;
-    using filtering_stream_t = boost::iostreams::filtering_stream<boost::iostreams::output, char, std::char_traits<char>, aligned_allocator_t>;
-    //using stream_t = boost::iostreams::stream<io_sink_t, std::char_traits<io_sink_t::char_type>, aligned_allocator_t>;
 
     class BufferedFileStreamer : public dunedaq::appfwk::DAQModule {
     public:
@@ -63,7 +51,7 @@ namespace dunedaq {
       std::string m_output_file;
       std::mutex m_start_lock;
       bufferedfilestreamer::Conf m_conf;
-      filtering_stream_t m_output_stream;
+      BufferedWriter<types::WIB_SUPERCHUNK_STRUCT> m_buffered_writer;
 
       // Stats
       stats::counter_t m_packets_processed_total{0};
