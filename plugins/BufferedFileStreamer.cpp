@@ -55,7 +55,7 @@ namespace dunedaq {
       auto conf = args.get<bufferedfilestreamer::Conf>();
       std::string output_file = conf.output_file;
       if (remove(output_file.c_str()) == 0) {
-        TLOG() << "Removed existing output file from previous run" << std::endl;
+        TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run" << std::endl;
       }
       fd = open(output_file.c_str(), O_CREAT | O_RDWR | O_DIRECT);
       if (fd == -1) {
@@ -63,7 +63,21 @@ namespace dunedaq {
       }
 
       io_sink_t io_sink(fd, boost::iostreams::file_descriptor_flags::close_handle);
-      m_output_stream.push(boost::iostreams::zstd_compressor(boost::iostreams::zstd::best_speed));
+      if (conf.compression_algorithm == "zstd") {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Using zstd compression";
+        m_output_stream.push(boost::iostreams::zstd_compressor(boost::iostreams::zstd::best_speed));
+      } else if (conf.compression_algorithm == "lzma") {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Using lzma compression";
+        m_output_stream.push(boost::iostreams::lzma_compressor(boost::iostreams::lzma::best_speed));
+      } else if (conf.compression_algorithm == "zlib") {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Using zlib compression";
+        m_output_stream.push(boost::iostreams::zlib_compressor(boost::iostreams::zlib::best_speed));
+      } else if (conf.compression_algorithm == "None") {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Running without compression";
+      } else {
+        ers::error(ConfigurationError(ERS_HERE, "Non-recognized compression algorithm: " + conf.compression_algorithm));
+      }
+
       m_output_stream.push(io_sink, conf.stream_buffer_size);
 
       /*if (!m_output_stream.is_open()) {

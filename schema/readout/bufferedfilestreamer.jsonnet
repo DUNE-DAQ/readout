@@ -31,13 +31,18 @@ local bufferedfilestreamer = {
     file_name : s.string("FileName", moo.re.ident,
                   doc="A string field"),
 
+    string : s.string("String", moo.re.ident,
+                  doc="A string field"),
+
     choice : s.boolean("Choice"),
 
     conf: s.record("Conf", [
         s.field("output_file", self.file_name, "output.out",
                 doc="Name of the output file to write to"),
         s.field("stream_buffer_size", self.size, 8388608,
-                doc="Buffer size of the stream buffer")
+                doc="Buffer size of the stream buffer"),
+        s.field("compression_algorithm", self.string, "None",
+                doc="Compression algorithm to use before writing to file")
     ], doc="SNBWriter configuration"),
 
 };
