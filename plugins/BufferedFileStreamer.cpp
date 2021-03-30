@@ -7,6 +7,7 @@
 */
 #include "readout/bufferedfilestreamer/Nljs.hpp"
 #include "readout/bufferedfilestreamer/Structs.hpp"
+#include "readout/bufferedfilestreamerinfo/Nljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "BufferedFileStreamer.hpp"
@@ -46,8 +47,20 @@ namespace dunedaq {
       m_thread.start_working_thread(get_name());
     }
 
-    void BufferedFileStreamer::get_info(opmonlib::InfoCollector& /* ci */, int /* level */) {
+    void BufferedFileStreamer::get_info(opmonlib::InfoCollector& ci, int /* level */) {
+      bufferedfilestreamerinfo::Info info;
+      info.packets_processed = m_packets_processed_total;
+      info.bytes_written = m_bytes_written_total;
+      double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
+                                                                                    - m_time_point_last_info).count();
+      info.throughput_processed_packets = m_packets_processed_since_last_info / time_diff;
+      info.throughput_to_file = m_bytes_written_since_last_info / time_diff;
 
+      ci.add(info);
+
+      m_packets_processed_since_last_info = 0;
+      m_bytes_written_since_last_info = 0;
+      m_time_point_last_info = std::chrono::steady_clock::now();
     }
 
     void BufferedFileStreamer::do_conf(const data_t& args) {
@@ -79,11 +92,6 @@ namespace dunedaq {
       }
 
       m_output_stream.push(io_sink, conf.stream_buffer_size);
-
-      /*if (!m_output_stream.is_open()) {
-        TLOG() << "Could not open stream" << std::endl;
-        throw ConfigurationError(ERS_HERE, "Could not open output stream");
-      }*/
     }
 
     void BufferedFileStreamer::do_start(const data_t& /* args */) {
@@ -96,13 +104,19 @@ namespace dunedaq {
 
     void BufferedFileStreamer::do_work(std::atomic<bool>& running_flag) {
       std::lock_guard<std::mutex> lock_guard(m_start_lock);
+      m_time_point_last_info = std::chrono::steady_clock::now();
 
       types::WIB_SUPERCHUNK_STRUCT element;
       while (running_flag.load()) {
         try {
           m_input_queue->pop(element, std::chrono::milliseconds(100));
+          m_packets_processed_total++;
+          m_packets_processed_since_last_info++;
           if (!m_output_stream.write((char*)&element, sizeof(element))) {
             TLOG() << "Write was not successful" << std::endl;
+          } else {
+            m_bytes_written_total += sizeof(element);
+            m_bytes_written_since_last_info += sizeof(element);
           }
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
           continue;

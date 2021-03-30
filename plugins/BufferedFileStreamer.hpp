@@ -14,6 +14,7 @@
 #include "appfwk/ThreadHelper.hpp"
 #include "readout/bufferedfilestreamer/Structs.hpp"
 #include "readout/ReadoutTypes.hpp"
+#include "ReadoutStatistics.hpp"
 
 #include <boost/align/aligned_allocator.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -63,6 +64,13 @@ namespace dunedaq {
       std::mutex m_start_lock;
       data_t m_conf;
       filtering_stream_t m_output_stream;
+
+      // Stats
+      stats::counter_t m_packets_processed_total{0};
+      stats::counter_t m_packets_processed_since_last_info{0};
+      stats::counter_t m_bytes_written_total{0};
+      stats::counter_t m_bytes_written_since_last_info{0};
+      std::chrono::steady_clock::time_point m_time_point_last_info;
     };
   }
 }
