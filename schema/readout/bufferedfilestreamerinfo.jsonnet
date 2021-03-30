@@ -16,9 +16,7 @@ local info = {
    info: s.record("Info", [
        s.field("class_name", self.cl, "bufferedfilestreamerinfo", doc="Info class name"),
        s.field("packets_processed", self.uint8, 0, doc="Number of packets processed"),
-       s.field("bytes_written", self.uint8, 0, doc="Number of bytes written to disk"),
        s.field("throughput_processed_packets", self.float8, 0, doc="Throughput of processed packets"),
-       s.field("throughput_to_file", self.float8, 0, doc="Throughput of bytes written to file")
    ], doc="Data link handler information information")
 };
 

@@ -62,14 +62,12 @@ namespace dunedaq {
       int fd;
       std::string m_output_file;
       std::mutex m_start_lock;
-      data_t m_conf;
+      bufferedfilestreamer::Conf m_conf;
       filtering_stream_t m_output_stream;
 
       // Stats
       stats::counter_t m_packets_processed_total{0};
       stats::counter_t m_packets_processed_since_last_info{0};
-      stats::counter_t m_bytes_written_total{0};
-      stats::counter_t m_bytes_written_since_last_info{0};
       std::chrono::steady_clock::time_point m_time_point_last_info;
     };
   }

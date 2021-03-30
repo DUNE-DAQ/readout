@@ -30,6 +30,10 @@ namespace dunedaq {
                       " Couldn't open binary file: " << filename,
                       ((std::string)filename))
 
+    ERS_DECLARE_ISSUE(readout, CannotWriteToFile,
+                      " Could not write to file: " << filename,
+                      ((std::string)filename))
+
     ERS_DECLARE_ISSUE(readout, EmptySourceBuffer,
                       " Source Buffer is empty, check file: " << filename,
                       ((std::string)filename))
