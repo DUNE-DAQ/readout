@@ -63,7 +63,7 @@ namespace dunedaq {
         m_buffer_size = buffer_size;
         m_compression_algorithm = compression_algorithm;
 
-        int fd = ::open(m_filename.c_str(), O_CREAT | O_RDWR | O_DIRECT);
+        int fd = ::open(m_filename.c_str(), O_RDONLY);
         if (fd == -1) {
           throw CannotOpenFile(ERS_HERE, m_filename);
         }
