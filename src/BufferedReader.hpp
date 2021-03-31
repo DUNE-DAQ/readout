@@ -93,6 +93,7 @@ namespace dunedaq {
       }
 
       bool read(RawType& element) {
+        if (!m_is_open) return false;
         m_input_stream.read((char*)&element, sizeof(element));
         return (m_input_stream.gcount() == sizeof(element));
       }

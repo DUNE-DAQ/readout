@@ -49,6 +49,10 @@ namespace dunedaq {
 
       }
 
+      ~BufferedWriter() {
+        if (m_is_open) close();
+      }
+
       BufferedWriter(const BufferedWriter&)
       = delete; ///< BufferedWriter is not copy-constructible
       BufferedWriter& operator=(const BufferedWriter&)
@@ -95,12 +99,12 @@ namespace dunedaq {
       }
 
       bool write(RawType element) {
+        if (!m_is_open) return false;
         m_output_stream.write((char*)&element, sizeof(element));
         return !m_output_stream.bad();
       }
 
       void close() {
-        flush();
         fcntl(m_fd, F_SETFL, O_CREAT | O_WRONLY);
         m_output_stream.reset();
         m_is_open = false;
