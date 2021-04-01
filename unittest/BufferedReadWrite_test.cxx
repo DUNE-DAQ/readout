@@ -1,5 +1,5 @@
 /**
- * @file RawWIBTp_test.cxx RawWIBTp class Unit Tests
+ * @file BufferedReadWrite_test.cxx Unit Tests for BufferedFileWriter and BufferedFileReader
  *
  * This is part of the DUNE DAQ Application Framework, copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -15,8 +15,8 @@
 #include "boost/test/unit_test.hpp"
 
 #include "readout/ReadoutTypes.hpp"
-#include "BufferedWriter.hpp"
-#include "BufferedReader.hpp"
+#include "BufferedFileWriter.hpp"
+#include "BufferedFileReader.hpp"
 
 #include <string>
 #include <stdio.h>
@@ -25,7 +25,7 @@ using namespace dunedaq::readout;
 
 BOOST_AUTO_TEST_SUITE(BufferedReadWrite_test)
 
-void test_read_write(BufferedWriter<int>& writer, BufferedReader<int>& reader, uint numbers_to_write) {
+void test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& reader, uint numbers_to_write) {
   std::vector<int> numbers(numbers_to_write/sizeof(int));
 
   bool write_successful = false;
@@ -58,9 +58,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_one_int)
 {
   std::cout << "Trying to write and read one int" << std::endl;
   remove("test.out");
-  BufferedWriter<int> writer;
+  BufferedFileWriter<int> writer;
   writer.open("test.out", 4096);
-  BufferedReader<int> reader;
+  BufferedFileReader<int> reader;
   reader.open("test.out", 4096);
   uint numbers_to_write = 1;
 
@@ -71,9 +71,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_extended)
 {
   std::cout << "Trying to read and write more ints" << std::endl;
   remove("test.out");
-  BufferedWriter<int> writer;
+  BufferedFileWriter<int> writer;
   writer.open("test.out", 4096);
-  BufferedReader<int> reader;
+  BufferedFileReader<int> reader;
   reader.open("test.out", 4096);
   uint numbers_to_write = 4096 * 4096;
 
@@ -84,9 +84,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zstd)
 {
   std::cout << "Testing zstd compression" << std::endl;
   remove("test.out");
-  BufferedWriter<int> writer;
+  BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "zstd");
-  BufferedReader<int> reader;
+  BufferedFileReader<int> reader;
   reader.open("test.out", 4096, "zstd");
   uint numbers_to_write = 4096 * 4096;
 
@@ -97,9 +97,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_lzma)
 {
   std::cout << "Testing lzma compression" << std::endl;
   remove("test.out");
-  BufferedWriter<int> writer;
+  BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "lzma");
-  BufferedReader<int> reader;
+  BufferedFileReader<int> reader;
   reader.open("test.out", 4096, "lzma");
   uint numbers_to_write = 4096 * 4096;
 
@@ -110,9 +110,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
 {
   std::cout << "Testing zlib compression" << std::endl;
   remove("test.out");
-  BufferedWriter<int> writer;
+  BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "zlib");
-  BufferedReader<int> reader;
+  BufferedFileReader<int> reader;
   reader.open("test.out", 4096, "zlib");
   uint numbers_to_write = 4096 * 4096;
 
@@ -122,11 +122,11 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 {
   std::cout << "Try to read and write on uninitialized instances" << std::endl;
-  BufferedWriter<int> writer;
+  BufferedFileWriter<int> writer;
   bool write_successful = writer.write(42);
   BOOST_REQUIRE(!write_successful);
 
-  BufferedReader<int> reader;
+  BufferedFileReader<int> reader;
   int value;
   bool read_successful = reader.read(value);
   BOOST_REQUIRE(!read_successful);
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_already_closed)
 {
   std::cout << "Try to write on closed writer" << std::endl;
-  BufferedWriter<int> writer("test.out", 4096);
+  BufferedFileWriter<int> writer("test.out", 4096);
   writer.close();
   bool write_successful = writer.write(42);
   BOOST_REQUIRE(!write_successful);
@@ -146,11 +146,11 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_destructor)
   std::cout << "Testing automatic closing on destruction" << std::endl;
   remove("test.out");
   {
-    BufferedWriter<int> writer("test.out", 4096);
+    BufferedFileWriter<int> writer("test.out", 4096);
     bool write_successful = writer.write(42);
     BOOST_REQUIRE(write_successful);
   }
-  BufferedReader<int> reader("test.out", 4096);
+  BufferedFileReader<int> reader("test.out", 4096);
   int value;
   bool read_successful = reader.read(value);
   BOOST_REQUIRE(read_successful);
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_superchunk)
 {
   remove("test.out");
   std::cout << "Read and write superchunks" << std::endl;
-  BufferedWriter<types::WIB_SUPERCHUNK_STRUCT> writer("test.out", 8388608);
+  BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> writer("test.out", 8388608);
 
   std::vector<types::WIB_SUPERCHUNK_STRUCT> chunks(100000);
   for (uint i = 0; i < chunks.size(); ++i) {
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_superchunk)
   }
   writer.close();
 
-  BufferedReader<types::WIB_SUPERCHUNK_STRUCT> reader("test.out", 8388608);
+  BufferedFileReader<types::WIB_SUPERCHUNK_STRUCT> reader("test.out", 8388608);
   types::WIB_SUPERCHUNK_STRUCT chunk;
   for (uint i = 0; i < chunks.size(); ++i) {
     bool read_successful = reader.read(chunk);

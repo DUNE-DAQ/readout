@@ -1,16 +1,16 @@
 /**
- * @file SNBWriter.cpp SNBWriter implementation
+ * @file DataRecorder.cpp DataRecorder implementation
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
 */
-#include "readout/bufferedfilestreamer/Nljs.hpp"
-#include "readout/bufferedfilestreamer/Structs.hpp"
-#include "readout/bufferedfilestreamerinfo/Nljs.hpp"
+#include "readout/datarecorder/Nljs.hpp"
+#include "readout/datarecorder/Structs.hpp"
+#include "readout/datarecorderinfo/Nljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
-#include "BufferedFileStreamer.hpp"
+#include "DataRecorder.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
@@ -22,16 +22,16 @@ using namespace dunedaq::readout::logging;
 namespace dunedaq {
   namespace readout {
 
-    BufferedFileStreamer::BufferedFileStreamer(const std::string& name)
+    DataRecorder::DataRecorder(const std::string& name)
         : DAQModule(name)
-        , m_thread(std::bind(&BufferedFileStreamer::do_work, this, std::placeholders::_1))
+        , m_thread(std::bind(&DataRecorder::do_work, this, std::placeholders::_1))
         , m_start_lock{} {
-      register_command("conf", &BufferedFileStreamer::do_conf);
-      register_command("start", &BufferedFileStreamer::do_start);
-      register_command("stop", &BufferedFileStreamer::do_stop);
+      register_command("conf", &DataRecorder::do_conf);
+      register_command("start", &DataRecorder::do_start);
+      register_command("stop", &DataRecorder::do_stop);
     }
 
-    void BufferedFileStreamer::init(const data_t& args) {
+    void DataRecorder::init(const data_t& args) {
       try {
         auto qi = appfwk::queue_index(args, {"snb"});
         m_input_queue.reset(new source_t(qi["snb"].inst));
@@ -42,8 +42,8 @@ namespace dunedaq {
       m_thread.start_working_thread(get_name());
     }
 
-    void BufferedFileStreamer::get_info(opmonlib::InfoCollector& ci, int /* level */) {
-      bufferedfilestreamerinfo::Info info;
+    void DataRecorder::get_info(opmonlib::InfoCollector& ci, int /* level */) {
+      datarecorderinfo::Info info;
       info.packets_processed = m_packets_processed_total;
       double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
                                                                                     - m_time_point_last_info).count();
@@ -55,8 +55,8 @@ namespace dunedaq {
       m_time_point_last_info = std::chrono::steady_clock::now();
     }
 
-    void BufferedFileStreamer::do_conf(const data_t& args) {
-      m_conf = args.get<bufferedfilestreamer::Conf>();
+    void DataRecorder::do_conf(const data_t& args) {
+      m_conf = args.get<datarecorder::Conf>();
       std::string output_file = m_conf.output_file;
       if (remove(output_file.c_str()) == 0) {
         TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run" << std::endl;
@@ -65,15 +65,15 @@ namespace dunedaq {
       m_buffered_writer.open(m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm);
     }
 
-    void BufferedFileStreamer::do_start(const data_t& /* args */) {
+    void DataRecorder::do_start(const data_t& /* args */) {
       m_start_lock.unlock();
     }
 
-    void BufferedFileStreamer::do_stop(const data_t& /* args */) {
+    void DataRecorder::do_stop(const data_t& /* args */) {
       m_thread.stop_working_thread();
     }
 
-    void BufferedFileStreamer::do_work(std::atomic<bool>& running_flag) {
+    void DataRecorder::do_work(std::atomic<bool>& running_flag) {
       std::lock_guard<std::mutex> lock_guard(m_start_lock);
       m_time_point_last_info = std::chrono::steady_clock::now();
 
@@ -96,4 +96,4 @@ namespace dunedaq {
   } // namespace readout
 } // namespace dunedaq
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::BufferedFileStreamer)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::DataRecorder)

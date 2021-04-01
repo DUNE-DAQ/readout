@@ -11,7 +11,7 @@ moo.otypes.load_types('appfwk/cmd.jsonnet')
 moo.otypes.load_types('appfwk/app.jsonnet')
 moo.otypes.load_types('readout/fakecardreader.jsonnet')
 moo.otypes.load_types('readout/datalinkhandler.jsonnet')
-moo.otypes.load_types('readout/bufferedfilestreamer.jsonnet')
+moo.otypes.load_types('readout/datarecorder.jsonnet')
 
 # Import new types
 import dunedaq.cmdlib.cmd as basecmd # AddressedCmd, 
@@ -20,7 +20,7 @@ import dunedaq.appfwk.app as app # AddressedCmd,
 import dunedaq.appfwk.cmd as cmd # AddressedCmd, 
 import dunedaq.readout.fakecardreader as fcr
 import dunedaq.readout.datalinkhandler as dlh
-import dunedaq.readout.bufferedfilestreamer as bfs
+import dunedaq.readout.datarecorder as bfs
 
 from appfwk.utils import mcmd, mrccmd, mspec
 
@@ -81,7 +81,7 @@ def generate(
                             app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-                mspec(f"buffered_file_streamer_{idx}", "BufferedFileStreamer", [
+                mspec(f"data_recorder_{idx}", "DataRecorder", [
                             app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
@@ -124,7 +124,7 @@ def generate(
                         link_number = idx
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
-                (f"buffered_file_streamer_{idx}", bfs.Conf(
+                (f"data_recorder_{idx}", bfs.Conf(
                         output_file = f"output_{idx}.out",
                         stream_buffer_size = 8388608
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
@@ -137,7 +137,7 @@ def generate(
     startcmd = mrccmd("start", "CONFIGURED", "RUNNING", [
             ("datahandler_.*", startpars),
             ("fake_source", startpars),
-            ("buffered_file_streamer_.*", startpars)
+            ("data_recorder_.*", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -148,7 +148,7 @@ def generate(
     stopcmd = mrccmd("stop", "RUNNING", "CONFIGURED", [
             ("fake_source", emptypars),
             ("datahandler_.*", emptypars),
-            ("buffered_file_streamer_.*", emptypars)
+            ("data_recorder_.*", emptypars)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)

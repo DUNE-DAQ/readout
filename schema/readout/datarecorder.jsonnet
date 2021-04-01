@@ -8,11 +8,11 @@
 local moo = import "moo.jsonnet";
 
 // A schema builder in the given path (namespace)
-local ns = "dunedaq.readout.bufferedfilestreamer";
+local ns = "dunedaq.readout.datarecorder";
 local s = moo.oschema.schema(ns);
 
 // Object structure used by the test/fake producer module
-local bufferedfilestreamer = {
+local datarecorder = {
     size: s.number("Size", "u8",
                    doc="A count of very many things"),
 
@@ -47,5 +47,5 @@ local bufferedfilestreamer = {
 
 };
 
-moo.oschema.sort_select(bufferedfilestreamer, ns)
+moo.oschema.sort_select(datarecorder, ns)
 

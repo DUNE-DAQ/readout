@@ -17,7 +17,7 @@ moo.otypes.load_types('dfmodules/datawriter.jsonnet')
 moo.otypes.load_types('dfmodules/hdf5datastore.jsonnet')
 moo.otypes.load_types('readout/fakecardreader.jsonnet')
 moo.otypes.load_types('readout/datalinkhandler.jsonnet')
-moo.otypes.load_types('readout/bufferedfilestreamer.jsonnet')
+moo.otypes.load_types('readout/datarecorder.jsonnet')
 
 
 # Import new types
@@ -32,7 +32,7 @@ import dunedaq.dfmodules.datawriter as dw
 import dunedaq.dfmodules.hdf5datastore as hdf5ds
 import dunedaq.readout.fakecardreader as fcr
 import dunedaq.readout.datalinkhandler as dlh
-import dunedaq.readout.bufferedfilestreamer as bfs
+import dunedaq.readout.datarecorder as bfs
 
 
 from appfwk.utils import mcmd, mrccmd, mspec
@@ -125,7 +125,7 @@ def generate(
                             app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="output"),
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-                mspec(f"buffered_file_streamer_{idx}", "BufferedFileStreamer", [
+                mspec(f"data_recorder_{idx}", "DataRecorder", [
                             app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
@@ -218,8 +218,9 @@ def generate(
                         link_number = idx
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
-                (f"buffered_file_streamer_{idx}", bfs.Conf(
+                (f"data_recorder_{idx}", bfs.Conf(
                         output_file = f"/mnt/micron1/output_{idx}.out",
+                        compression_algorithm = "None",
                         stream_buffer_size = 8388608
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ])
@@ -232,7 +233,7 @@ def generate(
             ("datawriter", startpars),
             ("ffr", startpars),
             ("datahandler_.*", startpars),
-            ("buffered_file_streamer_.*", startpars),
+            ("data_recorder_.*", startpars),
             ("fake_source", startpars),
             ("rqg", startpars),
             ("tde", startpars),
@@ -249,7 +250,7 @@ def generate(
             ("datahandler_.*", None),
             ("ffr", None),
             ("datawriter", None),
-            ("buffered_file_streamer_.*", None)
+            ("data_recorder_.*", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
