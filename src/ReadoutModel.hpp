@@ -175,6 +175,10 @@ public:
     m_raw_processor_impl->reset_last_daq_time();
   }
 
+  void issue_recording(const nlohmann::json& args) override {
+    m_request_handler_impl->issue_recording(args);
+  }
+
   void get_info(opmonlib::InfoCollector & ci, int /*level*/) {
     datalinkhandlerinfo::Info dli;
     dli.packets = m_packet_count_tot.load();

@@ -115,6 +115,18 @@ public:
       std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
     }
   }
+
+  void issue_recording(const nlohmann::json& args) override {
+    auto conf = args.get<datalinkhandler::RecordingParams>();
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Start recording" << std::endl;
+    m_recording.exchange(true);
+    auto stop_recording_thread = std::thread([&]() {
+      std::this_thread::sleep_for(std::chrono::seconds(conf.duration));
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Stop recording" << std::endl;
+      m_recording.exchange(false);
+    });
+    stop_recording_thread.detach();
+  }
  
   void auto_cleanup_check()
   {
@@ -152,7 +164,7 @@ protected:
       for (uint i = 0; i < to_pop; ++i) {
         if (m_read_callback(element)) {
           //try {
-            m_snb_sink->push(element, std::chrono::milliseconds(0));
+            if (m_recording) m_snb_sink->push(element, std::chrono::milliseconds(0));
           //} catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
             //TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not write to queue";
           //}
@@ -253,6 +265,8 @@ protected:
   std::atomic<bool>& m_run_marker;
 
 private:
+  std::atomic<bool> m_recording = false;
+
   // Executor
   std::thread m_executor;
 

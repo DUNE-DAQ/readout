@@ -33,6 +33,7 @@ public:
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
   virtual void get_info(opmonlib::InfoCollector & ci, int level) = 0;
+  virtual void issue_recording(const nlohmann::json& args) = 0;
 
   virtual void run_consume() = 0;
   virtual void run_timesync() = 0;
