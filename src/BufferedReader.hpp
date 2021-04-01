@@ -33,12 +33,11 @@ using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
   namespace readout {
-    using io_source_t = boost::iostreams::file_descriptor_source;
-    using aligned_allocator_t = boost::alignment::aligned_allocator<io_sink_t::char_type, 4096>;
-    using filtering_istream_t = boost::iostreams::filtering_stream<boost::iostreams::input, char, std::char_traits<char>, aligned_allocator_t>;
-
-    template<class RawType>
+    template<class RawType, size_t Alignment=4096>
     class BufferedReader {
+      using io_source_t = boost::iostreams::file_descriptor_source;
+      using aligned_allocator_t = boost::alignment::aligned_allocator<io_source_t::char_type, Alignment>;
+      using filtering_istream_t = boost::iostreams::filtering_stream<boost::iostreams::input, char, std::char_traits<char>, aligned_allocator_t>;
     public:
       explicit BufferedReader(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
       {
