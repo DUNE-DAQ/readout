@@ -16,6 +16,7 @@
 #include "readout/ReadoutTypes.hpp"
 #include "ReadoutStatistics.hpp"
 #include "BufferedFileWriter.hpp"
+#include "readout/ReusableThread.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -37,21 +38,23 @@ namespace dunedaq {
       void get_info(opmonlib::InfoCollector& ci, int level) override;
 
     private:
+      // Commands
       void do_conf(const nlohmann::json& obj);
       void do_start(const nlohmann::json& obj);
       void do_stop(const nlohmann::json& obj);
+      void do_work();
 
-      dunedaq::appfwk::ThreadHelper m_thread;
-      void do_work(std::atomic<bool>&);
-
+      // Queue
       using source_t = dunedaq::appfwk::DAQSource<types::WIB_SUPERCHUNK_STRUCT>;
       std::unique_ptr<source_t> m_input_queue;
 
-      int fd;
-      std::string m_output_file;
-      std::mutex m_start_lock;
+      // Internal
       datarecorder::Conf m_conf;
       BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> m_buffered_writer;
+
+      // Threading
+      ReusableThread m_work_thread;
+      std::atomic<bool> m_run_marker;
 
       // Stats
       stats::counter_t m_packets_processed_total{0};

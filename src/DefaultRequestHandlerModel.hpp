@@ -110,6 +110,8 @@ public:
   void stop(const nlohmann::json& /*args*/)
   {
     //m_run_marker.store(false);
+    //if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
+    m_future_recording_stopper.wait();
     m_executor.join();
     while (!m_stats_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
@@ -120,15 +122,15 @@ public:
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
       TLOG() << "A recording is still running, no new recording was started!" << std::endl;
+      return;
     }
-    TLOG() << "Start recording" << std::endl;
-    m_recording.exchange(true);
-    auto stop_recording_thread = std::thread([&]() {
+    m_future_recording_stopper = std::async([&]() {
+      TLOG() << "Start recording" << std::endl;
+      m_recording.exchange(true);
       std::this_thread::sleep_for(std::chrono::seconds(conf.duration));
       TLOG() << "Stop recording" << std::endl;
       m_recording.exchange(false);
     });
-    stop_recording_thread.detach();
   }
  
   void auto_cleanup_check()
@@ -267,7 +269,9 @@ protected:
   std::atomic<bool>& m_run_marker;
 
 private:
+  // For recording
   std::atomic<bool> m_recording = false;
+  std::future<void> m_future_recording_stopper;
 
   // Executor
   std::thread m_executor;

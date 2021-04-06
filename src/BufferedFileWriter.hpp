@@ -175,10 +175,12 @@ namespace dunedaq {
 
 
     private:
+      // Config parameters
       std::string m_filename;
       size_t m_buffer_size;
       std::string m_compression_algorithm;
 
+      // Internals
       int m_fd;
       io_sink_t m_sink;
       filtering_ostream_t m_output_stream;

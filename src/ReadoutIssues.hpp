@@ -18,6 +18,10 @@ namespace dunedaq {
                       " Readout Internal Error: " << intererror,
                       ((std::string)intererror))
 
+    ERS_DECLARE_ISSUE(readout, CommandError,
+                              " Command Error: " << commanderror,
+                              ((std::string)commanderror))
+
     ERS_DECLARE_ISSUE(readout, InitializationError,
                       " Readout Initialization Error: " << initerror,
                       ((std::string)initerror)) 
