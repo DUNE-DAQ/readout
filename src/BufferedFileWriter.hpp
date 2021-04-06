@@ -56,6 +56,8 @@ namespace dunedaq {
        * @param buffer_size The size of the buffer that is used before data is written to the file. Make sure that this
        * size fulfils size requirements of O_DIRECT, otherwise writes will fail.
        * @param compression_algorithm The compression algorithm to use. Can be one of: None, zstd, lzma or zlib
+       * @throw CannotOpenFile If the file can not be opened.
+       * @throw ConfigurationError If the compression algorithm parameter is not recognized.
        */
       explicit BufferedFileWriter(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
       {
