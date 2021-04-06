@@ -43,7 +43,7 @@ main(int argc, char* argv[])
       double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
                                                                                    - time_point_last_statistics).count();
       std::cout << "Bytes written: " << bytes_written_total << ", Throughput: "
-                << static_cast<double>(bytes_written_since_last_statistics) / ((uint64_t) 2 << 20) / time_diff << " MiB/s" << std::endl;
+                << static_cast<double>(bytes_written_since_last_statistics) / ((uint64_t) 1 << 20) / time_diff << " MiB/s" << std::endl;
       time_point_last_statistics = std::chrono::steady_clock::now();
       bytes_written_since_last_statistics = 0;
     }
