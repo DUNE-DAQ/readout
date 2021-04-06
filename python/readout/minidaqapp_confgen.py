@@ -281,7 +281,7 @@ def generate(
 
     record_cmd = mrccmd("record", "RUNNING", "RUNNING", [
             ("datahandler_.*", dlh.RecordingParams(
-                duration=1
+                duration=10
             ))
     ])
 

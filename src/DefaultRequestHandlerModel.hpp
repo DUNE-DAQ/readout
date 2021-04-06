@@ -118,11 +118,14 @@ public:
 
   void record(const nlohmann::json& args) override {
     auto conf = args.get<datalinkhandler::RecordingParams>();
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Start recording" << std::endl;
+    if (m_recording.load()) {
+      TLOG() << "A recording is still running, no new recording was started!" << std::endl;
+    }
+    TLOG() << "Start recording" << std::endl;
     m_recording.exchange(true);
     auto stop_recording_thread = std::thread([&]() {
       std::this_thread::sleep_for(std::chrono::seconds(conf.duration));
-      TLOG_DEBUG(TLVL_WORK_STEPS) << "Stop recording" << std::endl;
+      TLOG() << "Stop recording" << std::endl;
       m_recording.exchange(false);
     });
     stop_recording_thread.detach();
@@ -163,14 +166,13 @@ protected:
       RawType element;
       for (uint i = 0; i < to_pop; ++i) {
         if (m_read_callback(element)) {
-          //try {
+          try {
             if (m_recording) m_snb_sink->push(element, std::chrono::milliseconds(0));
-          //} catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-            //TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not write to queue";
-          //}
+          } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+            ers::error(CannotWriteToQueue(ERS_HERE, "SNB Writer"));
+          }
         } else {
-          // Change this to throw an error
-          TLOG_DEBUG(TLVL_WORK_STEPS) << "Could not read from buffer";
+          throw InternalError(ERS_HERE, "Could not read from latency buffer");
         }
       }
 
