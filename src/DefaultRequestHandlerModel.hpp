@@ -116,7 +116,7 @@ public:
     }
   }
 
-  void issue_recording(const nlohmann::json& args) override {
+  void record(const nlohmann::json& args) override {
     auto conf = args.get<datalinkhandler::RecordingParams>();
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Start recording" << std::endl;
     m_recording.exchange(true);

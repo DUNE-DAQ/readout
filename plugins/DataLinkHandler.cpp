@@ -33,7 +33,7 @@ DataLinkHandler::DataLinkHandler(const std::string& name)
   register_command("scrap", &DataLinkHandler::do_scrap);
   register_command("start", &DataLinkHandler::do_start);
   register_command("stop", &DataLinkHandler::do_stop);
-  register_command("issue_recording", &DataLinkHandler::do_issue_recording);
+  register_command("record", &DataLinkHandler::do_record);
 }
 
 void
@@ -88,10 +88,10 @@ DataLinkHandler::do_stop(const data_t& args)
 }
 
 void
-DataLinkHandler::do_issue_recording(const data_t& args)
+DataLinkHandler::do_record(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_issue_recording() method";
-  m_readout_impl->issue_recording(args);
+  m_readout_impl->record(args);
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_issue_recording() method";
 }
 

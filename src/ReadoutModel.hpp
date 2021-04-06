@@ -175,8 +175,8 @@ public:
     m_raw_processor_impl->reset_last_daq_time();
   }
 
-  void issue_recording(const nlohmann::json& args) override {
-    m_request_handler_impl->issue_recording(args);
+  void record(const nlohmann::json& args) override {
+    m_request_handler_impl->record(args);
   }
 
   void get_info(opmonlib::InfoCollector & ci, int /*level*/) {
