@@ -143,19 +143,18 @@ def generate(
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
     print("="*80+"\nStart\n\n", jstr)
 
-    emptypars = None
 
     stopcmd = mrccmd("stop", "RUNNING", "CONFIGURED", [
-            ("fake_source", emptypars),
-            ("datahandler_.*", emptypars),
-            ("data_recorder_.*", emptypars)
+            ("fake_source", None),
+            ("datahandler_.*", None),
+            ("data_recorder_.*", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
     print("="*80+"\nStop\n\n", jstr)
 
     scrapcmd = mrccmd("scrap", "CONFIGURED", "INITIAL", [
-            ("", emptypars)
+            ("", None)
         ])
 
     jstr = json.dumps(scrapcmd.pod(), indent=4, sort_keys=True)
