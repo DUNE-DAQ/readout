@@ -12,8 +12,8 @@ find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
 find_package(TBB REQUIRED)
-FIND_PACKAGE(Boost COMPONENTS program_options system log log_setup iostreams REQUIRED)
-set(BOOST_LIBS Boost::program_options Boost::log Boost::log_setup Boost::iostreams ${Boost_LIBRARIES})
+find_package(Boost COMPONENTS iostreams REQUIRED)
+set(BOOST_LIBS Boost::iostreams ${Boost_LIBRARIES})
 
 daq_codegen(*.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 

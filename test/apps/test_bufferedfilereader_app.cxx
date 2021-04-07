@@ -29,11 +29,11 @@ main(int argc, char* argv[])
   BufferedFileReader<types::WIB_SUPERCHUNK_STRUCT> reader(filename, 8388608);
   types::WIB_SUPERCHUNK_STRUCT chunk;
   for (uint i = 0; i < sizeof(chunk); ++i) {
-    ((char*)&chunk)[i] = static_cast<char>(i);
+    (reinterpret_cast<char*>(&chunk))[i] = static_cast<char>(i); // NOLINT
   }
 
-  std::atomic<uint64_t> bytes_read_total = 0;
-  std::atomic<uint64_t> bytes_read_since_last_statistics = 0;
+  std::atomic<int64_t> bytes_read_total = 0;
+  std::atomic<int64_t> bytes_read_since_last_statistics = 0;
   std::chrono::steady_clock::time_point time_point_last_statistics = std::chrono::steady_clock::now();
 
   auto statistics_thread = std::thread([&]() {
@@ -42,7 +42,7 @@ main(int argc, char* argv[])
       double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
                                                                                    - time_point_last_statistics).count();
       std::cout << "Bytes read: " << bytes_read_total << ", Throughput: "
-                << static_cast<double>(bytes_read_since_last_statistics) / ((uint64_t) 1 << 20) / time_diff << " MiB/s" << std::endl;
+                << static_cast<double>(bytes_read_since_last_statistics) / ((int64_t) 1 << 20) / time_diff << " MiB/s" << std::endl;
       time_point_last_statistics = std::chrono::steady_clock::now();
       bytes_read_since_last_statistics = 0;
     }

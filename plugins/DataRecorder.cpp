@@ -16,6 +16,7 @@
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
 #include "ReadoutIssues.hpp"
+#include <string>
 
 using namespace dunedaq::readout::logging;
 

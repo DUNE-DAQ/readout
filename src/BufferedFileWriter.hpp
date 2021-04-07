@@ -59,7 +59,7 @@ namespace dunedaq {
        * @throw CannotOpenFile If the file can not be opened.
        * @throw ConfigurationError If the compression algorithm parameter is not recognized.
        */
-      explicit BufferedFileWriter(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
+      BufferedFileWriter(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
       {
         open(filename, buffer_size, compression_algorithm);
       }
@@ -67,7 +67,7 @@ namespace dunedaq {
       /**
        * Constructor to construct an instance without opening a file.
        */
-      explicit BufferedFileWriter() {
+      BufferedFileWriter() {
 
       }
 
@@ -144,7 +144,7 @@ namespace dunedaq {
        */
       bool write(const RawType& element) {
         if (!m_is_open) return false;
-        m_output_stream.write((char*)&element, sizeof(element));
+        m_output_stream.write(reinterpret_cast<const char*>(&element), sizeof(element)); // NOLINT
         return !m_output_stream.bad();
       }
 

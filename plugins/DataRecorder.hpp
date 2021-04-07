@@ -6,8 +6,8 @@
  * received with this code.
 */
 
-#ifndef READOUT_PLUGINS_DATA_RECORDER_HPP_
-#define READOUT_PLUGINS_DATA_RECORDER_HPP_
+#ifndef READOUT_PLUGINS_DATARECORDER_HPP_
+#define READOUT_PLUGINS_DATARECORDER_HPP_
 
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
@@ -21,6 +21,8 @@
 #include <iostream>
 #include <fstream>
 #include <atomic>
+#include <memory>
+#include <string>
 
 namespace dunedaq {
   namespace readout {
@@ -61,7 +63,7 @@ namespace dunedaq {
       stats::counter_t m_packets_processed_since_last_info{0};
       std::chrono::steady_clock::time_point m_time_point_last_info;
     };
-  }
-}
+  } // namespace readout
+} // namespace dunedaq
 
-#endif //READOUT_PLUGINS_DATA_RECORDER_HPP_
+#endif //READOUT_PLUGINS_DATARECORDER_HPP_

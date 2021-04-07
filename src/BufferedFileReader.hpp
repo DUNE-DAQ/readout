@@ -53,7 +53,7 @@ namespace dunedaq {
        * @throw CannotOpenFile If the file can not be opened.
        * @throw ConfigurationError If the compression algorithm parameter is not recognized.
        */
-      explicit BufferedFileReader(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
+      BufferedFileReader(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
       {
         open(filename, buffer_size, compression_algorithm);
       }
@@ -61,7 +61,7 @@ namespace dunedaq {
       /**
        * Constructor to construct and instance without opening a file.
        */
-      explicit BufferedFileReader() {
+      BufferedFileReader() {
 
       }
 
@@ -129,7 +129,7 @@ namespace dunedaq {
        */
       bool read(RawType& element) {
         if (!m_is_open) return false;
-        m_input_stream.read((char*)&element, sizeof(element));
+        m_input_stream.read(reinterpret_cast<char*>(&element), sizeof(element)); //NOLINT
         return (m_input_stream.gcount() == sizeof(element));
       }
 
