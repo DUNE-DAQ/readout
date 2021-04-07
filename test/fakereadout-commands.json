@@ -20,6 +20,19 @@
                         "qinfos": [
                             {
                                 "dir": "input",
+                                "inst": "snb-link",
+                                "name": "snb"
+                            }
+                        ]
+                    },
+                    "inst": "snb-writer",
+                    "plugin": "BufferedFileStreamer"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
                                 "inst": "wib-fakelink-0",
                                 "name": "raw_input"
                             },
@@ -37,6 +50,11 @@
                                 "dir": "output",
                                 "inst": "frags-out",
                                 "name": "fragments"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "snb-link",
+                                "name": "snb"
                             }
                         ]
                     },
@@ -64,6 +82,11 @@
                     "capacity": 1000,
                     "inst": "ts-sync-out",
                     "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "snb-link",
+                    "kind": "FollySPSCQueue"
                 }
             ]
         },
@@ -97,6 +120,13 @@
                         "source_queue_timeout_ms": 2000
                     },
                     "match": "fake-handler"
+                },
+                {
+                    "data": {
+                        "output_file": "test.out",
+                        "stream_buffer_size": 8388608
+                    },
+                    "match": "snb-writer"
                 }
             ]
         },

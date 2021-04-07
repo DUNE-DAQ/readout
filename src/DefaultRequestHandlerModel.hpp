@@ -19,6 +19,7 @@
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <tbb/concurrent_queue.h>
 
@@ -47,7 +48,8 @@ public:
                                       std::function<RawType*(unsigned)>& front_callback,
                                       std::function<void()>& lock_callback,
                                       std::function<void()>& unlock_callback,
-                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
+                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                                      std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
   : m_occupancy_callback(m_occupancycallback)
   , m_read_callback(read_callback)
   , m_pop_callback(pop_callback)
@@ -55,6 +57,7 @@ public:
   , m_lock_callback(lock_callback)
   , m_unlock_callback(unlock_callback)
   , m_fragment_sink(fragment_sink)
+  , m_snb_sink(snb_sink)
   , m_run_marker(marker)
   , m_raw_type_name(rawtype)
   , m_pop_limit_pct(0.0f)
@@ -107,14 +110,32 @@ public:
   void stop(const nlohmann::json& /*args*/)
   {
     //m_run_marker.store(false);
+    //if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
+    m_future_recording_stopper.wait();
     m_executor.join();
     while (!m_stats_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
     }
   }
+
+  void record(const nlohmann::json& args) override {
+    auto conf = args.get<datalinkhandler::RecordingParams>();
+    if (m_recording.load()) {
+      TLOG() << "A recording is still running, no new recording was started!" << std::endl;
+      return;
+    }
+    m_future_recording_stopper = std::async([&]() {
+      TLOG() << "Start recording" << std::endl;
+      m_recording.exchange(true);
+      std::this_thread::sleep_for(std::chrono::seconds(conf.duration));
+      TLOG() << "Stop recording" << std::endl;
+      m_recording.exchange(false);
+    });
+  }
  
   void auto_cleanup_check()
   {
+    //TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
     auto size_guess = m_occupancy_callback();
     if (size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
@@ -127,6 +148,7 @@ public:
   // DataRequest struct!?
   void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT
   {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
     auto reqfut = std::async(std::launch::async, m_data_request_callback, datarequest, delay_us);
     m_completion_queue.push(std::move(reqfut));
   }
@@ -141,7 +163,21 @@ protected:
       ++m_pop_reqs;
       unsigned to_pop = m_pop_size_pct * m_occupancy_callback();
       m_pops_count += to_pop;
-      m_pop_callback(to_pop);
+
+      // SNB handling
+      RawType element;
+      for (uint i = 0; i < to_pop; ++i) {
+        if (m_read_callback(element)) {
+          try {
+            if (m_recording) m_snb_sink->push(element, std::chrono::milliseconds(0));
+          } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+            ers::error(CannotWriteToQueue(ERS_HERE, "SNB Writer"));
+          }
+        } else {
+          throw InternalError(ERS_HERE, "Could not read from latency buffer");
+        }
+      }
+
       m_occupancy = m_occupancy_callback();
       m_pops_count.store(m_pops_count.load()+to_pop);
     }
@@ -175,7 +211,7 @@ protected:
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
               << "delay [us] " << reqres.request_delay_us;
-            issue_request(reqres.data_request, reqres.request_delay_us);
+            issue_request(reqres.data_request, 0);
           }
         }
       }
@@ -216,6 +252,9 @@ protected:
   // Request source and Fragment sink
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
 
+  // Sink for SNB data
+  std::unique_ptr<appfwk::DAQSink<RawType>>& m_snb_sink;
+
   // Requests
   using request_callback_t = std::function<RequestResult(dfmessages::DataRequest, unsigned)>;
   request_callback_t m_cleanup_request_callback;
@@ -230,6 +269,10 @@ protected:
   std::atomic<bool>& m_run_marker;
 
 private:
+  // For recording
+  std::atomic<bool> m_recording = false;
+  std::future<void> m_future_recording_stopper;
+
   // Executor
   std::thread m_executor;
 

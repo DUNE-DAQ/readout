@@ -18,6 +18,10 @@ namespace dunedaq {
                       " Readout Internal Error: " << intererror,
                       ((std::string)intererror))
 
+    ERS_DECLARE_ISSUE(readout, CommandError,
+                              " Command Error: " << commanderror,
+                              ((std::string)commanderror))
+
     ERS_DECLARE_ISSUE(readout, InitializationError,
                       " Readout Initialization Error: " << initerror,
                       ((std::string)initerror)) 
@@ -28,6 +32,10 @@ namespace dunedaq {
 
     ERS_DECLARE_ISSUE(readout, CannotOpenFile,
                       " Couldn't open binary file: " << filename,
+                      ((std::string)filename))
+
+    ERS_DECLARE_ISSUE(readout, CannotWriteToFile,
+                      " Could not write to file: " << filename,
                       ((std::string)filename))
 
     ERS_DECLARE_ISSUE(readout, EmptySourceBuffer,

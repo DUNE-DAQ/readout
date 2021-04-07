@@ -41,9 +41,10 @@ public:
                              std::function<types::WIB_SUPERCHUNK_STRUCT*(unsigned)>& front_callback,
                              std::function<void()>& lock_callback,
                              std::function<void()>& unlock_callback,
-                             std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink)
+                             std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                             std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
   : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
-      occupancy_callback, read_callback, pop_callback, front_callback, lock_callback, unlock_callback, fragment_sink)
+      occupancy_callback, read_callback, pop_callback, front_callback, lock_callback, unlock_callback, fragment_sink, snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
     m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 
@@ -221,7 +222,7 @@ protected:
      oss << "fragments output queueu for link " << m_link_number ;
      ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
    }
-  return rres; 
+  return rres;
   }
 
 private:

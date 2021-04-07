@@ -49,6 +49,7 @@ private:
   void do_scrap(const data_t& /*args*/);
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
+  void do_record(const data_t& /*args*/);
 
   // Configuration
   bool m_configured;

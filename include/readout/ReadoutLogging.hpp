@@ -24,7 +24,7 @@ enum
   TLVL_BOOKKEEPING = 15
 };
 
-} // namespace types
+} // namespace logging
 } // namespace readout
 } // namespace dunedaq
 

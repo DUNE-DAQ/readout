@@ -30,7 +30,7 @@ class ContinousLatencyBufferModel : public LatencyBufferConcept,
 public:
   ContinousLatencyBufferModel(const size_t qsize,
                               std::function<size_t()>& occupancy_override,
-                              std::function<void(RawType)>& write_override,
+                              std::function<bool(RawType)>& write_override,
                               std::function<bool(RawType&)>& read_override,
                               std::function<void(unsigned)>& pop_override,       // NOLINT
                               std::function<RawType*(unsigned)>& front_override,
@@ -70,10 +70,10 @@ public:
   }
 
   // For the continous buffer, the data is moved into the Folly queue.
-  void 
+  bool
   write_data_to_buffer(RawType new_element) 
   {
-    this->write( std::move(new_element) );
+    return this->write( std::move(new_element) );
   }
 
   bool 
@@ -101,7 +101,7 @@ public:
 
 private:
   std::function<size_t()>& occupancy_override_;
-  std::function<void(RawType)>& write_override_;  
+  std::function<bool(RawType)>& write_override_;
   std::function<bool(RawType&)>& read_override_;
   std::function<void(unsigned)>& pop_override_;       // NOLINT
   std::function<RawType*(unsigned)>& front_override_; // NOLINT

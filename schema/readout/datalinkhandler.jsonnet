@@ -54,6 +54,11 @@ local datalinkhandler = {
                 doc="The link number of this link")
     ], doc="Generic readout element configuration"),
 
+    recording: s.record("RecordingParams", [
+        s.field("duration", self.count, 1,
+                doc="Number of seconds to record")
+    ], doc="Recording parameters"),
+
 };
 
 moo.oschema.sort_select(datalinkhandler, ns)
