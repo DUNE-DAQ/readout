@@ -1,3 +1,5 @@
+# Functional elements
+
 This package implements the majority of functional elements of the Upstream DAQ's Readout subsystem.
 
 ## Data-flow Diagram (DFD)
