@@ -111,7 +111,7 @@ public:
   {
     //m_run_marker.store(false);
     //if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
-    m_future_recording_stopper.wait();
+    if (m_future_recording_stopper.valid()) m_future_recording_stopper.wait();
     m_executor.join();
     while (!m_stats_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
