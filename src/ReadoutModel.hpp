@@ -246,7 +246,7 @@ private:
             dfmessages::DataRequest dr;
             dr.trigger_timestamp = timesyncmsg.daq_time > 500*time::us ? timesyncmsg.daq_time - 500*time::us : 0;
             auto width = 1000;
-            auto offset = 100;
+            uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;
             TLOG_DEBUG(TLVL_TAKE_NOTE) << "Issuing fake trigger based on timesync. "
