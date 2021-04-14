@@ -138,7 +138,7 @@ protected:
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
     }
-    else if (last_ts < start_win_ts && end_win_ts < newest_ts) { // data is there
+    else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count; 
     }
