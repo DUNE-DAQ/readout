@@ -45,6 +45,14 @@ struct WIB_SUPERCHUNK_STRUCT {
   char data[WIB_SUPERCHUNK_SIZE];
 };
 
+struct VariableSizePayloadWrapper {
+  VariableSizeElementWrapper() {}
+  VariableSizeElementWrapper(size_t size, char* data) : size(size), data(data) {}
+
+  size_t size;
+  std::unique_ptr<char> data;
+};
+
 typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT uint64_t
 typedef std::unique_ptr<BlockPtrSink> UniqueBlockPtrSink; 
 
@@ -60,6 +68,7 @@ typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
 typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
 using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
 using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
+
 
 // raw WIB TP
 struct RAW_WIB_TP_STRUCT {
