@@ -19,6 +19,7 @@
 #include "AccessableProducerConsumerQueue.hpp"
 
 #include <memory>
+#include <utility>
 
 namespace dunedaq {
 namespace readout {

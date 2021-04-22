@@ -14,7 +14,6 @@
 #include "readout/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
-#include "readout/ReadoutLogging.hpp"
 
 #include "dfmessages/DataRequest.hpp"
 #include "dataformats/Fragment.hpp"
