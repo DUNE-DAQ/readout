@@ -136,11 +136,12 @@ public:
   {
     //TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
     auto size_guess = m_occupancy_callback();
-    if (size_guess > m_pop_limit_size) {
+    if (!m_cleanup_requested && size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
       auto delay_us = 0;
       auto execfut = std::async(std::launch::deferred, m_cleanup_request_callback, dr, delay_us);
-      m_completion_queue.push(std::move(execfut));              
+      m_completion_queue.push(std::move(execfut));
+      m_cleanup_requested = true;
     }
   }
 
@@ -180,6 +181,7 @@ protected:
       m_occupancy = m_occupancy_callback();
       m_pops_count.store(m_pops_count.load()+to_pop);
     }
+    m_cleanup_requested = false;
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
@@ -289,6 +291,8 @@ private:
   stats::counter_t m_pops_count;
   stats::counter_t m_occupancy;
   ReusableThread m_stats_thread;
+
+  std::atomic<bool> m_cleanup_requested = false;
 
 };
 
