@@ -22,7 +22,7 @@ int
 main(int argc, char* argv[])
 {
   if (argc != 2) {
-    std::cout << "usage: readout_test_bufferedfilewriter filename" << std::endl;
+    TLOG() << "usage: readout_test_bufferedfilewriter filename" << std::endl;
     exit(1);
   }
   remove(argv[1]); // NOLINT
@@ -42,7 +42,7 @@ main(int argc, char* argv[])
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
                                                                                    - time_point_last_statistics).count();
-      std::cout << "Bytes written: " << bytes_written_total << ", Throughput: "
+      TLOG() << "Bytes written: " << bytes_written_total << ", Throughput: "
                 << static_cast<double>(bytes_written_since_last_statistics) / ((int64_t) 1 << 20) / time_diff << " MiB/s" << std::endl;
       time_point_last_statistics = std::chrono::steady_clock::now();
       bytes_written_since_last_statistics = 0;
@@ -51,7 +51,7 @@ main(int argc, char* argv[])
 
   while (true) {
     if (!writer.write(chunk)) {
-      std::cout << "Could not write to file" << std::endl;
+      TLOG() << "Could not write to file" << std::endl;
       exit(1);
     }
     bytes_written_total += sizeof(chunk);

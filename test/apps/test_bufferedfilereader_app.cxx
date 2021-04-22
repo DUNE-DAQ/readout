@@ -22,7 +22,7 @@ int
 main(int argc, char* argv[])
 {
   if (argc != 2) {
-    std::cout << "usage: readout_test_bufferedfilereader filename" << std::endl;
+    TLOG() << "usage: readout_test_bufferedfilereader filename" << std::endl;
     exit(1);
   }
   std::string filename(argv[1]);
@@ -41,7 +41,7 @@ main(int argc, char* argv[])
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
                                                                                    - time_point_last_statistics).count();
-      std::cout << "Bytes read: " << bytes_read_total << ", Throughput: "
+      TLOG() << "Bytes read: " << bytes_read_total << ", Throughput: "
                 << static_cast<double>(bytes_read_since_last_statistics) / ((int64_t) 1 << 20) / time_diff << " MiB/s" << std::endl;
       time_point_last_statistics = std::chrono::steady_clock::now();
       bytes_read_since_last_statistics = 0;
@@ -50,7 +50,7 @@ main(int argc, char* argv[])
 
   while (true) {
     if (!reader.read(chunk)) {
-      std::cout << "Finished reading from file" << std::endl;
+      TLOG() << "Finished reading from file" << std::endl;
       exit(0);
     }
     bytes_read_total += sizeof(chunk);

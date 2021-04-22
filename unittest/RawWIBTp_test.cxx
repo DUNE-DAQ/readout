@@ -7,6 +7,7 @@
  */
 
 #include "readout/RawWIBTp.hpp"
+#include "logging/Logging.hpp"
 
 /**
  * @brief Name of this test module
@@ -37,28 +38,28 @@ BOOST_AUTO_TEST_CASE(TpHeader_StreamMethods)
   std::ostringstream ostr;
   header.print_hex(ostr);
   std::string output = ostr.str();
-  std::cout << "Print: " << output << std::endl;
+  TLOG() << "Print: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   header.print_bits(ostr);
   output = ostr.str();
-  std::cout << "Print hex: " << output << std::endl;
+  TLOG() << "Print hex: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   header.print_bits(ostr);
   output = ostr.str();
-  std::cout << "Print bits: " << output << std::endl;
+  TLOG() << "Print bits: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   ostr << header;
   output = ostr.str();
-  std::cout << "Stream operator: " << output << std::endl;
+  TLOG() << "Stream operator: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
 }
 BOOST_AUTO_TEST_CASE(TpHeader_BitfieldMethods)
@@ -84,28 +85,28 @@ BOOST_AUTO_TEST_CASE(TpData_StreamMethods)
   std::ostringstream ostr;
   data.print(ostr);
   std::string output = ostr.str();
-  std::cout << "Print: " << output << std::endl;
+  TLOG() << "Print: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   data.print_hex(ostr);
   output = ostr.str();
-  std::cout << "Print hex: " << output << std::endl;
+  TLOG() << "Print hex: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   data.print_bits(ostr);
   output = ostr.str();
-  std::cout << "Print bits: " << output << std::endl;
+  TLOG() << "Print bits: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   ostr << data;
   output = ostr.str();
-  std::cout << "Stream operator: " << output << std::endl;
+  TLOG() << "Stream operator: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
 }
 BOOST_AUTO_TEST_CASE(TpData_BitfieldMethods)
@@ -136,28 +137,28 @@ BOOST_AUTO_TEST_CASE(TpPedinfo_StreamMethods)
   std::ostringstream ostr;
   pedinfo.print(ostr);
   std::string output = ostr.str();
-  std::cout << "Print: " << output << std::endl;
+  TLOG() << "Print: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   pedinfo.print_hex(ostr);
   output = ostr.str();
-  std::cout << "Print hex: " << output << std::endl;
+  TLOG() << "Print hex: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   pedinfo.print_bits(ostr);
   output = ostr.str();
-  std::cout << "Print bits: " << output << std::endl;
+  TLOG() << "Print bits: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   ostr << pedinfo;
   output = ostr.str();
-  std::cout << "Stream operator: " << output << std::endl;
+  TLOG() << "Stream operator: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
 }
 BOOST_AUTO_TEST_CASE(TpPedinfo_BitfieldMethods)
@@ -191,28 +192,28 @@ BOOST_AUTO_TEST_CASE(TpDataBlock_StreamMethods)
   std::ostringstream ostr;
   block.print(ostr);
   std::string output = ostr.str();
-  std::cout << "Print: " << output << std::endl;
+  TLOG() << "Print: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   block.print_hex(ostr);
   output = ostr.str();
-  std::cout << "Print hex: " << output << std::endl;
+  TLOG() << "Print hex: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   block.print_bits(ostr);
   output = ostr.str();
-  std::cout << "Print bits: " << output << std::endl;
+  TLOG() << "Print bits: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
   ostr.str("");
   ostr.clear();
 
   ostr << block;
   output = ostr.str();
-  std::cout << "Stream operator: " << output << std::endl;
+  TLOG() << "Stream operator: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
 }
 BOOST_AUTO_TEST_CASE(TpDataBlock_BitfieldMethods)
@@ -267,7 +268,7 @@ BOOST_AUTO_TEST_CASE(RawWIBTp_StreamMethods)
   std::ostringstream ostr;
   ostr << rwtp;
   std::string output = ostr.str();
-  std::cout << "Stream operator: " << output << std::endl;
+  TLOG() << "Stream operator: " << output << std::endl;
   BOOST_REQUIRE(!output.empty());
 }
 BOOST_AUTO_TEST_CASE(RawWIBTp_HdrMethods)
