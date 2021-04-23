@@ -9,6 +9,10 @@ Clone the package into a work area as defined under the instructions of [DUNE-DA
 Before running the application, please download a small binary files that contains 120 WIB Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download). Like:
 
     curl https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download -o /tmp/frames.bin
+    
+For WIB2 frames, download the following file that contains 120 WIB-2 Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/ocrHxSU8PucxphE). Like:
+
+    curl https://cernbox.cern.ch/index.php/s/ocrHxSU8PucxphE/download -o /tmp/wib2-frames.bin
 
 If you download it to a different destination, please update the path of the source file in the configuration that you will use below. 
 
