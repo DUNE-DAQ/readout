@@ -45,12 +45,25 @@ struct WIB_SUPERCHUNK_STRUCT {
   char data[WIB_SUPERCHUNK_SIZE];
 };
 
-struct VariableSizePayloadWrapper {
-  VariableSizeElementWrapper() {}
-  VariableSizeElementWrapper(size_t size, char* data) : size(size), data(data) {}
+/**
+ * @brief For WIB2 the numbers are different.
+ * 12[WIB2 frames] x 468[Bytes] = 5616[Bytes]
+ * */
+const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
+struct WIB2_SUPERCHUNK_STRUCT {
+  char data[WIB2_SUPERCHUNK_SIZE];
+};
 
-  size_t size;
-  std::unique_ptr<char> data;
+/**
+ * @brief Convencience wrapper to take ownership over char pointers with 
+ * corresponding allocated memory size.
+ * */
+struct VariableSizePayloadWrapper {
+  VariableSizePayloadWrapper() {}
+  VariableSizePayloadWrapper(size_t size, char* data) : size(size), data(data) {}
+
+  size_t size = 0;
+  std::unique_ptr<char> data = nullptr;
 };
 
 typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT uint64_t

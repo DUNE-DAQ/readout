@@ -12,6 +12,7 @@
 #include "RawDataProcessorConcept.hpp"
 #include "FlowGraphRawDataProcessorModel.hpp"
 #include "WIBFrameProcessor.hpp"
+#include "WIB2FrameProcessor.hpp"
 
 #include <memory>
 #include <string>
@@ -19,12 +20,32 @@
 namespace dunedaq {
 namespace readout {
 
-template <class RawType>
+//template <class RawType>
 std::unique_ptr<RawDataProcessorConcept> 
-createRawDataProcessor(const std::string& rawtype, std::function<void(RawType*)>& process_function)
+createRawDataProcessor(const std::string& rawtype, std::function<void(types::WIB_SUPERCHUNK_STRUCT*)>& process_function)
 {
   if (rawtype == "wib") {
     return std::make_unique<WIBFrameProcessor>(rawtype, process_function);
+  }
+
+  //if (rawtype == "wib2") {
+  //  return std::make_unique<WIB2FrameProcessor>(rawtype, process_function);
+  //}
+
+  return nullptr;
+}
+
+
+//template <class RawType>
+std::unique_ptr<RawDataProcessorConcept> 
+createRawDataProcessor(const std::string& rawtype, std::function<void(types::WIB2_SUPERCHUNK_STRUCT*)>& process_function)
+{
+  //if (rawtype == "wib") {
+  //  return std::make_unique<WIBFrameProcessor>(rawtype, process_function);
+  //}
+
+  if (rawtype == "wib2") {
+    return std::make_unique<WIB2FrameProcessor>(rawtype, process_function);
   }
 
   return nullptr;

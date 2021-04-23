@@ -47,6 +47,15 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
+      // IF WIB2
+      if (inst.find("wib2") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2" ;
+        raw_type_name = "wib2";
+        auto readout_model = std::make_unique<ReadoutModel<types::WIB2_SUPERCHUNK_STRUCT>>(run_marker);
+        readout_model->init(args, raw_type_name);
+        return std::move(readout_model);
+      }
+
       // IF PDS
       if (inst.find("pds") != std::string::npos) {
 

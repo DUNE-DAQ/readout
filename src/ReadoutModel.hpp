@@ -121,15 +121,15 @@ public:
       ers::error(NoImplementationAvailableError(ERS_HERE, "Latency Buffer", m_raw_type_name));
     }
 
-    m_raw_processor_impl = createRawDataProcessor<RawType>(m_raw_type_name, m_process_callback);
+    m_raw_processor_impl = createRawDataProcessor(m_raw_type_name, m_process_callback);
     if(m_raw_processor_impl.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Raw Processor", m_raw_type_name));
     }
 
-    m_request_handler_impl = createRequestHandler<RawType>(m_raw_type_name, m_run_marker, 
-                                                           m_occupancy_callback,  m_read_callback, m_pop_callback,
-                                                           m_front_callback, m_lock_callback, m_unlock_callback,
-                                                           m_fragment_sink, m_snb_sink);
+    m_request_handler_impl = createRequestHandler(m_raw_type_name, m_run_marker, 
+                                                  m_occupancy_callback,  m_read_callback, m_pop_callback,
+                                                  m_front_callback, m_lock_callback, m_unlock_callback,
+                                                  m_fragment_sink, m_snb_sink);
     if(m_request_handler_impl.get() == nullptr) {
       ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", m_raw_type_name));
     }
