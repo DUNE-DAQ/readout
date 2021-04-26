@@ -54,6 +54,7 @@ file(COPY test/fakereadout-commands.json DESTINATION test)
 # Unit Tests
 daq_add_unit_test(RawWIBTp_test                LINK_LIBRARIES readout)
 daq_add_unit_test(BufferedReadWrite_test       LINK_LIBRARIES readout ${BOOST_LIBS})
+daq_add_unit_test(VariableSizeElementQueue_test LINK_LIBRARIES readout)
 
 ##############################################################################
 # Installation
