@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-using namespace dunedaq::readout::logging;
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
 namespace dunedaq {
 namespace readout {

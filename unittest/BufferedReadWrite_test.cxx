@@ -13,9 +13,10 @@
 
 #include "boost/test/unit_test.hpp"
 
-#include "BufferedFileReader.hpp"
-#include "BufferedFileWriter.hpp"
+#include "logging/Logging.hpp"
 #include "readout/ReadoutTypes.hpp"
+#include "BufferedFileWriter.hpp"
+#include "BufferedFileReader.hpp"
 
 #include <cstdio>
 #include <string>
@@ -45,7 +46,7 @@ test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& reader
   for (uint i = 0; i < numbers.size(); ++i) {
     read_successful = reader.read(read_value);
     if (!read_successful) {
-      std::cout << i << std::endl;
+      TLOG() << i;
       BOOST_REQUIRE(read_successful);
     }
     if (read_value != numbers[i]) {
@@ -63,7 +64,7 @@ test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& reader
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_one_int)
 {
-  std::cout << "Trying to write and read one int" << std::endl;
+  TLOG() << "Trying to write and read one int" << std::endl;
   remove("test.out");
   BufferedFileWriter<int> writer;
   writer.open("test.out", 4096);
@@ -76,7 +77,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_one_int)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_extended)
 {
-  std::cout << "Trying to read and write more ints" << std::endl;
+  TLOG() << "Trying to read and write more ints" << std::endl;
   remove("test.out");
   BufferedFileWriter<int> writer;
   writer.open("test.out", 4096);
@@ -89,7 +90,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_extended)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_zstd)
 {
-  std::cout << "Testing zstd compression" << std::endl;
+  TLOG() << "Testing zstd compression" << std::endl;
   remove("test.out");
   BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "zstd");
@@ -102,7 +103,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zstd)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_lzma)
 {
-  std::cout << "Testing lzma compression" << std::endl;
+  TLOG() << "Testing lzma compression" << std::endl;
   remove("test.out");
   BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "lzma");
@@ -115,7 +116,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_lzma)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
 {
-  std::cout << "Testing zlib compression" << std::endl;
+  TLOG() << "Testing zlib compression" << std::endl;
   remove("test.out");
   BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "zlib");
@@ -128,7 +129,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 {
-  std::cout << "Try to read and write on uninitialized instances" << std::endl;
+  TLOG() << "Try to read and write on uninitialized instances" << std::endl;
   BufferedFileWriter<int> writer;
   bool write_successful = writer.write(42);
   BOOST_REQUIRE(!write_successful);
@@ -141,7 +142,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_already_closed)
 {
-  std::cout << "Try to write on closed writer" << std::endl;
+  TLOG() << "Try to write on closed writer" << std::endl;
   BufferedFileWriter<int> writer("test.out", 4096);
   writer.close();
   bool write_successful = writer.write(42);
@@ -150,7 +151,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_already_closed)
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_destructor)
 {
-  std::cout << "Testing automatic closing on destruction" << std::endl;
+  TLOG() << "Testing automatic closing on destruction" << std::endl;
   remove("test.out");
   {
     BufferedFileWriter<int> writer("test.out", 4096);
@@ -171,7 +172,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_destructor)
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_superchunk)
 {
   remove("test.out");
-  std::cout << "Read and write superchunks" << std::endl;
+  TLOG() << "Read and write superchunks" << std::endl;
   BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> writer("test.out", 8388608);
 
   std::vector<types::WIB_SUPERCHUNK_STRUCT> chunks(100000);
