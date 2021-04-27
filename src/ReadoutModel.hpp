@@ -30,10 +30,12 @@
 #include "readout/datalinkhandlerinfo/Nljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
+#include "LatencyBufferConcept.hpp"
+#include "RequestHandlerConcept.hpp"
+#include "RawDataProcessorConcept.hpp"
+
 #include "ReadoutIssues.hpp"
-#include "CreateRawDataProcessor.hpp"
-#include "CreateLatencyBuffer.hpp"
-#include "CreateRequestHandler.hpp"
+#include "ReadoutStatistics.hpp"
 #include "readout/ReusableThread.hpp"
 
 #include <functional>
@@ -46,7 +48,7 @@ using namespace dunedaq::readout::logging;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
+template<class RawType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
 class ReadoutModel : public ReadoutConcept {
 public:
   explicit ReadoutModel(std::atomic<bool>& run_marker)
@@ -111,28 +113,20 @@ public:
 
     // Instantiate functionalities
     try {
-      m_latency_buffer_impl = createLatencyBuffer<RawType>(m_raw_type_name, m_latency_buffer_size, 
-          m_occupancy_callback, m_write_callback, m_read_callback, m_pop_callback, m_front_callback, m_lock_callback, m_unlock_callback);
+      m_latency_buffer_impl.reset(new LatencyBufferType(m_latency_buffer_size,
+                                                        m_occupancy_callback, m_write_callback, m_read_callback, m_pop_callback, m_front_callback, m_lock_callback, m_unlock_callback));
+
     }
     catch (const std::bad_alloc& be) {
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
     }
-    if(m_latency_buffer_impl.get() == nullptr) {
-      ers::error(NoImplementationAvailableError(ERS_HERE, "Latency Buffer", m_raw_type_name));
-    }
 
-    m_raw_processor_impl = createRawDataProcessor(m_raw_type_name, m_process_callback);
-    if(m_raw_processor_impl.get() == nullptr) {
-      ers::error(NoImplementationAvailableError(ERS_HERE, "Raw Processor", m_raw_type_name));
-    }
+    m_raw_processor_impl.reset(new RawDataProcessorType(m_raw_type_name, m_process_callback));
 
-    m_request_handler_impl = createRequestHandler(m_raw_type_name, m_run_marker, 
+    m_request_handler_impl.reset(new RequestHandlerType(m_raw_type_name, m_run_marker,
                                                   m_occupancy_callback,  m_read_callback, m_pop_callback,
                                                   m_front_callback, m_lock_callback, m_unlock_callback,
-                                                  m_fragment_sink, m_snb_sink);
-    if(m_request_handler_impl.get() == nullptr) {
-      ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", m_raw_type_name));
-    }
+                                                  m_fragment_sink, m_snb_sink));
 
     // Configure implementations:
     m_raw_processor_impl->conf(args);
@@ -149,10 +143,10 @@ public:
   void start(const nlohmann::json& args) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_request_handler_impl->start(args);
-    m_stats_thread.set_work(&ReadoutModel<RawType>::run_stats, this);
-    m_consumer_thread.set_work(&ReadoutModel<RawType>::run_consume, this);
-    m_requester_thread.set_work(&ReadoutModel<RawType>::run_requests, this);
-    m_timesync_thread.set_work(&ReadoutModel<RawType>::run_timesync, this);
+    m_stats_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
+    m_consumer_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
+    m_requester_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
+    m_timesync_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
   }
 
   void stop(const nlohmann::json& args) {    
