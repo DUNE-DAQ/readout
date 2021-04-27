@@ -36,35 +36,35 @@ public:
   }
 
   size_t occupancy() override {
-    return this->sizeGuess();
+    return AccessableProducerConsumerQueue<RawType>::sizeGuess();
   }
 
   void lock() override {
-   this->lock();
+    AccessableProducerConsumerQueue<RawType>::lock();
   }
 
   void unlock() override {
-   this->unlock();
+    AccessableProducerConsumerQueue<RawType>::unlock();
   }
 
   // For the continous buffer, the data is moved into the Folly queue.
   bool
   write(RawType new_element) override
   {
-    return this->write( std::move(new_element) );
+    return AccessableProducerConsumerQueue<RawType>::write( std::move(new_element) );
   }
 
   bool 
   read(RawType& element) override
   {
-    return this->read(element);
+    return AccessableProducerConsumerQueue<RawType>::read(element);
   }
 
   void 
   pop(unsigned num) override// NOLINT
   {
     for (unsigned i=0; i<num; ++i) { // NOLINT
-      this->popFront();
+      AccessableProducerConsumerQueue<RawType>::popFront();
     }
   }
 
@@ -72,9 +72,9 @@ public:
   front(unsigned idx) override// NOLINT
   {
     if (idx == 0)
-      return this->frontPtr();
+      return AccessableProducerConsumerQueue<RawType>::frontPtr();
     else
-      return this->readPtr(idx); // Only with accessable SPSC
+      return AccessableProducerConsumerQueue<RawType>::readPtr(idx); // Only with accessable SPSC
   }
 
 };
