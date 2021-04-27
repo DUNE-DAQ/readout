@@ -61,10 +61,6 @@ public:
   , m_raw_data_source(nullptr)
   , m_latency_buffer_size(0)
   , m_latency_buffer_impl(nullptr)
-  , m_write_callback(nullptr)
-  , m_read_callback(nullptr)
-  , m_pop_callback(nullptr)
-  , m_front_callback(nullptr)
   , m_raw_processor_impl(nullptr)
   , m_process_callback(nullptr)
   , m_requester_thread(0)
@@ -113,8 +109,7 @@ public:
 
     // Instantiate functionalities
     try {
-      m_latency_buffer_impl.reset(new LatencyBufferType(m_latency_buffer_size,
-                                                        m_occupancy_callback, m_write_callback, m_read_callback, m_pop_callback, m_front_callback, m_lock_callback, m_unlock_callback));
+      m_latency_buffer_impl.reset(new LatencyBufferType(m_latency_buffer_size));
 
     }
     catch (const std::bad_alloc& be) {
@@ -123,9 +118,7 @@ public:
 
     m_raw_processor_impl.reset(new RawDataProcessorType(m_raw_type_name, m_process_callback));
 
-    m_request_handler_impl.reset(new RequestHandlerType(m_raw_type_name, m_run_marker,
-                                                  m_occupancy_callback,  m_read_callback, m_pop_callback,
-                                                  m_front_callback, m_lock_callback, m_unlock_callback,
+    m_request_handler_impl.reset(new RequestHandlerType(m_raw_type_name, m_run_marker, m_latency_buffer_impl,
                                                   m_fragment_sink, m_snb_sink));
 
     // Configure implementations:
@@ -164,8 +157,8 @@ public:
     while (!m_stats_thread.get_readiness()) {	
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         	
     }
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_occupancy_callback();
-    m_pop_callback(m_occupancy_callback());
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
+    m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
     m_raw_processor_impl->reset_last_daq_time();
   }
 
@@ -208,7 +201,7 @@ private:
       // Only process if data was acquired
       //if (payload != nullptr) { // payload_ptr
         m_process_callback(&payload); // payload_ptr.get()
-        if (!m_write_callback(std::move(payload))) {
+        if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
         }
         m_request_handler_impl->auto_cleanup_check();
@@ -349,14 +342,7 @@ private:
 
   // LATENCY BUFFER:
   size_t m_latency_buffer_size;
-  std::unique_ptr<LatencyBufferConcept> m_latency_buffer_impl;
-  std::function<size_t()> m_occupancy_callback;
-  std::function<bool(RawType)> m_write_callback;
-  std::function<bool(RawType&)> m_read_callback;
-  std::function<void(unsigned)> m_pop_callback;
-  std::function<RawType*(unsigned)> m_front_callback;
-  std::function<void()> m_lock_callback;
-  std::function<void()> m_unlock_callback;
+  std::unique_ptr<LatencyBufferType> m_latency_buffer_impl;
 
   // RAW PROCESSING:
   std::unique_ptr<RawDataProcessorConcept> m_raw_processor_impl;

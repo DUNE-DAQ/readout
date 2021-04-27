@@ -37,25 +37,15 @@ using namespace dunedaq::readout::logging;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
+template<class RawType, class LatencyBufferType>
 class DefaultRequestHandlerModel : public RequestHandlerConcept {
 public:
   explicit DefaultRequestHandlerModel(const std::string& rawtype,
                                       std::atomic<bool>& marker,
-                                      std::function<size_t()>& m_occupancycallback,
-                                      std::function<bool(RawType&)>& read_callback,
-                                      std::function<void(unsigned)>& pop_callback,
-                                      std::function<RawType*(unsigned)>& front_callback,
-                                      std::function<void()>& lock_callback,
-                                      std::function<void()>& unlock_callback,
+                                      std::unique_ptr<LatencyBufferType>& latency_buffer,
                                       std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
                                       std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
-  : m_occupancy_callback(m_occupancycallback)
-  , m_read_callback(read_callback)
-  , m_pop_callback(pop_callback)
-  , m_front_callback(front_callback)
-  , m_lock_callback(lock_callback)
-  , m_unlock_callback(unlock_callback)
+  : m_latency_buffer(latency_buffer)
   , m_fragment_sink(fragment_sink)
   , m_snb_sink(snb_sink)
   , m_run_marker(marker)
@@ -71,9 +61,9 @@ public:
   , m_stats_thread(0)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
-    m_cleanup_request_callback = std::bind(&DefaultRequestHandlerModel<RawType>::cleanup_request, 
+    m_cleanup_request_callback = std::bind(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request,
       this, std::placeholders::_1, std::placeholders::_2);
-    m_data_request_callback = std::bind(&DefaultRequestHandlerModel<RawType>::data_request,
+    m_data_request_callback = std::bind(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request,
       this, std::placeholders::_1, std::placeholders::_2);
   }
 
@@ -103,8 +93,8 @@ public:
   void start(const nlohmann::json& /*args*/)
   {
     //m_run_marker.store(true);
-    m_stats_thread.set_work(&DefaultRequestHandlerModel<RawType>::run_stats, this);
-    m_executor = std::thread(&DefaultRequestHandlerModel<RawType>::executor, this);
+    m_stats_thread.set_work(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
+    m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -136,7 +126,7 @@ public:
   void auto_cleanup_check()
   {
     //TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
-    auto size_guess = m_occupancy_callback();
+    auto size_guess = m_latency_buffer->occupancy();
     if (size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
       auto delay_us = 0;
@@ -158,16 +148,16 @@ protected:
   cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT
   {
     //auto now_s = time::now_as<std::chrono::seconds>();
-    auto size_guess = m_occupancy_callback();
+    auto size_guess = m_latency_buffer->occupancy();
     if (size_guess > m_pop_limit_size) {
       ++m_pop_reqs;
-      unsigned to_pop = m_pop_size_pct * m_occupancy_callback();
+      unsigned to_pop = m_pop_size_pct * m_latency_buffer->occupancy();
       m_pops_count += to_pop;
 
       // SNB handling
       RawType element;
       for (uint i = 0; i < to_pop; ++i) {
-        if (m_read_callback(element)) {
+        if (m_latency_buffer->read(element)) {
           try {
             if (m_recording) m_snb_sink->push(element, std::chrono::milliseconds(0));
           } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
@@ -178,7 +168,7 @@ protected:
         }
       }
 
-      m_occupancy = m_occupancy_callback();
+      m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load()+to_pop);
     }
     return RequestResult(ResultCode::kCleanup, dr);
@@ -241,13 +231,8 @@ protected:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread stopped...";
   }
 
-  // Data access (LB interfaces)
-  std::function<size_t()>& m_occupancy_callback;
-  std::function<bool(RawType&)>& m_read_callback; 
-  std::function<void(unsigned)>& m_pop_callback;
-  std::function<RawType*(unsigned)>& m_front_callback;
-  std::function<void()>& m_lock_callback;
-  std::function<void()>& m_unlock_callback;
+  // Data access (LB)
+  std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
   // Request source and Fragment sink
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;

@@ -15,6 +15,7 @@
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "ContinousLatencyBufferModel.hpp"
 
 #include <atomic>
 #include <thread>
@@ -31,20 +32,15 @@ using namespace dunedaq::readout::logging;
 namespace dunedaq {
 namespace readout {
 
-class WIBRequestHandler : public DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT> {
+class WIBRequestHandler : public DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>> {
 public:
   explicit WIBRequestHandler(const std::string& rawtype,
                              std::atomic<bool>& marker,
-                             std::function<size_t()>& occupancy_callback,
-                             std::function<bool(types::WIB_SUPERCHUNK_STRUCT&)>& read_callback,
-                             std::function<void(unsigned)>& pop_callback,
-                             std::function<types::WIB_SUPERCHUNK_STRUCT*(unsigned)>& front_callback,
-                             std::function<void()>& lock_callback,
-                             std::function<void()>& unlock_callback,
+                             std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer,
                              std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
                              std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
-  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, marker,
-      occupancy_callback, read_callback, pop_callback, front_callback, lock_callback, unlock_callback, fragment_sink, snb_sink)
+  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, marker,
+      latency_buffer, fragment_sink, snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
     m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 
@@ -54,7 +50,7 @@ public:
   void conf(const nlohmann::json& args) override
   {
     // Call up to the base class, whose conf function does useful things
-    DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT>::conf(args);
+    DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
@@ -104,8 +100,8 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
 
     // Data availability is calculated here
-    size_t occupancy_guess = m_occupancy_callback(); 
-    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_front_callback(0) )); // NOLINT
+    size_t occupancy_guess = m_latency_buffer->occupancy();
+    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_latency_buffer->front(0) )); // NOLINT
     uint64_t start_win_ts = dr.window_begin;   // NOLINT
     uint64_t end_win_ts = dr.window_end;   // NOLINT
     uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
@@ -190,12 +186,12 @@ protected:
       auto elements_handled = 0;
       
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = static_cast<void*>(m_front_callback(num_element_offset+idxoffset));
+        auto* element = static_cast<void*>(m_latency_buffer->front(num_element_offset+idxoffset));
 
         if (element != nullptr) {
           frag_pieces.emplace_back( 
             std::make_pair<void*, size_t>(
-              static_cast<void*>(m_front_callback(num_element_offset + idxoffset)), 
+              static_cast<void*>(m_latency_buffer->front(num_element_offset + idxoffset)),
               std::size_t(m_element_size))
           );
           elements_handled++;
