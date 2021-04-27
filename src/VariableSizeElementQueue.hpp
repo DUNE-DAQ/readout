@@ -50,14 +50,14 @@ namespace dunedaq {
         while (true) {
           unsigned int diff = startIndex <= endIndex ? endIndex - startIndex : AccessableProducerConsumerQueue<T>::size_ + endIndex - startIndex;
           unsigned int indexMiddle = startIndex + ((diff+1)/2);
-          if (indexMiddle > AccessableProducerConsumerQueue<T>::size_) indexMiddle -= AccessableProducerConsumerQueue<T>::size_;
+          if (indexMiddle >= AccessableProducerConsumerQueue<T>::size_) indexMiddle -= AccessableProducerConsumerQueue<T>::size_;
           T* element_between = &AccessableProducerConsumerQueue<T>::records_[indexMiddle];
           uint32_t middle_timestamp;
           memcpy(&middle_timestamp, element_between->data.get(), sizeof(uint32_t));
           if (middle_timestamp == timestamp) {
             return element_between;
           } else if (middle_timestamp > timestamp) {
-            endIndex = indexMiddle - 1;
+            endIndex = indexMiddle != 0 ? indexMiddle - 1 : AccessableProducerConsumerQueue<T>::size_-1;
           } else {
             startIndex = indexMiddle;
           }
@@ -65,11 +65,10 @@ namespace dunedaq {
             if (middle_timestamp > timestamp) {
               return element_between;
             } else {
-              return element_between+1;
+              return (indexMiddle == AccessableProducerConsumerQueue<T>::size_ - 1) ? &AccessableProducerConsumerQueue<T>::records_[0] : element_between+1;
             }
           }
         }
-        return nullptr;
       }
     };
 
