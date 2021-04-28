@@ -8,8 +8,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef DATAFORMATS_INCLUDE_DATAFORMATS_WIB_WIBFRAME_HPP_
-#define DATAFORMATS_INCLUDE_DATAFORMATS_WIB_WIBFRAME_HPP_
+#ifndef READOUT_INCLUDE_READOUT_WIBFRAME_HPP_
+#define READOUT_INCLUDE_READOUT_WIBFRAME_HPP_
 
 #include "ers/Issue.hpp"
 
@@ -448,4 +448,4 @@ operator<<(std::ostream& o, WIBFrame const& frame)
 } // namespace dataformats
 } // namespace dunedaq
 
-#endif // DATAFORMATS_INCLUDE_DATAFORMATS_WIB_WIBFRAME_HPP_
+#endif // READOUT_INCLUDE_READOUT_WIBFRAME_HPP_

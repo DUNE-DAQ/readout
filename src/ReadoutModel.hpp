@@ -43,7 +43,8 @@
 #include <memory>
 #include <string>
 
-using namespace dunedaq::readout::logging;
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
+using dunedaq::readout::logging::TLVL_TAKE_NOTE;
 
 namespace dunedaq {
 namespace readout {
