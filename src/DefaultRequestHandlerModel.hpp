@@ -209,7 +209,17 @@ protected:
           //m_unlock_callback();
           auto reqres = fut.get();
           //TLOG() << "Request result handled: " << resultCodeAsString(reqres.result_code);
-          if (reqres.result_code == ResultCode::kNotYet && m_run_marker.load()) { // give it another chance
+
+          // 28-Apr-2021, KAB: I believe that a test on m_run_marker when reqres.result_code is kNotYet
+          // leads to missing fragments in TriggerRecords at the end of a run (i.e. at Stop time).
+          // In the case of the WIBRequestHandler::tcp_data_request() method, that method is smart enough to 
+          // recognize that a Stop has been requested and create an empty Fragment if the data can not
+          // be found. Checking on the status of the run_marker here prevents that code from doing that
+          // valuable service.  So, in this candidate change, I have commented out the check on the
+          // run_marker here.  With this change, I see fewer (maybe even zero) TriggerRecords with
+          // missing fragments at the end of runs.  Of course, those Fragments may be empty, but at
+          // least they are not missing.
+          if (reqres.result_code == ResultCode::kNotYet) { // && m_run_marker.load()) { // give it another chance
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
               << "With timestamp=" << reqres.data_request.trigger_timestamp
               << "delay [us] " << reqres.request_delay_us;
