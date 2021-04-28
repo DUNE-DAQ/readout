@@ -53,8 +53,7 @@ template<class RawType, class RequestHandlerType, class LatencyBufferType, class
 class ReadoutModel : public ReadoutConcept {
 public:
   explicit ReadoutModel(std::atomic<bool>& run_marker)
-  : m_raw_type_name("")
-  , m_run_marker(run_marker)
+  : m_run_marker(run_marker)
   , m_fake_trigger(false)
   , m_stats_thread(0)
   , m_consumer_thread(0)
@@ -68,9 +67,8 @@ public:
   , m_timesync_thread(0)
   { }
 
-  void init(const nlohmann::json& args, const std::string& raw_type_name) {
+  void init(const nlohmann::json& args) {
     m_queue_config = args.get<appfwk::app::ModInit>();
-    m_raw_type_name = raw_type_name;
     // Reset queues
     for (const auto& qi : m_queue_config.qinfos) { 
       try {
@@ -92,12 +90,18 @@ public:
       catch (const ers::Issue& excpt) {
         ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
       }
-    }   
+    }
+
+    // Instantiate functionalities
+    m_latency_buffer_impl.reset(new LatencyBufferType());
+    m_raw_processor_impl.reset(new RawDataProcessorType());
+
+    m_request_handler_impl.reset(new RequestHandlerType());
+    m_request_handler_impl->initialize(m_latency_buffer_impl, m_fragment_sink, m_snb_sink);
   }
 
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
-    m_raw_type_name = conf.raw_type;
     if (conf.fake_trigger_flag == 0) {
       m_fake_trigger = false; 
     } else {
@@ -105,26 +109,18 @@ public:
    }
     m_latency_buffer_size = conf.latency_buffer_size;
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation for raw type: " << m_raw_type_name;
-
-    // Instantiate functionalities
-    try {
-      m_latency_buffer_impl.reset(new LatencyBufferType(m_latency_buffer_size));
-
-    }
-    catch (const std::bad_alloc& be) {
-      ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
-    }
-
-    m_raw_processor_impl.reset(new RawDataProcessorType());
-
-    m_request_handler_impl.reset(new RequestHandlerType(m_raw_type_name, m_run_marker, m_latency_buffer_impl,
-                                                  m_fragment_sink, m_snb_sink));
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
     // Configure implementations:
     m_raw_processor_impl->conf(args);
-    m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
+    //m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
+    try {
+      m_latency_buffer_impl->conf(args);
+    } catch (const std::bad_alloc& be) {
+      ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
+    }
+
 
     // Configure threads:
     m_stats_thread.set_name("stats", conf.link_number);
@@ -301,7 +297,6 @@ private:
   }
 
   // Constuctor params
-  std::string m_raw_type_name;
   std::atomic<bool>& m_run_marker;
 
   // CONFIGURATION

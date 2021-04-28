@@ -38,19 +38,10 @@ namespace dunedaq {
 namespace readout {
 
 template<class RawType, class LatencyBufferType>
-class DefaultRequestHandlerModel : public RequestHandlerConcept {
+class DefaultRequestHandlerModel : public RequestHandlerConcept<RawType, LatencyBufferType> {
 public:
-  explicit DefaultRequestHandlerModel(const std::string& rawtype,
-                                      std::atomic<bool>& marker,
-                                      std::unique_ptr<LatencyBufferType>& latency_buffer,
-                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                                      std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
-  : m_latency_buffer(latency_buffer)
-  , m_fragment_sink(fragment_sink)
-  , m_snb_sink(snb_sink)
-  , m_run_marker(marker)
-  , m_raw_type_name(rawtype)
-  , m_pop_limit_pct(0.0f)
+  explicit DefaultRequestHandlerModel()
+  : m_pop_limit_pct(0.0f)
   , m_pop_size_pct(0.0f)
   , m_pop_limit_size(0)
   , m_pop_counter{0}
@@ -65,6 +56,17 @@ public:
       this, std::placeholders::_1, std::placeholders::_2);
     m_data_request_callback = std::bind(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request,
       this, std::placeholders::_1, std::placeholders::_2);
+  }
+
+  using RequestResult = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::RequestResult;
+  using ResultCode = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::ResultCode;
+
+  void initialize(std::unique_ptr<LatencyBufferType>& latency_buffer,
+                  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                  std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink) override {
+    m_latency_buffer = latency_buffer.get();
+    m_fragment_sink = fragment_sink.get();
+    m_snb_sink = snb_sink.get();
   }
 
   void conf(const nlohmann::json& args)
@@ -92,14 +94,14 @@ public:
 
   void start(const nlohmann::json& /*args*/)
   {
-    //m_run_marker.store(true);
+    m_run_marker.store(true);
     m_stats_thread.set_work(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
     m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
   {
-    //m_run_marker.store(false);
+    m_run_marker.store(false);
     //if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
     if (m_future_recording_stopper.valid()) m_future_recording_stopper.wait();
     m_executor.join();
@@ -176,7 +178,7 @@ protected:
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
-  RequestResult 
+  RequestResult
   data_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT
   {
     ers::error(DefaultImplementationCalled(ERS_HERE, " DefaultRequestHandlerModel ", " data_request "));
@@ -234,13 +236,13 @@ protected:
   }
 
   // Data access (LB)
-  std::unique_ptr<LatencyBufferType>& m_latency_buffer;
+  LatencyBufferType* m_latency_buffer;
 
   // Request source and Fragment sink
-  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
+  appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* m_fragment_sink;
 
   // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<RawType>>& m_snb_sink;
+  appfwk::DAQSink<RawType>* m_snb_sink;
 
   // Requests
   using request_callback_t = std::function<RequestResult(dfmessages::DataRequest, unsigned)>;
@@ -253,7 +255,7 @@ protected:
   completion_queue_t m_completion_queue;
 
   // The run marker
-  std::atomic<bool>& m_run_marker;
+  std::atomic<bool> m_run_marker = false;
 
 private:
   // For recording
@@ -264,7 +266,6 @@ private:
   std::thread m_executor;
 
   // Configuration
-  std::string m_raw_type_name;
   bool m_configured;
   float m_pop_limit_pct; // buffer occupancy percentage to issue a pop request
   float m_pop_size_pct;  // buffer percentage to pop
@@ -279,7 +280,6 @@ private:
   ReusableThread m_stats_thread;
 
   std::atomic<bool> m_cleanup_requested = false;
-
 };
 
 } // namespace readout

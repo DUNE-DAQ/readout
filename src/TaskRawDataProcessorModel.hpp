@@ -40,9 +40,10 @@ public:
 
   }
 
-  void conf(const nlohmann::json& /*cfg*/) {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Setting up async task tree.";
+  void conf(const nlohmann::json& /*cfg*/) override {
+
   }
+
 
   void process_item(RawType* item) {
     invoke_all(item);

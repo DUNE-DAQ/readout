@@ -34,13 +34,8 @@ namespace readout {
 
 class WIBRequestHandler : public DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>> {
 public:
-  explicit WIBRequestHandler(const std::string& rawtype,
-                             std::atomic<bool>& marker,
-                             std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer,
-                             std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                             std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
-  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>(rawtype, marker,
-      latency_buffer, fragment_sink, snb_sink)
+  explicit WIBRequestHandler()
+  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
     m_data_request_callback = std::bind(&WIBRequestHandler::tpc_data_request, 

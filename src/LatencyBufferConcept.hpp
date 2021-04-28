@@ -25,8 +25,8 @@ public:
   LatencyBufferConcept& operator=(LatencyBufferConcept&&)
     = delete; ///< LatencyBufferConcept is not move-assignable
 
+  virtual void conf(const nlohmann::json& cfg) = 0;
   virtual size_t occupancy() = 0;
-
   virtual bool write(RawType) = 0;
   virtual bool read(RawType&) = 0;
   virtual void pop(unsigned) = 0;

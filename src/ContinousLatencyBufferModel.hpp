@@ -25,47 +25,53 @@ namespace dunedaq {
 namespace readout {
 
 template<class RawType>
-class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType>,
-                                    //public folly::ProducerConsumerQueue<RawType> {
-                                    public AccessableProducerConsumerQueue<RawType> {
+class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType> {
 public:
   ContinousLatencyBufferModel(const size_t qsize) // NOLINT
-//  : folly::ProducerConsumerQueue<RawType>(qsize)
-  : AccessableProducerConsumerQueue<RawType>(qsize)
+  : m_queue(new AccessableProducerConsumerQueue<RawType>(qsize))
   {
 
   }
 
+  ContinousLatencyBufferModel() {
+
+  }
+
+  void conf(const nlohmann::json& cfg) override {
+    auto params = cfg.get<datalinkhandler::Conf>();
+    m_queue.reset(new AccessableProducerConsumerQueue<RawType>(params.latency_buffer_size));
+  }
+
   size_t occupancy() override {
-    return AccessableProducerConsumerQueue<RawType>::sizeGuess();
+    return m_queue->sizeGuess();
   }
 
   void lock() override {
-    AccessableProducerConsumerQueue<RawType>::lock();
+    m_queue->lock();
   }
 
   void unlock() override {
-    AccessableProducerConsumerQueue<RawType>::unlock();
+    m_queue->unlock();
   }
 
   // For the continous buffer, the data is moved into the Folly queue.
   bool
   write(RawType new_element) override
   {
-    return AccessableProducerConsumerQueue<RawType>::write( std::move(new_element) );
+    return m_queue->write( std::move(new_element) );
   }
 
   bool 
   read(RawType& element) override
   {
-    return AccessableProducerConsumerQueue<RawType>::read(element);
+    return m_queue->read(element);
   }
 
   void 
   pop(unsigned num) override// NOLINT
   {
     for (unsigned i=0; i<num; ++i) { // NOLINT
-      AccessableProducerConsumerQueue<RawType>::popFront();
+      m_queue->popFront();
     }
   }
 
@@ -73,10 +79,13 @@ public:
   front(unsigned idx) override// NOLINT
   {
     if (idx == 0)
-      return AccessableProducerConsumerQueue<RawType>::frontPtr();
+      return m_queue->frontPtr();
     else
-      return AccessableProducerConsumerQueue<RawType>::readPtr(idx); // Only with accessable SPSC
+      return m_queue->readPtr(idx); // Only with accessable SPSC
   }
+
+private:
+  std::unique_ptr<AccessableProducerConsumerQueue<RawType>> m_queue;
 
 };
 
