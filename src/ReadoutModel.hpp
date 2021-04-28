@@ -116,7 +116,7 @@ public:
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
     }
 
-    m_raw_processor_impl.reset(new RawDataProcessorType(m_raw_type_name));
+    m_raw_processor_impl.reset(new RawDataProcessorType());
 
     m_request_handler_impl.reset(new RequestHandlerType(m_raw_type_name, m_run_marker, m_latency_buffer_impl,
                                                   m_fragment_sink, m_snb_sink));

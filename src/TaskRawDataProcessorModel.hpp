@@ -30,9 +30,8 @@ template<class RawType>
 class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType> {
 public:
 
-  explicit TaskRawDataProcessorModel(const std::string& rawtype)
-  : RawDataProcessorConcept<RawType>(rawtype)
-  , m_raw_type_name(rawtype)
+  explicit TaskRawDataProcessorModel()
+  : RawDataProcessorConcept<RawType>()
   {
 
   }
@@ -70,9 +69,6 @@ protected:
   // Async tasks and
   std::vector<std::function<void(RawType*)>> m_tasklist;
   //std::map<std::string, std::function<void(RawType*)>> m_tasklist; // futures
-
-private:
-  std::string m_raw_type_name;
 
 };
 

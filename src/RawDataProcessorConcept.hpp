@@ -19,8 +19,7 @@ namespace readout {
 class RawDataProcessorConcept {
 public:
 
-  explicit RawDataProcessorConcept(const std::string& rawtype)
-  : m_raw_type_name(rawtype)
+  explicit RawDataProcessorConcept()
   {}
 
   RawDataProcessorConcept(const RawDataProcessorConcept&) 
@@ -42,9 +41,6 @@ public:
 protected:
   bool m_emulator_mode{false};
   std::atomic<time::timestamp_t> m_last_processed_daq_ts{0};
-
-private:
-  std::string m_raw_type_name;
 
 };
 
