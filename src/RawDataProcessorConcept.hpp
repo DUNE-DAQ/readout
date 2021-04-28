@@ -15,6 +15,7 @@
 namespace dunedaq {
 namespace readout {
 
+  template <class RawType>
 class RawDataProcessorConcept {
 public:
 
@@ -36,6 +37,7 @@ public:
   void reset_last_daq_time() { m_last_processed_daq_ts.store(0); }
   void set_emulator_mode(bool do_emu) { m_emulator_mode = do_emu; }
   bool get_emulator_mode() { return m_emulator_mode; }
+  virtual void process_item(RawType* item) = 0;
 
 protected:
   bool m_emulator_mode{false};

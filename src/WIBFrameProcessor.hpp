@@ -34,8 +34,8 @@ public:
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
 
 
-  WIBFrameProcessor(const std::string& rawtype, std::function<void(frameptr)>& process_override)
-  : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype, process_override)
+  WIBFrameProcessor(const std::string& rawtype)
+  : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(rawtype)
   {
     m_tasklist.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
     //m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );

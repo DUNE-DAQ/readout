@@ -27,16 +27,14 @@ namespace dunedaq {
 namespace readout {
 
 template<class RawType>
-class TaskRawDataProcessorModel : public RawDataProcessorConcept {
+class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType> {
 public:
 
-  explicit TaskRawDataProcessorModel(const std::string& rawtype, std::function<void(RawType*)>& process_override)
-  : RawDataProcessorConcept(rawtype)
+  explicit TaskRawDataProcessorModel(const std::string& rawtype)
+  : RawDataProcessorConcept<RawType>(rawtype)
   , m_raw_type_name(rawtype)
-  , m_process_override(process_override)
   {
-    // Bind custom raw process of data
-    m_process_override = std::bind(&TaskRawDataProcessorModel<RawType>::process_item, this, std::placeholders::_1);
+
   }
 
   ~TaskRawDataProcessorModel() {
@@ -75,7 +73,6 @@ protected:
 
 private:
   std::string m_raw_type_name;
-  std::function<void(RawType*)>& m_process_override;
 
 };
 

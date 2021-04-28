@@ -63,7 +63,6 @@ public:
   , m_latency_buffer_size(0)
   , m_latency_buffer_impl(nullptr)
   , m_raw_processor_impl(nullptr)
-  , m_process_callback(nullptr)
   , m_requester_thread(0)
   , m_timesync_queue_timeout_ms(0)
   , m_timesync_thread(0)
@@ -117,7 +116,7 @@ public:
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
     }
 
-    m_raw_processor_impl.reset(new RawDataProcessorType(m_raw_type_name, m_process_callback));
+    m_raw_processor_impl.reset(new RawDataProcessorType(m_raw_type_name));
 
     m_request_handler_impl.reset(new RequestHandlerType(m_raw_type_name, m_run_marker, m_latency_buffer_impl,
                                                   m_fragment_sink, m_snb_sink));
@@ -201,7 +200,7 @@ private:
       }
       // Only process if data was acquired
       //if (payload != nullptr) { // payload_ptr
-        m_process_callback(&payload); // payload_ptr.get()
+        m_raw_processor_impl->process_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
         }
@@ -346,11 +345,10 @@ private:
   std::unique_ptr<LatencyBufferType> m_latency_buffer_impl;
 
   // RAW PROCESSING:
-  std::unique_ptr<RawDataProcessorConcept> m_raw_processor_impl;
-  std::function<void(RawType*)> m_process_callback;
+  std::unique_ptr<RawDataProcessorType> m_raw_processor_impl;
 
   // REQUEST HANDLER:
-  std::unique_ptr<RequestHandlerConcept> m_request_handler_impl;
+  std::unique_ptr<RequestHandlerType> m_request_handler_impl;
   ReusableThread m_requester_thread;
 
   // TIME-SYNC
