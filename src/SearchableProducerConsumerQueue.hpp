@@ -15,15 +15,13 @@
 
 #include "AccessableProducerConsumerQueue.hpp"
 
-using namespace dunedaq::readout::logging;
-
 namespace dunedaq {
   namespace readout {
 
     template<class T, class Key, class KeyGetter>
     class SearchableProducerConsumerQueue : public AccessableProducerConsumerQueue<T> {
     public:
-      SearchableProducerConsumerQueue(uint32_t size) : AccessableProducerConsumerQueue<T>(size) {
+      explicit SearchableProducerConsumerQueue(uint32_t size) : AccessableProducerConsumerQueue<T>(size) { // NOLINT
 
       }
 
