@@ -36,10 +36,6 @@ public:
   virtual void stop(const nlohmann::json& args) = 0;
   virtual void record(const nlohmann::json& args) = 0;
 
-  virtual void initialize(std::unique_ptr<LatencyBufferType>& latency_buffer,
-                          std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                          std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink) = 0;
-
   // requests
   virtual void auto_cleanup_check() = 0;
   virtual void issue_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;

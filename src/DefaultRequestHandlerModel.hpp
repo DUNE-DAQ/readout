@@ -40,8 +40,13 @@ namespace readout {
 template<class RawType, class LatencyBufferType>
 class DefaultRequestHandlerModel : public RequestHandlerConcept<RawType, LatencyBufferType> {
 public:
-  explicit DefaultRequestHandlerModel()
-  : m_pop_limit_pct(0.0f)
+  explicit DefaultRequestHandlerModel(std::unique_ptr<LatencyBufferType>& latency_buffer,
+                                      std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                                      std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
+  : m_latency_buffer(latency_buffer)
+  , m_fragment_sink(fragment_sink)
+  , m_snb_sink(snb_sink)
+  , m_pop_limit_pct(0.0f)
   , m_pop_size_pct(0.0f)
   , m_pop_limit_size(0)
   , m_pop_counter{0}
@@ -56,14 +61,6 @@ public:
 
   using RequestResult = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::RequestResult;
   using ResultCode = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::ResultCode;
-
-  void initialize(std::unique_ptr<LatencyBufferType>& latency_buffer,
-                  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                  std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink) override {
-    m_latency_buffer = latency_buffer.get();
-    m_fragment_sink = fragment_sink.get();
-    m_snb_sink = snb_sink.get();
-  }
 
   void conf(const nlohmann::json& args)
   {
@@ -225,13 +222,13 @@ protected:
   }
 
   // Data access (LB)
-  LatencyBufferType* m_latency_buffer;
+  std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
   // Request source and Fragment sink
-  appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* m_fragment_sink;
+  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
 
   // Sink for SNB data
-  appfwk::DAQSink<RawType>* m_snb_sink;
+  std::unique_ptr<appfwk::DAQSink<RawType>>& m_snb_sink;
 
   // Requests
   std::size_t m_max_requested_elements;

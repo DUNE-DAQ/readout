@@ -95,9 +95,7 @@ public:
     // Instantiate functionalities
     m_latency_buffer_impl.reset(new LatencyBufferType());
     m_raw_processor_impl.reset(new RawDataProcessorType());
-
-    m_request_handler_impl.reset(new RequestHandlerType());
-    m_request_handler_impl->initialize(m_latency_buffer_impl, m_fragment_sink, m_snb_sink);
+    m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink));
   }
 
   void conf(const nlohmann::json& args) {
