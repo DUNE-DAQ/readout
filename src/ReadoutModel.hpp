@@ -181,19 +181,11 @@ private:
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
-      //std::unique_ptr<RawType> payload_ptr(nullptr);
       RawType payload;
       // Try to acquire data
       try {
         //m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
         m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ++m_rawq_timeout_count;
-        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
-      }
-      // Only process if data was acquired
-      //if (payload != nullptr) { // payload_ptr
         m_raw_processor_impl->process_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
@@ -202,7 +194,11 @@ private:
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;
-      //}
+      }
+      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        ++m_rawq_timeout_count;
+        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+      }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
   }   
