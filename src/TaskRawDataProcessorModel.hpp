@@ -30,7 +30,7 @@ template<class RawType>
 class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType> {
 public:
 
-  explicit TaskRawDataProcessorModel()
+  TaskRawDataProcessorModel()
   : RawDataProcessorConcept<RawType>()
   {
 

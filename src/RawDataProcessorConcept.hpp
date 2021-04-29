@@ -15,11 +15,11 @@
 namespace dunedaq {
 namespace readout {
 
-  template <class RawType>
+template <class RawType>
 class RawDataProcessorConcept {
 public:
 
-  explicit RawDataProcessorConcept()
+  RawDataProcessorConcept()
   {}
 
   RawDataProcessorConcept(const RawDataProcessorConcept&) 
