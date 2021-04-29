@@ -21,20 +21,18 @@
 #include <memory>
 #include <utility>
 
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
+
 namespace dunedaq {
 namespace readout {
 
 template<class RawType>
 class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType> {
+  const uint32_t uninitialized_size = 2; // NOLINT
 public:
-  ContinousLatencyBufferModel(const size_t qsize) // NOLINT
-  : m_queue(new AccessableProducerConsumerQueue<RawType>(qsize))
-  {
 
-  }
-
-  ContinousLatencyBufferModel() {
-
+  ContinousLatencyBufferModel() : m_queue(new AccessableProducerConsumerQueue<RawType>(uninitialized_size)) {
+    TLOG(TLVL_WORK_STEPS) << "Creating uninitialized latency buffer";
   }
 
   void conf(const nlohmann::json& cfg) override {
