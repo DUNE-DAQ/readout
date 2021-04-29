@@ -20,7 +20,7 @@
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
-#include <tbb/concurrent_queue.h>
+#include <folly/concurrency/UnboundedQueue.h>
 
 #include <atomic>
 #include <thread>
@@ -126,7 +126,7 @@ public:
       dfmessages::DataRequest dr;
       auto delay_us = 0;
       auto execfut = std::async(std::launch::deferred, &DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request, this, dr, delay_us);
-      m_completion_queue.push(std::move(execfut));
+      m_completion_queue.enqueue(std::move(execfut));
       m_cleanup_requested = true;
     }
   }
@@ -136,7 +136,7 @@ public:
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
     auto reqfut = std::async(std::launch::async, &DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request, this, datarequest, delay_us);
-    m_completion_queue.push(std::move(reqfut));
+    m_completion_queue.enqueue(std::move(reqfut));
   }
 
 protected:
@@ -178,7 +178,7 @@ protected:
       if (m_completion_queue.empty()) {
         std::this_thread::sleep_for(std::chrono::microseconds(50));
       } else {
-        bool success = m_completion_queue.try_pop(fut);
+        bool success = m_completion_queue.try_dequeue(fut);
         if (!success) {
           ers::error(CannotReadFromQueue(ERS_HERE, "RequestsCompletionQueue."));
         } else {
@@ -234,7 +234,7 @@ protected:
   std::size_t m_max_requested_elements;
 
   // Completion of requests requests
-  using completion_queue_t = tbb::concurrent_queue<std::future<RequestResult>>;
+  using completion_queue_t = folly::UMPSCQueue<std::future<RequestResult>, true>;
   completion_queue_t m_completion_queue;
 
   // The run marker
