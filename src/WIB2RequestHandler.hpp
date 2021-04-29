@@ -38,8 +38,6 @@ public:
   : DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIB2RequestHandler created...";
-    m_data_request_callback = std::bind(&WIB2RequestHandler::tpc_data_request, 
-      this, std::placeholders::_1, std::placeholders::_2);
   } 
 
   void conf(const nlohmann::json& args) override
@@ -52,6 +50,12 @@ public:
   }
   
 protected:
+
+  RequestResult
+  data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT
+  {
+    return tpc_data_request(dr, delay_us);
+  }
 
   inline dataformats::FragmentHeader 
   create_fragment_header(const dfmessages::DataRequest& dr) 

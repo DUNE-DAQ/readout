@@ -52,10 +52,6 @@ public:
   , m_stats_thread(0)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
-    m_cleanup_request_callback = std::bind(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request,
-      this, std::placeholders::_1, std::placeholders::_2);
-    m_data_request_callback = std::bind(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request,
-      this, std::placeholders::_1, std::placeholders::_2);
   }
 
   using RequestResult = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::RequestResult;
@@ -132,7 +128,7 @@ public:
     if (!m_cleanup_requested && size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
       auto delay_us = 0;
-      auto execfut = std::async(std::launch::deferred, m_cleanup_request_callback, dr, delay_us);
+      auto execfut = std::async(std::launch::deferred, &DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request, this, dr, delay_us);
       m_completion_queue.push(std::move(execfut));
       m_cleanup_requested = true;
     }
@@ -142,7 +138,7 @@ public:
   void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
-    auto reqfut = std::async(std::launch::async, m_data_request_callback, datarequest, delay_us);
+    auto reqfut = std::async(std::launch::async, &DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request, this, datarequest, delay_us);
     m_completion_queue.push(std::move(reqfut));
   }
 
@@ -176,13 +172,6 @@ protected:
     }
     m_cleanup_requested = false;
     return RequestResult(ResultCode::kCleanup, dr);
-  }
-
-  RequestResult
-  data_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT
-  {
-    ers::error(DefaultImplementationCalled(ERS_HERE, " DefaultRequestHandlerModel ", " data_request "));
-    return RequestResult(ResultCode::kUnknown, dr);
   }
 
   void executor()
@@ -245,9 +234,6 @@ protected:
   appfwk::DAQSink<RawType>* m_snb_sink;
 
   // Requests
-  using request_callback_t = std::function<RequestResult(dfmessages::DataRequest, unsigned)>;
-  request_callback_t m_cleanup_request_callback;
-  request_callback_t m_data_request_callback;
   std::size_t m_max_requested_elements;
 
   // Completion of requests requests

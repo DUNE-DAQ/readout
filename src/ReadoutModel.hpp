@@ -103,9 +103,9 @@ public:
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
     if (conf.fake_trigger_flag == 0) {
-      m_fake_trigger = false; 
+      m_fake_trigger = false;
     } else {
-      m_fake_trigger = true; 
+      m_fake_trigger = true;
    }
     m_latency_buffer_size = conf.latency_buffer_size;
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
