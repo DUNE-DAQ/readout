@@ -11,6 +11,7 @@
 namespace dunedaq {
 namespace readout {
 
+template <class RawType>
 class LatencyBufferConcept {
 
 public:
@@ -24,7 +25,14 @@ public:
   LatencyBufferConcept& operator=(LatencyBufferConcept&&)
     = delete; ///< LatencyBufferConcept is not move-assignable
 
-  virtual size_t occupancy_of_buffer() = 0;   
+  virtual void conf(const nlohmann::json& cfg) = 0;
+  virtual size_t occupancy() = 0;
+  virtual bool write(RawType&&) = 0;
+  virtual bool read(RawType&) = 0;
+  virtual void pop(unsigned) = 0;
+  virtual RawType* getPtr(unsigned) = 0;
+  virtual void lock() = 0;
+  virtual void unlock() = 0;
 
 private:
 

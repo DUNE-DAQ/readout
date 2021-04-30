@@ -1,18 +1,18 @@
 /**
-* @file WIBRequestHandler.hpp Trigger matching mechanism for WIB frames. 
+* @file WIB2RequestHandler.hpp Trigger matching mechanism for WIB frames. 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef READOUT_SRC_WIBREQUESTHANDLER_HPP_
-#define READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_WIB2REQUESTHANDLER_HPP_
+#define READOUT_SRC_WIB2REQUESTHANDLER_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "ReadoutStatistics.hpp"
 #include "DefaultRequestHandlerModel.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
+#include "dataformats/wib2/WIB2Frame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "ContinousLatencyBufferModel.hpp"
@@ -27,26 +27,25 @@
 #include <string>
 #include <vector>
 
-using dunedaq::readout::logging::TLVL_WORK_STEPS;
-using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
 
-class WIBRequestHandler : public DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>> {
+class WIB2RequestHandler : public DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>> {
 public:
-  explicit WIBRequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer,
-                             std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                             std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
-  : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>(latency_buffer, fragment_sink, snb_sink)
+  explicit WIB2RequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>& latency_buffer,
+                              std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                              std::unique_ptr<appfwk::DAQSink<types::WIB2_SUPERCHUNK_STRUCT>>& snb_sink)
+  : DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>(latency_buffer, fragment_sink, snb_sink)
   {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "WIB2RequestHandler created...";
   } 
 
   void conf(const nlohmann::json& args) override
   {
     // Call up to the base class, whose conf function does useful things
-    DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>::conf(args);
+    DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
@@ -103,10 +102,10 @@ protected:
 
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
-    dataformats::WIBHeader front_wh = *(reinterpret_cast<const dataformats::WIBHeader*>( m_latency_buffer->getPtr(0) )); // NOLINT
-    uint64_t start_win_ts = dr.window_begin;   // NOLINT
-    uint64_t end_win_ts = dr.window_end;   // NOLINT
-    uint64_t last_ts = front_wh.get_timestamp();                           // NOLINT
+    auto front_frame = *(reinterpret_cast<const dataformats::WIB2Frame*>( m_latency_buffer->getPtr(0) )); // NOLINT
+    uint64_t last_ts = front_frame.get_timestamp();  // NOLINT
+    uint64_t start_win_ts = dr.window_begin;  // NOLINT
+    uint64_t end_win_ts = dr.window_end;  // NOLINT
     uint64_t newest_ts = last_ts + (occupancy_guess-m_safe_num_elements_margin) * m_tick_dist * m_frames_per_element; // NOLINT
     int64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
     int32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
@@ -135,16 +134,20 @@ protected:
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
-    } else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
+    }
+    else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count; 
-    } else if ( last_ts > start_win_ts ) { // data is gone.
+    }
+    else if ( last_ts > start_win_ts ) { // data is gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
-    } else if ( newest_ts < end_win_ts ) {
+    }
+    else if ( newest_ts < end_win_ts ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
-    } else {
+    }
+    else {
       TLOG() << "Don't know how to categorise this request";
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
@@ -209,8 +212,6 @@ protected:
    frag->set_header_fields(frag_header);
    // Push to Fragment queue
    try {
-     TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number " << frag->get_trigger_number()
-                                 << ", run number " << frag->get_run_number() << ", and GeoID " << frag->get_link_id();
      m_fragment_sink->push( std::move(frag) );
    }
    catch (const ers::Issue& excpt) {
@@ -224,7 +225,7 @@ protected:
 private:
   // Constants
   static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT
-  static const constexpr size_t m_wib_frame_size = 464;
+  static const constexpr size_t m_wib_frame_size = 468;
   static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
   static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
   static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT

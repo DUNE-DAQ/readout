@@ -235,7 +235,7 @@ template <class T> struct AccessableProducerConsumerQueue {
   void lock() { m_mutex.lock(); }
   void unlock() {m_mutex.unlock(); }
 
-private: // hardware_destructive_interference_size is set to 128.
+protected: // hardware_destructive_interference_size is set to 128.
          // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
 
   std::mutex m_mutex;

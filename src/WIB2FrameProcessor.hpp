@@ -1,19 +1,19 @@
 /**
-* @file WIBFrameProcessor.hpp WIB specific Task based raw processor
+* @file WIB2FrameProcessor.hpp WIB2 specific Task based raw processor
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
-#define READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#ifndef READOUT_SRC_WIB2FRAMEPROCESSOR_HPP_
+#define READOUT_SRC_WIB2FRAMEPROCESSOR_HPP_
 
 #include "TaskRawDataProcessorModel.hpp"
 #include "ReadoutStatistics.hpp"
 #include "ReadoutIssues.hpp"
 #include "Time.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
+#include "dataformats/wib2/WIB2Frame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
@@ -21,24 +21,24 @@
 #include <atomic>
 #include <functional>
 
-using dunedaq::readout::logging::TLVL_BOOKKEEPING;
+using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
 namespace readout {
 
-class WIBFrameProcessor : public TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT> {
+class WIB2FrameProcessor : public TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT> {
 
 public:
-  using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
-  using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
-  using wibframeptr = dunedaq::dataformats::WIBFrame*;
+  using inherited = TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>;
+  using frameptr = types::WIB2_SUPERCHUNK_STRUCT*;
+  using wib2frameptr = dunedaq::dataformats::WIB2Frame*;
 
 
-  WIBFrameProcessor()
-  : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>()
+  WIB2FrameProcessor()
+  : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>()
   {
-    m_tasklist.push_back( std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1) );
-    //m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
+    m_tasklist.push_back( std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1) );
+    //m_tasklist.push_back( std::bind(&WIB2FrameProcessor::frame_error_check, this, std::placeholders::_1) );
   } 
 
 protected:
@@ -55,18 +55,20 @@ protected:
   void timestamp_check(frameptr fp) {
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
-      uint64_t ts_next = m_previous_ts + 300; // NOLINT
+      uint64_t ts_next = m_previous_ts + 300;
       for (unsigned int i=0; i<12; ++i) { // NOLINT
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)+i*464); // NOLINT
-        auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
-        wfh->set_timestamp(ts_next);
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)fp)+i*468); // NOLINT
+        auto wfh = wf->header; //const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());
+        
+        //wfh->set_timestamp(ts_next);
+
         ts_next += 25;
       }
     }
 
     // Acquire timestamp
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
-    m_current_ts = wfptr->get_wib_header()->get_timestamp();
+    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(fp); // NOLINT
+    m_current_ts = wfptr->get_timestamp();
 
     // Check timestamp
     if (m_current_ts - m_previous_ts != 300) {
@@ -104,4 +106,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#endif // READOUT_SRC_WIB2FRAMEPROCESSOR_HPP_

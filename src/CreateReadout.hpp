@@ -20,6 +20,12 @@
 #include "ReadoutConcept.hpp"
 #include "ReadoutModel.hpp"
 
+#include "WIBRequestHandler.hpp"
+#include "ContinousLatencyBufferModel.hpp"
+#include "WIBFrameProcessor.hpp"
+#include "WIB2RequestHandler.hpp"
+#include "WIB2FrameProcessor.hpp"
+
 #include <utility>
 #include <memory>
 #include <string>
@@ -42,8 +48,19 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       if (inst.find("wib") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib" ;
         raw_type_name = "wib";
-        auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT>>(run_marker);
-        readout_model->init(args, raw_type_name);
+        auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT, WIBRequestHandler,
+            ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>, WIBFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      // IF WIB2
+      if (inst.find("wib2") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2" ;
+        raw_type_name = "wib2";
+        auto readout_model = std::make_unique<ReadoutModel<types::WIB2_SUPERCHUNK_STRUCT, WIB2RequestHandler,
+            ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>, WIB2FrameProcessor>>(run_marker);
+        readout_model->init(args);
         return std::move(readout_model);
       }
 
