@@ -27,10 +27,10 @@ public:
 
   virtual void conf(const nlohmann::json& cfg) = 0;
   virtual size_t occupancy() = 0;
-  virtual bool write(RawType) = 0;
+  virtual bool write(RawType&&) = 0;
   virtual bool read(RawType&) = 0;
   virtual void pop(unsigned) = 0;
-  virtual RawType* front(unsigned) = 0;
+  virtual RawType* getPtr(unsigned) = 0;
   virtual void lock() = 0;
   virtual void unlock() = 0;
 

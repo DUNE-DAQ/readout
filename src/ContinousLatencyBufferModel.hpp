@@ -29,11 +29,11 @@ namespace readout {
 template<class RawType>
 class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType> {
 
-static constexpr uint32_t uninitialized_buffer_size = 2; // NOLINT
+static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT
 public:
 
-  ContinousLatencyBufferModel() : m_queue(new AccessableProducerConsumerQueue<RawType>(uninitialized_buffer_size)) {
-    TLOG(TLVL_WORK_STEPS) << "Creating uninitialized latency buffer";
+  ContinousLatencyBufferModel() : m_queue(new AccessableProducerConsumerQueue<RawType>(unconfigured_buffer_size)) {
+    TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
 
   void conf(const nlohmann::json& cfg) override {
@@ -55,7 +55,7 @@ public:
 
   // For the continous buffer, the data is moved into the Folly queue.
   bool
-  write(RawType new_element) override
+  write(RawType&& new_element) override
   {
     return m_queue->write( std::move(new_element) );
   }
@@ -67,7 +67,7 @@ public:
   }
 
   void 
-  pop(unsigned num) override// NOLINT
+  pop(unsigned num = 1) override// NOLINT
   {
     for (unsigned i=0; i<num; ++i) { // NOLINT
       m_queue->popFront();
@@ -75,12 +75,13 @@ public:
   }
 
   RawType* 
-  front(unsigned idx) override// NOLINT
+  getPtr(unsigned idx) override// NOLINT
   {
-    if (idx == 0)
+    if (idx == 0) {
       return m_queue->frontPtr();
-    else
+    } else {
       return m_queue->readPtr(idx); // Only with accessable SPSC
+    }
   }
 
 private:

@@ -54,7 +54,6 @@ public:
   , m_pop_reqs(0)
   , m_pops_count(0)
   , m_occupancy(0)
-  , m_stats_thread(0)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
@@ -88,7 +87,7 @@ public:
   void start(const nlohmann::json& /*args*/)
   {
     m_run_marker.store(true);
-    m_stats_thread.set_work(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
+    m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
     m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
   }
 
@@ -98,9 +97,7 @@ public:
     //if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
     if (m_future_recording_stopper.valid()) m_future_recording_stopper.wait();
     m_executor.join();
-    while (!m_stats_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
-    }
+    m_stats_thread.join();
   }
 
   void record(const nlohmann::json& args) override {
@@ -260,7 +257,7 @@ private:
   stats::counter_t m_pop_reqs;
   stats::counter_t m_pops_count;
   stats::counter_t m_occupancy;
-  ReusableThread m_stats_thread;
+  std::thread m_stats_thread;
 
   std::atomic<bool> m_cleanup_requested = false;
 };
