@@ -30,10 +30,12 @@
 #include "readout/datalinkhandlerinfo/Nljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
+#include "LatencyBufferConcept.hpp"
+#include "RequestHandlerConcept.hpp"
+#include "RawDataProcessorConcept.hpp"
+
 #include "ReadoutIssues.hpp"
-#include "CreateRawDataProcessor.hpp"
-#include "CreateLatencyBuffer.hpp"
-#include "CreateRequestHandler.hpp"
+#include "ReadoutStatistics.hpp"
 #include "readout/ReusableThread.hpp"
 
 #include <functional>
@@ -47,12 +49,11 @@ using dunedaq::readout::logging::TLVL_TAKE_NOTE;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
+template<class RawType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
 class ReadoutModel : public ReadoutConcept {
 public:
   explicit ReadoutModel(std::atomic<bool>& run_marker)
-  : m_raw_type_name("")
-  , m_run_marker(run_marker)
+  : m_run_marker(run_marker)
   , m_fake_trigger(false)
   , m_stats_thread(0)
   , m_consumer_thread(0)
@@ -60,20 +61,14 @@ public:
   , m_raw_data_source(nullptr)
   , m_latency_buffer_size(0)
   , m_latency_buffer_impl(nullptr)
-  , m_write_callback(nullptr)
-  , m_read_callback(nullptr)
-  , m_pop_callback(nullptr)
-  , m_front_callback(nullptr)
   , m_raw_processor_impl(nullptr)
-  , m_process_callback(nullptr)
   , m_requester_thread(0)
   , m_timesync_queue_timeout_ms(0)
   , m_timesync_thread(0)
   { }
 
-  void init(const nlohmann::json& args, const std::string& raw_type_name) {
+  void init(const nlohmann::json& args) {
     m_queue_config = args.get<appfwk::app::ModInit>();
-    m_raw_type_name = raw_type_name;
     // Reset queues
     for (const auto& qi : m_queue_config.qinfos) { 
       try {
@@ -95,50 +90,35 @@ public:
       catch (const ers::Issue& excpt) {
         ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
       }
-    }   
+    }
+
+    // Instantiate functionalities
+    m_latency_buffer_impl.reset(new LatencyBufferType());
+    m_raw_processor_impl.reset(new RawDataProcessorType());
+    m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink));
   }
 
   void conf(const nlohmann::json& args) {
     auto conf = args.get<datalinkhandler::Conf>();
-    m_raw_type_name = conf.raw_type;
     if (conf.fake_trigger_flag == 0) {
-      m_fake_trigger = false; 
+      m_fake_trigger = false;
     } else {
-      m_fake_trigger = true; 
+      m_fake_trigger = true;
    }
     m_latency_buffer_size = conf.latency_buffer_size;
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation for raw type: " << m_raw_type_name;
-
-    // Instantiate functionalities
-    try {
-      m_latency_buffer_impl = createLatencyBuffer<RawType>(m_raw_type_name, m_latency_buffer_size, 
-          m_occupancy_callback, m_write_callback, m_read_callback, m_pop_callback, m_front_callback, m_lock_callback, m_unlock_callback);
-    }
-    catch (const std::bad_alloc& be) {
-      ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
-    }
-    if(m_latency_buffer_impl.get() == nullptr) {
-      ers::error(NoImplementationAvailableError(ERS_HERE, "Latency Buffer", m_raw_type_name));
-    }
-
-    m_raw_processor_impl = createRawDataProcessor<RawType>(m_raw_type_name, m_process_callback);
-    if(m_raw_processor_impl.get() == nullptr) {
-      ers::error(NoImplementationAvailableError(ERS_HERE, "Raw Processor", m_raw_type_name));
-    }
-
-    m_request_handler_impl = createRequestHandler<RawType>(m_raw_type_name, m_run_marker, 
-                                                           m_occupancy_callback,  m_read_callback, m_pop_callback,
-                                                           m_front_callback, m_lock_callback, m_unlock_callback,
-                                                           m_fragment_sink, m_snb_sink);
-    if(m_request_handler_impl.get() == nullptr) {
-      ers::error(NoImplementationAvailableError(ERS_HERE, "Request Handler", m_raw_type_name));
-    }
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
     // Configure implementations:
     m_raw_processor_impl->conf(args);
-    m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
+    //m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
+    try {
+      m_latency_buffer_impl->conf(args);
+    } catch (const std::bad_alloc& be) {
+      ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
+    }
+
 
     // Configure threads:
     m_stats_thread.set_name("stats", conf.link_number);
@@ -150,10 +130,10 @@ public:
   void start(const nlohmann::json& args) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_request_handler_impl->start(args);
-    m_stats_thread.set_work(&ReadoutModel<RawType>::run_stats, this);
-    m_consumer_thread.set_work(&ReadoutModel<RawType>::run_consume, this);
-    m_requester_thread.set_work(&ReadoutModel<RawType>::run_requests, this);
-    m_timesync_thread.set_work(&ReadoutModel<RawType>::run_timesync, this);
+    m_stats_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
+    m_consumer_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
+    m_requester_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
+    m_timesync_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
   }
 
   void stop(const nlohmann::json& args) {    
@@ -171,8 +151,8 @@ public:
     while (!m_stats_thread.get_readiness()) {	
       std::this_thread::sleep_for(std::chrono::milliseconds(100));         	
     }
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_occupancy_callback();
-    m_pop_callback(m_occupancy_callback());
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
+    m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
     m_raw_processor_impl->reset_last_daq_time();
   }
 
@@ -201,28 +181,24 @@ private:
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
-      //std::unique_ptr<RawType> payload_ptr(nullptr);
       RawType payload;
       // Try to acquire data
       try {
         //m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
         m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ++m_rawq_timeout_count;
-        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
-      }
-      // Only process if data was acquired
-      //if (payload != nullptr) { // payload_ptr
-        m_process_callback(&payload); // payload_ptr.get()
-        if (!m_write_callback(std::move(payload))) {
+        m_raw_processor_impl->process_item(&payload);
+        if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
         }
         m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;
-      //}
+      }
+      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        ++m_rawq_timeout_count;
+        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+      }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
   }   
@@ -315,7 +291,6 @@ private:
   }
 
   // Constuctor params
-  std::string m_raw_type_name;
   std::atomic<bool>& m_run_marker;
 
   // CONFIGURATION
@@ -356,21 +331,13 @@ private:
 
   // LATENCY BUFFER:
   size_t m_latency_buffer_size;
-  std::unique_ptr<LatencyBufferConcept> m_latency_buffer_impl;
-  std::function<size_t()> m_occupancy_callback;
-  std::function<bool(RawType)> m_write_callback;
-  std::function<bool(RawType&)> m_read_callback;
-  std::function<void(unsigned)> m_pop_callback;
-  std::function<RawType*(unsigned)> m_front_callback;
-  std::function<void()> m_lock_callback;
-  std::function<void()> m_unlock_callback;
+  std::unique_ptr<LatencyBufferType> m_latency_buffer_impl;
 
   // RAW PROCESSING:
-  std::unique_ptr<RawDataProcessorConcept> m_raw_processor_impl;
-  std::function<void(RawType*)> m_process_callback;
+  std::unique_ptr<RawDataProcessorType> m_raw_processor_impl;
 
   // REQUEST HANDLER:
-  std::unique_ptr<RequestHandlerConcept> m_request_handler_impl;
+  std::unique_ptr<RequestHandlerType> m_request_handler_impl;
   ReusableThread m_requester_thread;
 
   // TIME-SYNC

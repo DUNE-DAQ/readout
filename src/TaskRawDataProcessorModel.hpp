@@ -27,25 +27,23 @@ namespace dunedaq {
 namespace readout {
 
 template<class RawType>
-class TaskRawDataProcessorModel : public RawDataProcessorConcept {
+class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType> {
 public:
 
-  explicit TaskRawDataProcessorModel(const std::string& rawtype, std::function<void(RawType*)>& process_override)
-  : RawDataProcessorConcept(rawtype)
-  , m_raw_type_name(rawtype)
-  , m_process_override(process_override)
+  TaskRawDataProcessorModel()
+  : RawDataProcessorConcept<RawType>()
   {
-    // Bind custom raw process of data
-    m_process_override = std::bind(&TaskRawDataProcessorModel<RawType>::process_item, this, std::placeholders::_1);
+
   }
 
   ~TaskRawDataProcessorModel() {
 
   }
 
-  void conf(const nlohmann::json& /*cfg*/) {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Setting up async task tree.";
+  void conf(const nlohmann::json& /*cfg*/) override {
+
   }
+
 
   void process_item(RawType* item) {
     invoke_all(item);
@@ -72,10 +70,6 @@ protected:
   // Async tasks and
   std::vector<std::function<void(RawType*)>> m_tasklist;
   //std::map<std::string, std::function<void(RawType*)>> m_tasklist; // futures
-
-private:
-  std::string m_raw_type_name;
-  std::function<void(RawType*)>& m_process_override;
 
 };
 
