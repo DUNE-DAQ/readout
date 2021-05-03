@@ -163,6 +163,17 @@ def generate(
     # Create a list of commands
     cmd_seq = [initcmd, confcmd, startcmd, stopcmd, scrapcmd]
 
+    record_cmd = mrccmd("record", "RUNNING", "RUNNING", [
+        ("datahandler_.*", dlh.RecordingParams(
+            duration=10
+        ))
+    ])
+
+    jstr = json.dumps(record_cmd.pod(), indent=4, sort_keys=True)
+    print("="*80+"\nRecord\n\n", jstr)
+
+    cmd_seq.append(record_cmd)
+
     # Print them as json (to be improved/moved out)
     jstr = json.dumps([c.pod() for c in cmd_seq], indent=4, sort_keys=True)
     return jstr
