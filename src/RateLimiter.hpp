@@ -40,6 +40,17 @@ public:
     m_deadline = m_now + m_period.load();
   }
 
+  /** Optionally: adjust rate from another thread
+   *
+   *  auto adjuster = std::thread([&]() {
+   *    int newrate = 1000;
+   *    while (newrate > 0) {
+   *      limiter.adjust(newrate);
+   *      newrate--;
+   *      std::this_thread::sleep_for(std::chrono::seconds(1));
+   *    }
+   *  }
+   */
   void adjust(double kilohertz) {
     m_kilohertz.store(kilohertz);
     m_period.store( static_cast<time::timestamp_t>((1000.f/m_kilohertz) * static_cast<double>(time::us)) );
