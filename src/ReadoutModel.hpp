@@ -230,7 +230,7 @@ private:
             uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;
-            TLOG_DEBUG(TLVL_TAKE_NOTE) << "Issuing fake trigger based on timesync. "
+            TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
               << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                 << " window_end=" << dr.window_end;
             m_request_handler_impl->issue_request(dr);
