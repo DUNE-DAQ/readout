@@ -10,7 +10,6 @@
 #define READOUT_SRC_READOUTCONCEPT_HPP_
 
 #include "opmonlib/InfoCollector.hpp"
-#include <string>
 
 namespace dunedaq {
 namespace readout {

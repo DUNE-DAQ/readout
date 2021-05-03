@@ -10,6 +10,7 @@
 
 #include "Time.hpp"
 
+#include <atomic>
 #include <ctime>
 #include <unistd.h>
 
@@ -28,26 +29,41 @@ namespace readout {
 class RateLimiter {
 public:
   explicit RateLimiter(double kilohertz)
-  : m_kilohertz(kilohertz)
-  , m_max_overshoot(10 * time::ms)
-  , m_period( static_cast<time::timestamp_t>((1000.f/m_kilohertz) * static_cast<double>(time::us)) )
+  : m_max_overshoot(10 * time::ms)
   {
+    adjust(kilohertz);
     init();
   }
 
   void init() {
     m_now = gettime();
-    m_deadline = m_now + m_period;
+    m_deadline = m_now + m_period.load();
+  }
+
+  /** Optionally: adjust rate from another thread
+   *
+   *  auto adjuster = std::thread([&]() {
+   *    int newrate = 1000;
+   *    while (newrate > 0) {
+   *      limiter.adjust(newrate);
+   *      newrate--;
+   *      std::this_thread::sleep_for(std::chrono::seconds(1));
+   *    }
+   *  }
+   */
+  void adjust(double kilohertz) {
+    m_kilohertz.store(kilohertz);
+    m_period.store( static_cast<time::timestamp_t>((1000.f/m_kilohertz) * static_cast<double>(time::us)) );
   }
 
   void limit() {
     if(m_now > m_deadline + m_max_overshoot) {
-      m_deadline = m_now + m_period;
+      m_deadline = m_now + m_period.load();
     } else {
       while(m_now < m_deadline) {
         m_now = gettime();            
       }
-      m_deadline += m_period;
+      m_deadline += m_period.load();
     }
   }
 
@@ -59,9 +75,9 @@ protected:
   }
 
 private:
-  double m_kilohertz;
+  std::atomic<double> m_kilohertz;
   time::timestamp_t m_max_overshoot;
-  time::timestamp_t m_period;
+  std::atomic<time::timestamp_t> m_period;
   time::timestamp_t m_now;
   time::timestamp_t m_deadline;
 };

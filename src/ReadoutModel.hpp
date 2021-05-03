@@ -45,6 +45,7 @@
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;
+using dunedaq::readout::logging::TLVL_QUEUE_POP;
 
 namespace dunedaq {
 namespace readout {
@@ -125,6 +126,9 @@ public:
     m_consumer_thread.set_name("consumer", conf.link_number);
     m_timesync_thread.set_name("timesync", conf.link_number);
     m_requester_thread.set_name("requests", conf.link_number);
+
+    m_this_apa_number = conf.apa_number;
+    m_this_link_number = conf.link_number;
   }
 
   void start(const nlohmann::json& args) {
@@ -226,7 +230,7 @@ private:
             uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;
-            TLOG_DEBUG(TLVL_TAKE_NOTE) << "Issuing fake trigger based on timesync. "
+            TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
               << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                 << " window_end=" << dr.window_end;
             m_request_handler_impl->issue_request(dr);
@@ -260,6 +264,9 @@ private:
         m_request_handler_impl->issue_request(data_request);
         ++m_request_count;
         ++m_request_count_tot;
+        TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
+                                   << ", run number " << data_request.run_number << " (APA number " << m_this_apa_number
+                                   << ", link number " << m_this_link_number << ")";
       }
       catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // not an error, safe to continue
@@ -296,6 +303,8 @@ private:
   // CONFIGURATION
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
+  uint32_t m_this_apa_number; // NOLINT
+  uint32_t m_this_link_number; // NOLINT
 
   // STATS
   stats::counter_t m_packet_count{0};

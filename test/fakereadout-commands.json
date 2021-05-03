@@ -26,7 +26,7 @@
                         ]
                     },
                     "inst": "snb-writer",
-                    "plugin": "BufferedFileStreamer"
+                    "plugin": "DataRecorder"
                 },
                 {
                     "data": {

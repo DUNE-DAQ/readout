@@ -28,6 +28,7 @@
 #include <vector>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
+using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
 
 namespace dunedaq {
 namespace readout {
@@ -208,6 +209,8 @@ protected:
    frag->set_header_fields(frag_header);
    // Push to Fragment queue
    try {
+     TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number " << frag->get_trigger_number()
+                                 << ", run number " << frag->get_run_number() << ", and GeoID " << frag->get_link_id();
      m_fragment_sink->push( std::move(frag) );
    }
    catch (const ers::Issue& excpt) {
