@@ -84,6 +84,14 @@ def generate(
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
                             app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+        ] + [
+                mspec(f"timesync_consumer", "DummyConsumerTimeSync", [
+                                            app.QueueInfo(name="input_queue", inst=f"time_sync_q", dir="input")
+                                            ])
+        ] + [
+                mspec(f"fragment_consumer", "DummyConsumerFragment", [
+                                            app.QueueInfo(name="input_queue", inst=f"data_fragments_q", dir="input")
+                                            ])
         ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
@@ -137,7 +145,9 @@ def generate(
     startcmd = mrccmd("start", "CONFIGURED", "RUNNING", [
             ("datahandler_.*", startpars),
             ("fake_source", startpars),
-            ("data_recorder_.*", startpars)
+            ("data_recorder_.*", startpars),
+            ("timesync_consumer", startpars),
+            ("fragment_consumer", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -147,7 +157,9 @@ def generate(
     stopcmd = mrccmd("stop", "RUNNING", "CONFIGURED", [
             ("fake_source", None),
             ("datahandler_.*", None),
-            ("data_recorder_.*", None)
+            ("data_recorder_.*", None),
+            ("timesync_consumer", None),
+            ("fragment_consumer", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)

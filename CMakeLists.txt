@@ -38,6 +38,8 @@ daq_add_library(
 daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
+daq_add_plugin(DummyConsumerTimeSync duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(DummyConsumerFragment duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests
@@ -48,7 +50,7 @@ daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.
 
 ##############################################################################
 # Test configurations
-file(COPY test/fakereadout-commands.json DESTINATION test)
+file(COPY test/fake_readout.json DESTINATION test)
 
 ##############################################################################
 # Unit Tests
