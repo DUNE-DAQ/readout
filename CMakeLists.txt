@@ -50,7 +50,7 @@ daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.
 
 ##############################################################################
 # Test configurations
-file(COPY test/fakereadout-commands.json DESTINATION test)
+file(COPY test/fake_readout.json DESTINATION test)
 
 ##############################################################################
 # Unit Tests
