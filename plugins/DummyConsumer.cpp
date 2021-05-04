@@ -9,6 +9,7 @@
 
 #include "DummyConsumer.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
+#include "readout/dummyconsumerinfo/Nljs.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
@@ -39,8 +40,11 @@ namespace dunedaq {
     }
 
     template <class T>
-    void DummyConsumer<T>::get_info(opmonlib::InfoCollector& /* ci */, int /* level */) {
+    void DummyConsumer<T>::get_info(opmonlib::InfoCollector& ci, int /* level */) {
+      dummyconsumerinfo::Info info;
+      info.packets_processed = m_packets_processed;
 
+      ci.add(info);
     }
 
     template <class T>
@@ -59,14 +63,11 @@ namespace dunedaq {
 
     template <class T>
     void DummyConsumer<T>::do_work() {
-      m_time_point_last_info = std::chrono::steady_clock::now();
-
       T element;
       while (m_run_marker) {
         try {
           m_input_queue->pop(element, std::chrono::milliseconds(100));
-          m_packets_processed_total++;
-          m_packets_processed_since_last_info++;
+          m_packets_processed++;
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
           continue;
         }

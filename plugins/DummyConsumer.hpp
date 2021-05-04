@@ -11,7 +11,6 @@
 
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
-#include "readout/datarecorder/Structs.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "readout/ReusableThread.hpp"
 #include "ReadoutStatistics.hpp"
@@ -53,9 +52,7 @@ namespace dunedaq {
       std::atomic<bool> m_run_marker;
 
       // Stats
-      stats::counter_t m_packets_processed_total{0};
-      stats::counter_t m_packets_processed_since_last_info{0};
-      std::chrono::steady_clock::time_point m_time_point_last_info;
+      stats::counter_t m_packets_processed{0};
     };
   } // namespace readout
 } // namespace dunedaq
