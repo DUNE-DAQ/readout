@@ -145,21 +145,25 @@ protected:
     if (size_guess > m_pop_limit_size) {
       ++m_pop_reqs;
       unsigned to_pop = m_pop_size_pct * m_latency_buffer->occupancy();
-      m_pops_count += to_pop;
 
       // SNB handling
-      RawType element;
-      for (uint i = 0; i < to_pop; ++i) {
-        if (m_latency_buffer->read(element)) {
-          try {
-            if (m_recording) m_snb_sink->push(element, std::chrono::milliseconds(0));
-          } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-            ers::error(CannotWriteToQueue(ERS_HERE, "SNB Writer"));
+      if (m_recording) {
+        RawType element;
+        for (unsigned i = 0; i < to_pop; ++i) { // NOLINT
+          if (m_latency_buffer->read(element)) {
+            try {
+              if (m_recording) m_snb_sink->push(element, std::chrono::milliseconds(0));
+            } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+              ers::error(CannotWriteToQueue(ERS_HERE, "SNB Writer"));
+            }
+          } else {
+            throw InternalError(ERS_HERE, "Could not read from latency buffer");
           }
-        } else {
-          throw InternalError(ERS_HERE, "Could not read from latency buffer");
         }
+      } else {
+        m_latency_buffer->pop(to_pop); 
       }
+      m_pops_count += to_pop;     
 
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load()+to_pop);
