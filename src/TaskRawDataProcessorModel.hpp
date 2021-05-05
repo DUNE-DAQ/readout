@@ -40,10 +40,9 @@ public:
 
   }
 
-  void conf(const nlohmann::json& /*cfg*/) override {
-
-  }
-
+  // RS FIXME -> DON'T OVERRIDE IF YOU NEED EMULATOR MODE
+  //void conf(const nlohmann::json& /*cfg*/) override {
+  //}
 
   void process_item(RawType* item) {
     invoke_all(item);
