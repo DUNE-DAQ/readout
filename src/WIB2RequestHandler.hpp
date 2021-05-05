@@ -224,7 +224,7 @@ protected:
 
 private:
   // Constants
-  static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT
+  static const constexpr uint64_t m_tick_dist = 32; // NOLINT
   static const constexpr size_t m_wib_frame_size = 468;
   static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
   static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;

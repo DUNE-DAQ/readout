@@ -45,7 +45,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       auto& inst = qi.inst;
 
       // IF WIB
-      if (inst.find("wib") != std::string::npos) {
+      if (inst.find("wib") != std::string::npos && inst.find("wib2") == std::string::npos ) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib" ;
         raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT, WIBRequestHandler,
@@ -67,6 +67,12 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       // IF PDS
       if (inst.find("pds") != std::string::npos) {
 
+      }
+
+      // IF variadic
+      if (inst.find("varsize") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a variable size FE";
+        
       }
 
     }

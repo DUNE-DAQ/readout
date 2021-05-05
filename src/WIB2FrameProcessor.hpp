@@ -55,14 +55,14 @@ protected:
   void timestamp_check(frameptr fp) {
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
-      uint64_t ts_next = m_previous_ts + 300;
+      uint64_t ts_next = m_previous_ts + 384;
       for (unsigned int i=0; i<12; ++i) { // NOLINT
         auto wf = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)fp)+i*468); // NOLINT
-        auto wfh = wf->header; //const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());
-        
+        auto& wfh = wf->header; //const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());       
         //wfh->set_timestamp(ts_next);
-
-        ts_next += 25;
+        wfh.timestamp_1 = ts_next;
+        wfh.timestamp_2 = ts_next >> 32;
+        ts_next += 32;
       }
     }
 
@@ -71,7 +71,7 @@ protected:
     m_current_ts = wfptr->get_timestamp();
 
     // Check timestamp
-    if (m_current_ts - m_previous_ts != 300) {
+    if (m_current_ts - m_previous_ts != 384) {
       ++m_ts_error_ctr;
       if (m_first_ts_missmatch) { // log once
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
