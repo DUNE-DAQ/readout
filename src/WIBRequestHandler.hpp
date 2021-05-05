@@ -235,7 +235,7 @@ private:
   stats::counter_t m_found_requested_count{0};
   stats::counter_t m_bad_requested_count{0};
 
-  uint32_t m_apa_number; // NOLINT
+  uint16_t m_apa_number; // NOLINT
   uint32_t m_link_number; // NOLINT
 
 };
