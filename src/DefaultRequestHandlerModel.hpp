@@ -106,13 +106,13 @@ public:
       TLOG() << "A recording is still running, no new recording was started!" << std::endl;
       return;
     }
-    m_future_recording_stopper = std::async([&]() {
-      TLOG() << "Start recording" << std::endl;
+    m_future_recording_stopper = std::async([&](int duration) {
+      TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
       m_recording.exchange(true);
-      std::this_thread::sleep_for(std::chrono::seconds(conf.duration));
+      std::this_thread::sleep_for(std::chrono::seconds(duration));
       TLOG() << "Stop recording" << std::endl;
       m_recording.exchange(false);
-    });
+    }, conf.duration);
   }
  
   void auto_cleanup_check()
