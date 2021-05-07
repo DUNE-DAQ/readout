@@ -101,6 +101,10 @@ public:
   }
 
   void record(const nlohmann::json& args) override {
+    if (m_snb_sink.get() == nullptr) {
+      TLOG() << "Recording could not be started because output queue is not set up";
+      return;
+    }
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
       TLOG() << "A recording is still running, no new recording was started!" << std::endl;
