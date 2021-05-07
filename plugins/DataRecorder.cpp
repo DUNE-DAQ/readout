@@ -33,10 +33,10 @@ namespace dunedaq {
 
     void DataRecorder::init(const data_t& args) {
       try {
-        auto qi = appfwk::queue_index(args, {"snb"});
-        m_input_queue.reset(new source_t(qi["snb"].inst));
+        auto qi = appfwk::queue_index(args, {"raw_recording"});
+        m_input_queue.reset(new source_t(qi["raw_recording"].inst));
       } catch (const ers::Issue& excpt) {
-        throw ResourceQueueError(ERS_HERE, "Could not initialize queue", "snb", "");
+        throw ResourceQueueError(ERS_HERE, "Could not initialize queue", "raw_recording", "");
       }
     }
 
