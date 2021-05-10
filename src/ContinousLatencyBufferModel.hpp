@@ -26,8 +26,8 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
-class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType> {
+template<class RawType, class KeyType = int>
+class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType> {
 
 static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT
 public:
@@ -66,8 +66,22 @@ public:
     return m_queue->read(element);
   }
 
+  bool
+  place(RawType&& /*new_element*/, KeyType& /*key*/) override
+  {
+    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for ContinousLatencyBufferModel!";
+    return false;
+  }
+
+  bool
+  find(RawType& /*element*/, KeyType& /*key*/) override
+  {
+    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for ContinousLatencyBufferModel!";
+    return false;
+  }
+
   void 
-  pop(unsigned num = 1) override// NOLINT
+  pop(unsigned num = 1) override  // NOLINT
   {
     for (unsigned i=0; i<num; ++i) { // NOLINT
       m_queue->popFront();
@@ -75,13 +89,20 @@ public:
   }
 
   RawType* 
-  getPtr(unsigned idx) override// NOLINT
+  getPtr(unsigned idx) override  // NOLINT
   {
     if (idx == 0) {
       return m_queue->frontPtr();
     } else {
       return m_queue->readPtr(idx); // Only with accessable SPSC
     }
+  }
+
+  RawType* 
+  findPtr(KeyType& /*key*/) override
+  {
+    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for ContinousLatencyBufferModel!";
+    return nullptr;  
   }
 
 private:
