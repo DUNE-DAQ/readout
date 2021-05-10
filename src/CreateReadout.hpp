@@ -20,11 +20,13 @@
 #include "ReadoutConcept.hpp"
 #include "ReadoutModel.hpp"
 
-#include "WIBRequestHandler.hpp"
 #include "ContinousLatencyBufferModel.hpp"
 #include "WIBFrameProcessor.hpp"
-#include "WIB2RequestHandler.hpp"
+#include "WIBRequestHandler.hpp"
 #include "WIB2FrameProcessor.hpp"
+#include "WIB2RequestHandler.hpp"
+#include "PDSFrameProcessor.hpp"
+#include "PDSRequestHandler.hpp"
 
 #include <utility>
 #include <memory>
@@ -66,7 +68,12 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
       // IF PDS
       if (inst.find("pds") != std::string::npos) {
-
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds" ;
+        raw_type_name = "pds";
+        auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT, PDSRequestHandler,
+            SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>, PDSFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
       }
 
       // IF variadic
