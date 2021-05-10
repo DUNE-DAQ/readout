@@ -15,16 +15,12 @@
 
 #include "dataformats/pds/PDSFrame.hpp"
 
-//#include "nlohmann/json.hpp"
-
 #include <cstdint> // uint_t types
 #include <memory> // unique_ptr
 
 namespace dunedaq {
 namespace readout {
 namespace types {
-
-//using cfg_data_t = nlohmann::json;
 
 /**
  * @brief A FULLMODE Elink is identified by the following: 
