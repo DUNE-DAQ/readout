@@ -32,12 +32,14 @@ using namespace dunedaq::readout::logging;
 namespace dunedaq {
 namespace readout {
 
-class WIB2RequestHandler : public DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>> {
+class WIB2RequestHandler : public DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT,
+                                    ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>> {
 public:
-  explicit WIB2RequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>& latency_buffer,
-                              std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                              std::unique_ptr<appfwk::DAQSink<types::WIB2_SUPERCHUNK_STRUCT>>& snb_sink)
-  : DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>(latency_buffer, fragment_sink, snb_sink)
+  WIB2RequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>& latency_buffer,
+                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                     std::unique_ptr<appfwk::DAQSink<types::WIB2_SUPERCHUNK_STRUCT>>& snb_sink)
+  : DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, 
+      ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>(latency_buffer, fragment_sink, snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "WIB2RequestHandler created...";
   } 
@@ -202,24 +204,25 @@ protected:
           break;
         }
       }
-   }
-   // Create fragment from pieces
+    }
 
-   auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+    // Create fragment from pieces
+    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
 
+    // Set header
+    frag->set_header_fields(frag_header);
+    // Push to Fragment queue
+    try {
+      m_fragment_sink->push( std::move(frag) );
+    }
+    catch (const ers::Issue& excpt) {
+      std::ostringstream oss;
+      oss << "fragments output queueu for link " << m_link_number ;
+      ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+    }
 
-   // Set header
-   frag->set_header_fields(frag_header);
-   // Push to Fragment queue
-   try {
-     m_fragment_sink->push( std::move(frag) );
-   }
-   catch (const ers::Issue& excpt) {
-     std::ostringstream oss;
-     oss << "fragments output queueu for link " << m_link_number ;
-     ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
-   }
-  return rres;
+    // Return RequestResult
+    return rres;
   }
 
 private:

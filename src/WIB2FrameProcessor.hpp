@@ -16,12 +16,13 @@
 #include "dataformats/wib2/WIB2Frame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/ReadoutTypes.hpp"
 
 #include <string>
 #include <atomic>
 #include <functional>
 
-using namespace dunedaq::readout::logging;
+using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
 namespace dunedaq {
 namespace readout {

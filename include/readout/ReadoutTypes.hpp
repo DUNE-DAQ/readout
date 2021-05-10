@@ -13,7 +13,9 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
-#include "nlohmann/json.hpp"
+#include "dataformats/pds/PDSFrame.hpp"
+
+//#include "nlohmann/json.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory> // unique_ptr
@@ -22,7 +24,7 @@ namespace dunedaq {
 namespace readout {
 namespace types {
 
-using cfg_data_t = nlohmann::json;
+//using cfg_data_t = nlohmann::json;
 
 /**
  * @brief A FULLMODE Elink is identified by the following: 
@@ -52,6 +54,25 @@ struct WIB_SUPERCHUNK_STRUCT {
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
 struct WIB2_SUPERCHUNK_STRUCT {
   char data[WIB2_SUPERCHUNK_SIZE];
+};
+
+/**
+ * @brief For PDS the numbers are different.
+ * 12[PDS frames] x 584[Bytes] = 7008[Bytes]
+ * */
+const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
+struct PDS_SUPERCHUNK_STRUCT {
+  char data[PDS_SUPERCHUNK_SIZE];
+};
+
+/**
+ * Key finder for LBs.
+ * */
+struct PDSTimestampGetter {
+  uint64_t operator() (PDS_SUPERCHUNK_STRUCT& pdss) { // NOLINT
+    auto pdsfptr = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&pdss);
+    return pdsfptr->get_timestamp();
+  }
 };
 
 /**

@@ -11,7 +11,7 @@
 namespace dunedaq {
 namespace readout {
 
-template <class RawType>
+template <class RawType, class KeyType>
 class LatencyBufferConcept {
 
 public:
@@ -29,8 +29,11 @@ public:
   virtual size_t occupancy() = 0;
   virtual bool write(RawType&&) = 0;
   virtual bool read(RawType&) = 0;
+  virtual bool place(RawType&&, KeyType&) = 0;
+  virtual bool find(RawType&, KeyType&) = 0;
   virtual void pop(unsigned) = 0;
   virtual RawType* getPtr(unsigned) = 0;
+  virtual RawType* findPtr(KeyType&) = 0;
   virtual void lock() = 0;
   virtual void unlock() = 0;
 
