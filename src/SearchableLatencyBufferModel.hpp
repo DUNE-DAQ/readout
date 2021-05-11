@@ -75,7 +75,7 @@ public:
   bool
   find(RawType& element, KeyType& key) override
   {
-    auto elptr = m_queue->find(key);
+    auto elptr = m_queue->find_element(key);
     if (elptr != nullptr) {
       element = *elptr;
       return true;
@@ -92,7 +92,7 @@ public:
   }
 
   RawType* 
-  getPtr(unsigned idx) override// NOLINT
+  get_ptr(unsigned idx) override// NOLINT
   {
     if (idx == 0) {
       return m_queue->frontPtr();
@@ -102,11 +102,17 @@ public:
   }
 
   RawType*
-  findPtr(KeyType& key) override
+  find_ptr(KeyType& key) override
   {
-    return m_queue->find(key);
+    return m_queue->find_element(key);
   }
  
+  int
+  find_index(KeyType& key) override
+  {
+    return m_queue->find_index(key);
+  }
+
 private:
   std::unique_ptr<SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>> m_queue;
 

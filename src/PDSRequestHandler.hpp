@@ -36,15 +36,12 @@ namespace readout {
 class PDSRequestHandler : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, 
                                    SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>> {
 public:
-  PDSRequestHandler(std::unique_ptr<SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, 
-                                                                 uint64_t, 
-                                                                 types::PDSTimestampGetter>>& latency_buffer,
+  PDSRequestHandler(std::unique_ptr<SearchableLatencyBufferModel<
+    types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>& latency_buffer,
                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
                     std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
-  : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, 
-                               SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, 
-                                                            uint64_t, 
-                                                            types::PDSTimestampGetter>>(latency_buffer, fragment_sink, snb_sink)
+  : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SearchableLatencyBufferModel<
+      types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>(latency_buffer, fragment_sink, snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSRequestHandler created...";
   } 
@@ -60,6 +57,13 @@ public:
   }
   
 protected:
+
+  RequestResult
+  cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) override // NOLINT
+  {
+    return pds_cleanup_request(dr);
+
+  }
 
 
   RequestResult
@@ -92,48 +96,50 @@ protected:
     // Prepare response
     RequestResult rres(ResultCode::kUnknown, dr);
 
-/*
-
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
-    auto front_frame = *(reinterpret_cast<const dataformats::WIB2Frame*>( m_latency_buffer->getPtr(0) )); // NOLINT
+    auto front_frame = *(reinterpret_cast<const dataformats::PDSFrame*>( m_latency_buffer->get_ptr(0) )); // NOLINT
+    auto last_frame = *(reinterpret_cast<const dataformats::PDSFrame*>( m_latency_buffer->get_ptr(occupancy_guess) )); // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT
+    uint64_t newest_ts = last_frame.get_timestamp();
+
     uint64_t start_win_ts = dr.window_begin;  // NOLINT
     uint64_t end_win_ts = dr.window_end;  // NOLINT
-    uint64_t newest_ts = last_ts + (occupancy_guess-m_safe_num_elements_margin) * m_tick_dist * m_frames_per_element; // NOLINT
-    int64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;      // NOLINT
-    int32_t num_element_offset = time_tick_diff / m_frames_per_element;   // NOLINT
-    uint32_t num_elements_in_window = (end_win_ts - start_win_ts) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
-    int32_t min_num_elements = num_element_offset + num_elements_in_window + m_safe_num_elements_margin; //NOLINT
-     
+    auto start_idx = -1; // m_latency_buffer->find_index(start_win_ts);
+    auto end_idx = -1; //m_latency_buffer->find_index(end_win_ts);     
 
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "TPC (WIB frame) data request for " 
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDS (DAHPHNE frame) data request for " 
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Oldest stored TS=" << last_ts << " "
+      << "Newest stored TS=" << newest_ts << " "
       << "Start of window TS=" << start_win_ts << " "
-      << "End of window TS=" << end_win_ts << " "
-      << "Estimated newest stored TS=" << newest_ts;
-
-     // << "ElementOffset=" << num_element_offset << " "
-     // << "ElementsInWindow=" << num_elements_in_window << " "
-     // << "MinNumElements=" << min_num_elements << " "
-     // << "Occupancy=" << occupancy_guess;
+      << "End of window TS=" << end_win_ts;
 
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
 
     // List of safe-extraction conditions
-    //
-    if ( num_elements_in_window > m_max_requested_elements ) { // too big window, cannot handle it yet
+
+
+/*    
+    if ( start_idx >= 0 && end_idx < 0 ) { // data is not fully in buffer yet
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
-    }
+    } 
     else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
+      if (start_idx >= 0 && end_idx >= 0) { // data is there (double check)
+        rres.result_code = ResultCode::kFound;
+        ++m_found_requested_count;
+      } else {
+        
+      }
+    }
+    else if (start_idx >= 0 && end_idx >= 0) { // data is there
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count; 
     }
-    else if ( last_ts > start_win_ts ) { // data is gone.
+    else if ( start_idx < 0 end_idx >= 0 ) { // data is partially gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
@@ -215,7 +221,12 @@ protected:
 
 */
 
-  return rres;
+    return rres;
+  }
+
+  RequestResult
+  pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) {
+    return RequestResult(ResultCode::kCleanup, dr);
   }
 
 private:
