@@ -126,9 +126,12 @@ public:
     if (!m_cleanup_requested && size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
       auto delay_us = 0;
+      // 10-May-2021, KAB: moved the assignment of m_cleanup_requested so that is is *before* the creation of
+      // the future and the addition of the future to the completion queue in order to avoid the race condition
+      // in which the future gets run before we have a chance to set the m_cleanup_requested flag here.
+      m_cleanup_requested = true;
       auto execfut = std::async(std::launch::deferred, &DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request, this, dr, delay_us);
       m_completion_queue.enqueue(std::move(execfut));
-      m_cleanup_requested = true;
     }
   }
 
