@@ -13,9 +13,8 @@
 #include "ReadoutIssues.hpp"
 #include "ReadoutConstants.hpp"
 
-//#include "dataformats/wib/WIBFrame.hpp"         // FIXME move to dataformats repo
 #include "logging/Logging.hpp"
-#include "dataformats/wib/WIBFrame.hpp"                   // FIXME now using local copy
+#include "dataformats/wib/WIBFrame.hpp"
 #include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
 #include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"

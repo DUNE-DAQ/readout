@@ -71,7 +71,7 @@ protected:
     fh.window_begin = dr.window_begin;
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
-    fh.link_id = { m_apa_number, m_link_number };
+    fh.link_id = { dataformats::GeoID::SystemType::kTPC, m_apa_number, m_link_number };
     fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData);
     return std::move(fh);
   } 
@@ -239,7 +239,7 @@ private:
   stats::counter_t m_found_requested_count{0};
   stats::counter_t m_bad_requested_count{0};
 
-  uint32_t m_apa_number; // NOLINT
+  uint16_t m_apa_number; // NOLINT
   uint32_t m_link_number; // NOLINT
 
 };
