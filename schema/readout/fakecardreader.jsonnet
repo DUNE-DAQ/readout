@@ -34,6 +34,8 @@ local fakecardreader = {
     filepath : s.string("FilePath", moo.re.hierpath,
                   doc="A string field"),
 
+    choice : s.boolean("Choice"),
+
     tp_enabled: s.string("TpEnabled", moo.re.ident,
                   doc="A true or false flag for enabling raw WIB TP link"),
 
@@ -44,8 +46,26 @@ local fakecardreader = {
         s.field("input_limit", self.uint4, 10485100,
                 doc="Maximum allowed file size"),
 
+        s.field("variable_rate", self.choice, false,
+                doc="Is the ratelimiter adjusted during running"),
+
+        s.field("rate_min_khz", self.khz, 166,
+                doc="Minimum rate of ratelimiter"),
+
+        s.field("rate_max_khz", self.khz, 166,
+                doc="Maximum rate of ratelimiter"),
+
+        s.field("variable_size", self.choice, false,
+                doc="Payload sizes are randomized"),
+
+        s.field("size_min_bytes", self.int8, 5568,
+                doc="Minimum rate of ratelimiter"),
+
+        s.field("size_max_bytes", self.int8, 5568,
+                doc="Maximum rate of ratelimiter"),
+
         s.field("rate_khz", self.khz, 166,
-                doc="Rate of ratelimiter"),
+                doc="Rate"),
 
         s.field("raw_type", self.raw_type, "wib",
                 doc="User payload type"),

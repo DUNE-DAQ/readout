@@ -59,6 +59,15 @@ public:
     return population;
   }
 
+  std::vector<double> get_random_population(unsigned size, double low, double high) { // NOLINT
+    std::uniform_real_distribution<> dist(low, high);
+    std::vector<double> population;
+    for (unsigned i=0; i<size; ++i) { // NOLINT
+      population.push_back(dist(m_mt));
+    }
+    return population;
+  }
+
 private:
   std::random_device m_rd;
   std::mt19937 m_mt;

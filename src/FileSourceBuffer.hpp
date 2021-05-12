@@ -24,7 +24,7 @@ namespace readout {
 
 class FileSourceBuffer {
 public:
-  explicit FileSourceBuffer(int input_limit, int chunk_size)
+  explicit FileSourceBuffer(int input_limit, int chunk_size = 0)
   : m_input_limit(input_limit)
   , m_chunk_size(chunk_size)
   , m_element_count(0)
@@ -57,20 +57,21 @@ public:
     }
 
     // Check for exact match
-    int remainder = filesize % m_chunk_size;
-    if (remainder > 0) {
-      ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+    if (m_chunk_size > 0) {
+      int remainder = filesize % m_chunk_size;
+      if (remainder > 0) {
+        ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+      }
+      // Set usable element count
+      m_element_count = filesize / m_chunk_size;
+      TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available elements: " << std::to_string(m_element_count); 
     }
-    
-    // Set usable element count
-    m_element_count = filesize / m_chunk_size;
     
     // Read file into input buffer
     m_rawdata_ifs.seekg(0, std::ios::beg);
     m_input_buffer.reserve(filesize);
     m_input_buffer.insert(m_input_buffer.begin(), std::istreambuf_iterator<char>(m_rawdata_ifs), std::istreambuf_iterator<char>());
-    TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available elements: " << std::to_string(m_element_count) 
-                                 << " | In bytes: " << std::to_string(m_input_buffer.size());
+    TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available bytes " << std::to_string(m_input_buffer.size());
   }
 
   const int& num_elements() {
