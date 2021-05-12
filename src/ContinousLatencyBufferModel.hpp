@@ -69,27 +69,19 @@ public:
   bool
   place(RawType&& /*new_element*/, KeyType& /*key*/) override
   {
-    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for ContinousLatencyBufferModel!";
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
     return false;
   }
 
   bool
   find(RawType& /*element*/, KeyType& /*key*/) override
   {
-    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for ContinousLatencyBufferModel!";
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
     return false;
   }
 
-  void 
-  pop(unsigned num = 1) override  // NOLINT
-  {
-    for (unsigned i=0; i<num; ++i) { // NOLINT
-      m_queue->popFront();
-    }
-  }
-
   RawType* 
-  getPtr(unsigned idx) override  // NOLINT
+  get_ptr(unsigned idx) override  // NOLINT
   {
     if (idx == 0) {
       return m_queue->frontPtr();
@@ -99,10 +91,25 @@ public:
   }
 
   RawType* 
-  findPtr(KeyType& /*key*/) override
+  find_ptr(KeyType& /*key*/) override
   {
-    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for ContinousLatencyBufferModel!";
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
     return nullptr;  
+  }
+
+  int 
+  find_index(KeyType&) override
+  {
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
+    return false;
+  }
+
+  void 
+  pop(unsigned num = 1) override  // NOLINT
+  {
+    for (unsigned i=0; i<num; ++i) { // NOLINT
+      m_queue->popFront();
+    }
   }
 
 private:

@@ -104,7 +104,7 @@ protected:
 
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
-    auto front_frame = *(reinterpret_cast<const dataformats::WIB2Frame*>( m_latency_buffer->getPtr(0) )); // NOLINT
+    auto front_frame = *(reinterpret_cast<const dataformats::WIB2Frame*>( m_latency_buffer->get_ptr(0) )); // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT
     uint64_t start_win_ts = dr.window_begin;  // NOLINT
     uint64_t end_win_ts = dr.window_end;  // NOLINT
@@ -189,12 +189,12 @@ protected:
       auto elements_handled = 0;
       
       for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = static_cast<void*>(m_latency_buffer->getPtr(num_element_offset+idxoffset));
+        auto* element = static_cast<void*>(m_latency_buffer->get_ptr(num_element_offset+idxoffset));
 
         if (element != nullptr) {
           frag_pieces.emplace_back( 
             std::make_pair<void*, size_t>(
-              static_cast<void*>(m_latency_buffer->getPtr(num_element_offset + idxoffset)),
+              static_cast<void*>(m_latency_buffer->get_ptr(num_element_offset + idxoffset)),
               std::size_t(m_element_size))
           );
           elements_handled++;
