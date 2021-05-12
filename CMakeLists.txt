@@ -47,6 +47,7 @@ daq_add_application(readout_test_ratelimiter test_ratelimiter_app.cxx TEST LINK_
 daq_add_application(readout_test_random_engine test_random_engine_app.cxx TEST LINK_LIBRARIES readout)
 daq_add_application(readout_test_bufferedfilewriter test_bufferedfilewriter_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
+daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 
 ##############################################################################
 # Test configurations
