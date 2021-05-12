@@ -13,6 +13,8 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include "dataformats/wib/WIBFrame.hpp"
+#include "dataformats/wib2/WIB2Frame.hpp"
 #include "dataformats/pds/PDSFrame.hpp"
 
 #include <cstdint> // uint_t types
@@ -40,7 +42,14 @@ struct LinkId {
 */
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 struct WIB_SUPERCHUNK_STRUCT {
+  // data
   char data[WIB_SUPERCHUNK_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data);
+    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+  }
 };
 
 /**
@@ -49,7 +58,14 @@ struct WIB_SUPERCHUNK_STRUCT {
  * */
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
 struct WIB2_SUPERCHUNK_STRUCT {
+  // data
   char data[WIB2_SUPERCHUNK_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const WIB2_SUPERCHUNK_STRUCT& other) const {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data);
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&other.data);
+    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+  }
 };
 
 /**
@@ -58,7 +74,14 @@ struct WIB2_SUPERCHUNK_STRUCT {
  * */
 const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
 struct PDS_SUPERCHUNK_STRUCT {
+  // data
   char data[PDS_SUPERCHUNK_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const PDS_SUPERCHUNK_STRUCT& other) const {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data);
+    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+  }
 };
 
 /**
