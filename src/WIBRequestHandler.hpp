@@ -70,7 +70,7 @@ protected:
     fh.window_begin = dr.window_begin;
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
-    fh.link_id = { dataformats::GeoID::SystemType::kTPC, m_apa_number, m_link_number };
+    fh.element_id = { dataformats::GeoID::SystemType::kTPC, m_apa_number, m_link_number };
     fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData);
     return std::move(fh);
   } 
@@ -209,7 +209,7 @@ protected:
     // Push to Fragment queue
     try {
       TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number " << frag->get_trigger_number()
-                                  << ", run number " << frag->get_run_number() << ", and GeoID " << frag->get_link_id();
+                                  << ", run number " << frag->get_run_number() << ", and GeoID " << frag->get_element_id();
       m_fragment_sink->push( std::move(frag) );
     }
     catch (const ers::Issue& excpt) {
