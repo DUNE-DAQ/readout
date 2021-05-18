@@ -38,10 +38,11 @@ template<class RawType>
 class SourceEmulatorModel : public SourceEmulatorConcept {
 public:
   using sink_t = appfwk::DAQSink<RawType>;
-  using inherited = SourceEmulatorConcept;
 
-  explicit SourceEmulatorModel(std::atomic<bool>& run_marker)
+  explicit SourceEmulatorModel(std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate)
   : m_run_marker(run_marker)
+  , m_time_tick_diff(time_tick_diff)
+  , m_dropout_rate(dropout_rate)
   , m_packet_count{0}
   , m_byte_count{0}
   , m_sink_queue_timeout_ms(0)
@@ -54,42 +55,20 @@ public:
   }
 
   void set_sink(const std::string& sink_name) {
-    if (!inherited::m_sink_is_set) {
+    if (!m_sink_is_set) {
       m_raw_data_sink = std::make_unique<sink_t>(sink_name);
-      inherited::m_sink_is_set = true;
+      m_sink_is_set = true;
     } else {
       //ers::error();
     }
   }
 
   void conf(const nlohmann::json& args) {
-    inherited::m_conf = args.get<inherited::module_conf_t>();
+    m_conf = args.get<module_conf_t>();
 
-    // Create a simple randomengine
-    inherited::m_random_engine = std::make_unique<RandomEngine>();
-
-    // Configure possible rates
-    if (inherited::m_conf.variable_rate) {
-      inherited::m_rate_limiter = std::make_unique<RateLimiter>(0);
-      inherited::m_random_rate_population = inherited::m_random_engine->get_random_population(
-        1000, static_cast<double>(m_conf.rate_min_khz), static_cast<double>(m_conf.rate_max_khz));
-    } else {
-      inherited::m_random_rate_population = inherited::m_random_engine->get_random_population(
-        1, static_cast<double>(m_conf.rate_min_khz), static_cast<double>(m_conf.rate_max_khz));
-    }
-
-    // Configure possible sizes
-    if (inherited::m_conf.variable_size) {
-      inherited::m_random_size_population = inherited::m_random_engine->get_random_population(
-        1000, static_cast<int>(m_conf.size_min_bytes), static_cast<int>(m_conf.size_max_bytes));
-    } else {
-      inherited::m_random_size_population = inherited::m_random_engine->get_random_population(
-        1, static_cast<int>(m_conf.size_min_bytes), static_cast<int>(m_conf.size_max_bytes));
-    }
-
-    inherited::m_file_source = std::make_unique<FileSourceBuffer>(m_conf.input_limit, m_conf.size_max_bytes);
+    m_file_source = std::make_unique<FileSourceBuffer>(m_conf.input_limit, m_conf.size_max_bytes);
     try {
-      inherited::m_file_source->read(inherited::m_conf.data_filename);
+      m_file_source->read(m_conf.data_filename);
     } 
     catch (const ers::Issue& ex) {
       ers::fatal(ex);
@@ -101,19 +80,15 @@ public:
   }
 
   void start(const nlohmann::json& /*args*/) {
-    /*
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
-    m_request_handler_impl->start(args);
-    m_stats_thread.set_work(&SourceEmulatorModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
-    m_consumer_thread.set_work(&SourceEmulatorModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
-    m_requester_thread.set_work(&SourceEmulatorModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
-    m_timesync_thread.set_work(&SourceEmulatorModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
-  */
+    m_rate_limiter = std::make_unique<RateLimiter>(m_conf.rate_khz);
+    //m_stats_thread.set_work(&SourceEmulatorModel<RawType>::run_stats, this);
+    m_producer_thread = std::thread(&SourceEmulatorModel<RawType>::run_produce, this);
   }
 
 
   void stop(const nlohmann::json& /*args*/) {
-
+    m_producer_thread.join();
   }
 
   void get_info(opmonlib::InfoCollector & /*ci*/, int /*level*/) {
@@ -131,40 +106,58 @@ public:
 
 protected:
 
-  void run_adjust() {
-
-  }
-
   void run_produce() {
-/*
-    m_rawq_timeout_count = 0;
-    m_packet_count = 0;
-    m_packet_count_tot = 0;
-    m_stats_packet_count = 0;
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " started";
 
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
-    while (m_run_marker.load() || m_raw_data_source->can_pop()) {
-      RawType payload;
-      // Try to acquire data
-      try {
-        //m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
-        m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
-        m_raw_processor_impl->process_item(&payload);
-        if (!m_latency_buffer_impl->write(std::move(payload))) {
-          TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
-        }
-        m_request_handler_impl->auto_cleanup_check();
-        ++m_packet_count;
-        ++m_packet_count_tot;
-        ++m_stats_packet_count;
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ++m_rawq_timeout_count;
-        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
-      }
+    //pthread_setname_np(pthread_self(), get_name().c_str());
+
+    uint64_t timestamp = 0;
+    int offset = 0;
+    auto& source = m_file_source->get();
+
+    int num_elem = m_file_source->num_elements();
+    if (num_elem == 0) {
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "No elements to read from buffer! Sleeping...";
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      num_elem = m_file_source->num_elements();
     }
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
-*/
+
+    while (m_run_marker.load()) {
+      // Which element to push to the buffer
+      if (offset == num_elem) {
+        offset = 0;
+      }
+
+      bool create_frame = static_cast<double>(rand()) / static_cast<double>(RAND_MAX) >= m_dropout_rate;
+      if (create_frame) {
+        RawType payload;
+        // Memcpy from file buffer to flat char array
+        ::memcpy(static_cast<void*>(&payload),
+                 static_cast<void*>(source.data() + offset * sizeof(RawType)),
+                 sizeof(RawType));
+
+        // Fake timestamp
+        payload.fake_timestamp(timestamp, m_time_tick_diff);
+        timestamp += m_time_tick_diff * 12;
+
+        // queue in to actual DAQSink
+        try {
+          m_raw_data_sink->push(std::move(payload), m_sink_queue_timeout_ms);
+        } catch (ers::Issue &excpt) {
+          ers::warning(CannotWriteToQueue(ERS_HERE, "raw data input queue", excpt));
+          // std::runtime_error("Queue timed out...");
+        }
+
+        // Count packet and limit rate if needed.
+        ++offset;
+        ++m_packet_count;
+        //++m_packet_count_tot;
+        //++m_stat_packet_count;
+      }
+
+      m_rate_limiter->limit();
+    }
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";
   }
 
 private:
@@ -173,31 +166,30 @@ private:
   std::atomic<bool>& m_run_marker;
 
   // CONFIGURATION
-  appfwk::app::ModInit m_queue_config;
   uint32_t m_this_apa_number; // NOLINT
   uint32_t m_this_link_number; // NOLINT
 
-  // INTERNALS
-  //RateLimiter m_rate_limiter;
-  //RandomEngine m_random_engine;
-  //FileSourceBuffer m_file_source;
+  uint64_t m_time_tick_diff;
+  double m_dropout_rate;
 
   // STATS
   stats::counter_t m_packet_count{0};
   stats::counter_t m_byte_count{0};
   //ReusableThread m_stats_thread;
 
-  // PRODUCER
-  //ReusableThread m_producer_thread;
-
-  // ADJUSTER
-  //ReusableThread m_adjuster_thread;
-
   // RAW SINK
   std::chrono::milliseconds m_sink_queue_timeout_ms;
   using raw_sink_qt = appfwk::DAQSink<RawType>;
   std::unique_ptr<raw_sink_qt> m_raw_data_sink;
 
+  bool m_sink_is_set = false;
+  using module_conf_t = dunedaq::readout::fakecardreader::Conf;
+  module_conf_t m_conf;
+
+  std::unique_ptr<RateLimiter> m_rate_limiter;
+  std::unique_ptr<FileSourceBuffer> m_file_source;
+
+  std::thread m_producer_thread;
 };
 
 } // namespace readout

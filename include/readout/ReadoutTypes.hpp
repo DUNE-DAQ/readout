@@ -34,6 +34,11 @@ struct LinkId {
   uint32_t link_tag_; // NOLINT
 };
 
+class Timestamped {
+  virtual uint64_t get_timestamp() const = 0; //NOLINT
+  virtual void set_timestamp(uint64_t) = 0; //NOLINT
+};
+
 /** 
  * @brief SuperChunk concept: The FELIX user payloads are called CHUNKs.
  * There is mechanism in firmware to aggregate WIB frames to a user payload 
@@ -50,6 +55,24 @@ struct WIB_SUPERCHUNK_STRUCT {
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data);
     return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
   }
+
+  uint64_t get_timestamp() const {
+    return reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp();
+  }
+
+  void set_timestamp(uint64_t ts) {
+    reinterpret_cast<dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts);
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) {
+    uint64_t ts_next = first_timestamp;
+    for (unsigned int i=0; i<12; ++i) { // NOLINT
+      auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))+i*464); // NOLINT
+      auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      wfh->set_timestamp(ts_next);
+      ts_next += offset;
+    }
+  }
 };
 
 /**
@@ -57,7 +80,7 @@ struct WIB_SUPERCHUNK_STRUCT {
  * 12[WIB2 frames] x 468[Bytes] = 5616[Bytes]
  * */
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
-struct WIB2_SUPERCHUNK_STRUCT {
+struct WIB2_SUPERCHUNK_STRUCT : public Timestamped {
   // data
   char data[WIB2_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -66,6 +89,26 @@ struct WIB2_SUPERCHUNK_STRUCT {
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&other.data);
     return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
   }
+
+  uint64_t get_timestamp() const override {
+    return reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data)->get_timestamp();
+  }
+
+  void set_timestamp(uint64_t ts) override {
+    auto frame = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(&data);
+    frame->header.timestamp_1 = ts;
+    frame->header.timestamp_2 = ts >> 32;
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) {
+    uint64_t ts_next = first_timestamp;
+    for (unsigned int i=0; i<12; ++i) { // NOLINT
+      auto w2f = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)(&data))+i*468); // NOLINT
+      w2f->header.timestamp_1 = ts_next;
+      w2f->header.timestamp_2 = ts_next >> 32;
+      ts_next += offset;
+    }
+  }
 };
 
 /**
@@ -73,7 +116,7 @@ struct WIB2_SUPERCHUNK_STRUCT {
  * 12[PDS frames] x 584[Bytes] = 7008[Bytes]
  * */
 const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
-struct PDS_SUPERCHUNK_STRUCT {
+struct PDS_SUPERCHUNK_STRUCT : public Timestamped {
   // data
   char data[PDS_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -81,6 +124,26 @@ struct PDS_SUPERCHUNK_STRUCT {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data);
     return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+  }
+
+  uint64_t get_timestamp() const override {
+    return reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data)->get_timestamp();
+  }
+
+  void set_timestamp(uint64_t ts) override {
+    auto frame = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&data);
+    frame->header.timestamp_wf_1 = ts;
+    frame->header.timestamp_wf_2 = ts >> 32;
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) {
+    uint64_t ts_next = first_timestamp;
+    for (unsigned int i=0; i<12; ++i) { // NOLINT
+      auto pdsf = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(((uint8_t*)(&data))+i*584); // NOLINT
+      pdsf->header.timestamp_wf_1 = ts_next;
+      pdsf->header.timestamp_wf_2 = ts_next >> 32;
+      ts_next += offset;
+    }
   }
 };
 

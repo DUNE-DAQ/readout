@@ -24,7 +24,6 @@ namespace readout {
 class SourceEmulatorConcept {
 public:
   SourceEmulatorConcept() 
-  : m_sink_is_set(false) 
   { }
 
   ~SourceEmulatorConcept() {}
@@ -43,24 +42,6 @@ public:
   virtual void start(const nlohmann::json& /*args*/) = 0;
   virtual void stop(const nlohmann::json& /*args*/) = 0;
   virtual void get_info(opmonlib::InfoCollector & /*ci*/, int /*level*/) = 0;
-
-protected:
-  virtual void run_adjust() = 0;
-  virtual void run_produce() = 0;
-
-  bool m_sink_is_set;
-  using module_conf_t = dunedaq::readout::fakecardreader::Conf;
-  module_conf_t m_conf;
-
-  std::unique_ptr<RateLimiter> m_rate_limiter;
-  std::unique_ptr<RandomEngine> m_random_engine;
-  std::unique_ptr<FileSourceBuffer> m_file_source;
-
-  std::vector<double> m_random_rate_population;
-  std::vector<int> m_random_size_population; // NOLINT
-
-  std::thread m_producer_thread;
-  std::thread m_adjuster_thread;
 
 private:
 

@@ -26,38 +26,28 @@ namespace dunedaq {
 namespace readout {
 
 std::unique_ptr<SourceEmulatorConcept> 
-createSourceEmulator(const nlohmann::json& args, std::atomic<bool>& run_marker)
+createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_marker)
 {
-  std::string raw_type_name("");
-  auto queues = args.get<appfwk::app::ModInit>().qinfos;
-  for (const auto& qi : queues) {
-    if (qi.name == "raw_output") {
-      auto& inst = qi.inst;
+  auto& inst = qi.inst;
 
-      // IF WIB
-      if (inst.find("wib") != std::string::npos) {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib" ;
-        raw_type_name = "wib";
-        auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB_SUPERCHUNK_STRUCT>>(run_marker);
-        source_emu_model->init(args);
-        return std::move(source_emu_model);
-      }
+  // IF WIB2
+  if (inst.find("wib2") != std::string::npos) {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake wib2 link" ;
+    auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB2_SUPERCHUNK_STRUCT>>(run_marker, 32, 0.0);
+    return std::move(source_emu_model);
+  }
 
-      // IF WIB2
-      if (inst.find("wib2") != std::string::npos) {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2" ;
-        raw_type_name = "wib2";
-        auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB2_SUPERCHUNK_STRUCT>>(run_marker);
-        source_emu_model->init(args);
-        return std::move(source_emu_model);
-      }
+  // IF WIB
+  if (inst.find("wib") != std::string::npos) {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake wib link" ;
+    auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB_SUPERCHUNK_STRUCT>>(run_marker, 25, 0.0);
+    return std::move(source_emu_model);
+  }
 
-      // IF PDS
-      if (inst.find("pds") != std::string::npos) {
-
-      }
-
-    }
+  // IF PDS
+  if (inst.find("pds") != std::string::npos) {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake pds link";
+    auto source_emu_model = std::make_unique<SourceEmulatorModel<types::PDS_SUPERCHUNK_STRUCT>>(run_marker, 16, 0.9);
   }
 
   return nullptr;

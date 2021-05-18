@@ -17,7 +17,7 @@
 #include "readout/fakecardreader/Structs.hpp"
 #include "readout/ReusableThread.hpp"
 #include "readout/ReadoutTypes.hpp"
-//#include "SourceEmulatorConcept.hpp"
+#include "SourceEmulatorConcept.hpp"
 //#include "CreateSourceEmulator.hpp"
 #include "ReadoutStatistics.hpp"
 #include "RateLimiter.hpp"
@@ -76,6 +76,7 @@ private:
   module_conf_t m_cfg;
 
   //std::map<int, std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
+  std::vector<std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
 
   // appfwk Queues
   std::chrono::milliseconds m_queue_timeout_ms;
