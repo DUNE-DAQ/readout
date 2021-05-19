@@ -28,11 +28,21 @@ namespace readout {
 template<class RawType, class KeyType, class KeyGetter>
 class SkipListLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType> {
 
-static constexpr uint32_t unconfigured_head_hight = 2; // NOLINT
-public:
+private:
+  // Folly typenames
+  using SkipListT = typename folly::ConcurrentSkipList<RawType>;
+  using SkipListTAcc = typename folly::ConcurrentSkipList<RawType>::Accessor; // SKL Accessor
+  using SkipListTSkip = typename folly::ConcurrentSkipList<RawType>::Skipper; // Skipper accessor
 
+  // Concurrent SkipList
+  std::shared_ptr<SkipListT> m_skip_list;
+
+  // Conf
+  static constexpr uint32_t unconfigured_head_height = 2; // NOLINT
+
+public:
   SkipListLatencyBufferModel() 
-  : m_skip_list(folly::ConcurrentSkipList<RawType>::createInstance(unconfigured_head_hight)) {
+  : m_skip_list(folly::ConcurrentSkipList<RawType>::createInstance(unconfigured_head_height)) {
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
 
@@ -42,8 +52,12 @@ public:
   }
 
   size_t occupancy() override {
-    return m_skip_list->
-    return m_queue->sizeGuess();
+    auto occupancy = 0;
+    {
+      SkipListTAcc acc(m_skip_list);
+      occupancy = acc.size();
+    }
+    return occupancy;
   }
 
   void lock() override {
@@ -57,66 +71,88 @@ public:
   // For the continous buffer, the data is moved into the Folly queue.
   bool
   write(RawType&& new_element) override
-  {
-    return m_queue->write( std::move(new_element) );
+  { 
+    bool success = false;
+    {
+      SkipListTAcc acc(m_skip_list);
+      auto ret = acc.insert( std::move(new_element) ); // ret T = std::pair<iterator, bool>
+      success = ret.second;
+    }
+    return success;
   }
 
-  bool 
+  /* Reads closest match. */
+  bool
   read(RawType& element) override
   {
-    return m_queue->read(element);
-  }
-
-  bool
-  place(RawType&& /*new_element*/, KeyType& /*key*/) override
-  {
-    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SkipListLatencyBufferModel!";
-    return false;
-  }
-
-  bool
-  find(RawType& element, KeyType& key) override
-  {
-    auto elptr = m_queue->find_element(key);
-    if (elptr != nullptr) {
-      element = *elptr;
-      return true;
+    bool found = false;
+    {
+      SkipListTAcc acc(m_skip_list);
+      auto lb_node = acc.lower_bound(element);
+      found = (lb_node == acc.end()) ? false : true;
+      if (found) {
+        element = *lb_node;
+      }
     }
-    return false;
+    return found;
+  }
+
+  bool
+  place(RawType&& new_element, KeyType& /*key*/) override
+  {
+    return write( std::move(new_element) );
+  }
+
+  /* Finds exact match, contrary to read(). */
+  bool
+  find(RawType& element, KeyType& /*key*/) override 
+  {
+    bool found = false;
+    {
+      SkipListTAcc acc(m_skip_list);
+      auto node = acc.find(element);
+      found = (node == acc.end()) ? false : true;
+      if (found) {
+        element = *node;
+      }
+    }
+    return found;
   }
 
   void 
   pop(unsigned num = 1) override// NOLINT
   {
-    for (unsigned i=0; i<num; ++i) { // NOLINT
-      m_queue->popFront();
+    {
+      SkipListTAcc acc(m_skip_list);
+      for (unsigned i=0; i<num; ++i)
+      {
+        acc.pop_back();
+      }
     }
   }
 
   RawType* 
   get_ptr(unsigned idx) override// NOLINT
   {
-    if (idx == 0) {
-      return m_queue->frontPtr();
-    } else {
-      return m_queue->readPtr(idx); // Only with accessable SPSC
-    }
+    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SkipListLatencyBufferModel!";
+    return nullptr;
   }
 
   RawType*
   find_ptr(KeyType& key) override
   {
-    return m_queue->find_element(key);
+    return nullptr;
+    //return m_queue->find_element(key);
   }
  
   int
   find_index(KeyType& key) override
   {
-    return m_queue->find_index(key);
+    return -1;
+    //return m_queue->find_index(key);
   }
 
 private:
-  std::shared_ptr<folly::ConcurrentSkipList<RawType>> m_skip_list;
 
 };
 

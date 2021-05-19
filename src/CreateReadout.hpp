@@ -21,12 +21,14 @@
 #include "ReadoutModel.hpp"
 
 #include "ContinousLatencyBufferModel.hpp"
+#include "SkipListLatencyBufferModel.hpp"
 #include "WIBFrameProcessor.hpp"
 #include "WIBRequestHandler.hpp"
 #include "WIB2FrameProcessor.hpp"
 #include "WIB2RequestHandler.hpp"
 #include "PDSFrameProcessor.hpp"
-#include "PDSRequestHandler.hpp"
+#include "PDSQueueRequestHandler.hpp"
+#include "PDSListRequestHandler.hpp"
 
 #include <utility>
 #include <memory>
@@ -48,7 +50,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
       // IF WIB
       if (inst.find("wib") != std::string::npos && inst.find("wib2") == std::string::npos ) {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib" ;
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib";
         raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT, WIBRequestHandler,
             ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>, WIBFrameProcessor>>(run_marker);
@@ -58,7 +60,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
       // IF WIB2
       if (inst.find("wib2") != std::string::npos) {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2" ;
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2";
         raw_type_name = "wib2";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB2_SUPERCHUNK_STRUCT, WIB2RequestHandler,
             ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>, WIB2FrameProcessor>>(run_marker);
@@ -66,12 +68,22 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
-      // IF PDS
-      if (inst.find("pds") != std::string::npos) {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds" ;
+      // IF PDS queue
+      if (inst.find("pds-queue") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
         raw_type_name = "pds";
-        auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT, PDSRequestHandler,
+        auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT, PDSQueueRequestHandler,
             SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>, PDSFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      // IF PDS skiplist
+      if (inst.find("pds-list") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using SkipList LB";
+        raw_type_name = "pds";
+        auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT, PDSListRequestHandler,
+            SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>, PDSFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

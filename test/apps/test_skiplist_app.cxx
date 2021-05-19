@@ -38,7 +38,7 @@ main(int /*argc*/, char** /*argv[]*/)
   std::shared_ptr<SkipListT> skl(SkipListT::createInstance(head_height));
 
   // Run for seconds
-  int runsecs = 3600;
+  int runsecs = 15;
 
   // Run marker
   std::atomic<bool> marker{true};
@@ -82,6 +82,7 @@ main(int /*argc*/, char** /*argv[]*/)
       ts += 25;
       rl.limit();
     }
+    TLOG() << "Producer joins...";
   });
 
 
@@ -122,6 +123,7 @@ main(int /*argc*/, char** /*argv[]*/)
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
+    TLOG() << "Cleaner joins...";
   });
 
 
@@ -163,6 +165,7 @@ main(int /*argc*/, char** /*argv[]*/)
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    TLOG() << "Extractor joins...";
   });
 
 
@@ -175,12 +178,27 @@ main(int /*argc*/, char** /*argv[]*/)
 
 
   // Join local threads
-  TLOG() << "Flipping killswitch in order to stop...";
+  TLOG() << "Flipping killswitch in order to stop threads...";
   if (killswitch.joinable()) {
     killswitch.join();
   }
 
+  if (producer.joinable()) {
+    producer.join();
+  }
+
+  if (cleaner.joinable()) {
+    cleaner.join();
+  }
+
+  if (extractor.joinable()) {
+    extractor.join();
+  }
+
   // Exit
   TLOG() << "Exiting.";
+
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+
   return 0;
 }

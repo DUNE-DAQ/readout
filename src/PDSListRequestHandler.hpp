@@ -1,17 +1,17 @@
 /**
-* @file PDSRequestHandler.hpp Trigger matching mechanism for WIB frames. 
+* @file PDSListRequestHandler.hpp Trigger matching mechanism for WIB frames. 
 *
 * This is part of the DUNE DAQ , copyright 2020.
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef READOUT_SRC_PDSREQUESTHANDLER_HPP_
-#define READOUT_SRC_PDSREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_PDSLISTREQUESTHANDLER_HPP_
+#define READOUT_SRC_PDSLISTREQUESTHANDLER_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "ReadoutStatistics.hpp"
 #include "DefaultRequestHandlerModel.hpp"
-#include "SearchableLatencyBufferModel.hpp"
+#include "SkipListLatencyBufferModel.hpp"
 
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
@@ -33,24 +33,24 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-class PDSRequestHandler : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, 
-                                   SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>> {
+class PDSListRequestHandler : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, 
+                                     SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>> {
 public:
-  PDSRequestHandler(std::unique_ptr<SearchableLatencyBufferModel<
+  PDSListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<
     types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>& latency_buffer,
                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
                     std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
-  : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SearchableLatencyBufferModel<
+  : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SkipListLatencyBufferModel<
       types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>(latency_buffer, fragment_sink, snb_sink)
   {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSRequestHandler created...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSListRequestHandler created...";
   } 
 
   void conf(const nlohmann::json& args) override
   {
     // Call up to the base class, whose conf function does useful things
     DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, 
-      SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>::conf(args);
+      SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
@@ -251,4 +251,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_PDSREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_PDSLISTREQUESTHANDLER_HPP_
