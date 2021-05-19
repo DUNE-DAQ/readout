@@ -124,7 +124,7 @@ protected:
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
-      if (offset == num_elem) {
+      if (offset == num_elem || (offset + 1) * sizeof(RawType) > source.size()) {
         offset = 0;
       }
 
