@@ -113,6 +113,14 @@ public:
     return m_queue->find_index(key);
   }
 
+  RawType* at(int index) {
+    return m_queue->at(index);
+  }
+
+  int next_index(int index) {
+    return m_queue->next_index(index);
+  }
+
 private:
   std::unique_ptr<SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>> m_queue;
 

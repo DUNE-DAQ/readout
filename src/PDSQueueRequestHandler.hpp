@@ -58,17 +58,21 @@ public:
   
 protected:
 
+  /*
   RequestResult
-  cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) override // NOLINT
+  cleanup_request(dfmessages::DataRequest dr, unsigned delay_us  = 0) override // NOLINT
   {
     return pds_cleanup_request(dr);
 
   }
+  */
 
+  /*
   RequestResult
-  pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) {
+  pds_cleanup_request(dfmessages::DataRequest dr, unsigned delay_us = 0) {
     return RequestResult(ResultCode::kCleanup, dr);
   }
+  */
 
   RequestResult
   data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT
@@ -109,10 +113,10 @@ protected:
 
     uint64_t start_win_ts = dr.window_begin;  // NOLINT
     uint64_t end_win_ts = dr.window_end;  // NOLINT
-    auto start_idx = -1; // m_latency_buffer->find_index(start_win_ts);
-    auto end_idx = -1; //m_latency_buffer->find_index(end_win_ts);     
+    auto start_idx = m_latency_buffer->find_index(start_win_ts);
+    auto end_idx = m_latency_buffer->find_index(end_win_ts);
 
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDS (DAHPHNE frame) data request for " 
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDS (DAPHNE frame) data request for "
       << "Trigger TS=" << dr.trigger_timestamp << " "
       << "Oldest stored TS=" << last_ts << " "
       << "Newest stored TS=" << newest_ts << " "
@@ -124,8 +128,6 @@ protected:
 
     // List of safe-extraction conditions
 
-
-/*    
     if ( start_idx >= 0 && end_idx < 0 ) { // data is not fully in buffer yet
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
@@ -143,7 +145,7 @@ protected:
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count; 
     }
-    else if ( start_idx < 0 end_idx >= 0 ) { // data is partially gone.
+    else if ( start_idx < 0 && end_idx >= 0 ) { // data is partially gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
@@ -161,7 +163,7 @@ protected:
     // Requeue if needed
     if ( rres.result_code == ResultCode::kNotYet ) {
      if (m_run_marker.load()) {
-        rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
+        //rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
           rres.request_delay_us = m_min_delay_us; 
         }
@@ -190,13 +192,13 @@ protected:
 
       auto elements_handled = 0;
       
-      for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = static_cast<void*>(m_latency_buffer->getPtr(num_element_offset+idxoffset));
+      for (int index = start_idx; index != end_idx; index = m_latency_buffer->next_index(index)) { // NOLINT
+        auto* element = static_cast<void*>(m_latency_buffer->at(index));
 
         if (element != nullptr) {
           frag_pieces.emplace_back( 
             std::make_pair<void*, size_t>(
-              static_cast<void*>(m_latency_buffer->getPtr(num_element_offset + idxoffset)),
+              static_cast<void*>(m_latency_buffer->at(index)),
               std::size_t(m_element_size))
           );
           elements_handled++;
@@ -207,8 +209,8 @@ protected:
         }
       }
    }
-   // Create fragment from pieces
 
+   // Create fragment from pieces
    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
 
    // Set header
@@ -223,8 +225,6 @@ protected:
      ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
    }
 
-*/
-
     return rres;
   }
 
@@ -232,10 +232,10 @@ protected:
 
 private:
   // Constants
-  static const constexpr uint64_t m_tick_dist = 32; // NOLINT
-  static const constexpr size_t m_wib_frame_size = 468;
+  static const constexpr uint64_t m_tick_dist = 16; // NOLINT
+  static const constexpr size_t m_pds_frame_size = 584;
   static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
-  static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
+  static const constexpr size_t m_element_size = m_pds_frame_size * m_frames_per_element;
   static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT
 
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT

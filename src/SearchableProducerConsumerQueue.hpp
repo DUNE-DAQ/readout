@@ -105,6 +105,14 @@ public:
     }
   }
 
+  T* at(int index) {
+    return &AccessableProducerConsumerQueue<T>::records_[index];
+  }
+
+  int next_index(int index) {
+    return (index == AccessableProducerConsumerQueue<T>::size_ - 1) ? 0 : index + 1;
+  }
+
 private:
   KeyGetter m_key_getter;
 
