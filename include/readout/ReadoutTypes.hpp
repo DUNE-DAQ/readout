@@ -80,7 +80,7 @@ struct WIB_SUPERCHUNK_STRUCT {
  * 12[WIB2 frames] x 468[Bytes] = 5616[Bytes]
  * */
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
-struct WIB2_SUPERCHUNK_STRUCT : public Timestamped {
+struct WIB2_SUPERCHUNK_STRUCT {
   // data
   char data[WIB2_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -90,11 +90,11 @@ struct WIB2_SUPERCHUNK_STRUCT : public Timestamped {
     return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
   }
 
-  uint64_t get_timestamp() const override {
+  uint64_t get_timestamp() const {
     return reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data)->get_timestamp();
   }
 
-  void set_timestamp(uint64_t ts) override {
+  void set_timestamp(uint64_t ts) {
     auto frame = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(&data);
     frame->header.timestamp_1 = ts;
     frame->header.timestamp_2 = ts >> 32;
@@ -116,7 +116,7 @@ struct WIB2_SUPERCHUNK_STRUCT : public Timestamped {
  * 12[PDS frames] x 584[Bytes] = 7008[Bytes]
  * */
 const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
-struct PDS_SUPERCHUNK_STRUCT : public Timestamped {
+struct PDS_SUPERCHUNK_STRUCT {
   // data
   char data[PDS_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -126,11 +126,11 @@ struct PDS_SUPERCHUNK_STRUCT : public Timestamped {
     return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
   }
 
-  uint64_t get_timestamp() const override {
+  uint64_t get_timestamp() const {
     return reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data)->get_timestamp();
   }
 
-  void set_timestamp(uint64_t ts) override {
+  void set_timestamp(uint64_t ts) {
     auto frame = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&data);
     frame->header.timestamp_wf_1 = ts;
     frame->header.timestamp_wf_2 = ts >> 32;

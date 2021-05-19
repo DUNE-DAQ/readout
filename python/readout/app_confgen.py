@@ -54,7 +54,7 @@ def generate(
             app.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS) 
         ] + [
-            app.QueueSpec(inst=f"recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"wib_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
     
@@ -78,11 +78,11 @@ def generate(
                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                             app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
-                            app.QueueInfo(name="raw_recording", inst=f"recording_link_{idx}", dir="output")
+                            app.QueueInfo(name="raw_recording", inst=f"wib_recording_link_{idx}", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
-                            app.QueueInfo(name="raw_recording", inst=f"recording_link_{idx}", dir="input")
+                            app.QueueInfo(name="raw_recording", inst=f"wib_recording_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"timesync_consumer", "DummyConsumerTimeSync", [

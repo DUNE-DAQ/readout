@@ -63,6 +63,9 @@ FakeCardReader::init(const data_t& args)
 
     try {
       m_source_emus.emplace_back(createSourceEmulator(qi, m_run_marker));
+      if (m_source_emus.back().get() == nullptr) {
+        // Do some error hanlding here
+      }
       m_source_emus.back()->init(args);
       m_source_emus.back()->set_sink(qi.inst);
     }
