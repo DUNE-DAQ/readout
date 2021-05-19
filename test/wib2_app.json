@@ -1,0 +1,277 @@
+[
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "output",
+                                "inst": "wib2_fake_link_0",
+                                "name": "output_0"
+                            }
+                        ]
+                    },
+                    "inst": "fake_source",
+                    "plugin": "FakeCardReader"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib2_fake_link_0",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_0",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib2_recording_link_0",
+                                "name": "raw_recording"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_0",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib2_recording_link_0",
+                                "name": "raw_recording"
+                            }
+                        ]
+                    },
+                    "inst": "data_recorder_0",
+                    "plugin": "DataRecorder"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "time_sync_q",
+                                "name": "input_queue"
+                            }
+                        ]
+                    },
+                    "inst": "timesync_consumer",
+                    "plugin": "DummyConsumerTimeSync"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "data_fragments_q",
+                                "name": "input_queue"
+                            }
+                        ]
+                    },
+                    "inst": "fragment_consumer",
+                    "plugin": "DummyConsumerFragment"
+                }
+            ],
+            "queues": [
+                {
+                    "capacity": 100,
+                    "inst": "data_fragments_q",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 1000,
+                    "inst": "data_requests_0",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100,
+                    "inst": "time_sync_q",
+                    "kind": "FollyMPMCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib2_fake_link_0",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib2_recording_link_0",
+                    "kind": "FollySPSCQueue"
+                }
+            ]
+        },
+        "entry_state": "NONE",
+        "exit_state": "INITIAL",
+        "id": "init"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "data_filename": "./frames.bin",
+                        "input_limit": 10485100,
+                        "link_ids": [
+                            0
+                        ],
+                        "queue_timeout_ms": 100,
+                        "rate_khz": 16.666666666666668,
+                        "rate_max_khz": 166.0,
+                        "rate_min_khz": 166.0,
+                        "raw_type": "wib2",
+                        "set_t0_to": 0,
+                        "size_max_bytes": 5568,
+                        "size_min_bytes": 5568,
+                        "tp_data_filename": "./tp_frames.bin",
+                        "tp_enabled": "false",
+                        "tp_rate_khz": 0.0,
+                        "variable_rate": false,
+                        "variable_size": false
+                    },
+                    "match": "fake_source"
+                },
+                {
+                    "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 1,
+                        "latency_buffer_size": 50000,
+                        "link_number": 0,
+                        "pop_limit_pct": 0.8,
+                        "pop_size_pct": 0.1,
+                        "raw_type": "wib2",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_0"
+                },
+                {
+                    "data": {
+                        "compression_algorithm": "None",
+                        "output_file": "output_0.out",
+                        "stream_buffer_size": 8388608
+                    },
+                    "match": "data_recorder_0"
+                }
+            ]
+        },
+        "entry_state": "INITIAL",
+        "exit_state": "CONFIGURED",
+        "id": "conf"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "disable_data_storage": false,
+                        "run": 333,
+                        "trigger_interval_ticks": 64000000
+                    },
+                    "match": "datahandler_.*"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": false,
+                        "run": 333,
+                        "trigger_interval_ticks": 64000000
+                    },
+                    "match": "fake_source"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": false,
+                        "run": 333,
+                        "trigger_interval_ticks": 64000000
+                    },
+                    "match": "data_recorder_.*"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": false,
+                        "run": 333,
+                        "trigger_interval_ticks": 64000000
+                    },
+                    "match": "timesync_consumer"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": false,
+                        "run": 333,
+                        "trigger_interval_ticks": 64000000
+                    },
+                    "match": "fragment_consumer"
+                }
+            ]
+        },
+        "entry_state": "CONFIGURED",
+        "exit_state": "RUNNING",
+        "id": "start"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "match": "fake_source"
+                },
+                {
+                    "match": "datahandler_.*"
+                },
+                {
+                    "match": "data_recorder_.*"
+                },
+                {
+                    "match": "timesync_consumer"
+                },
+                {
+                    "match": "fragment_consumer"
+                }
+            ]
+        },
+        "entry_state": "RUNNING",
+        "exit_state": "CONFIGURED",
+        "id": "stop"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "match": ""
+                }
+            ]
+        },
+        "entry_state": "CONFIGURED",
+        "exit_state": "INITIAL",
+        "id": "scrap"
+    },
+    {
+        "data": {
+            "modules": [
+                {
+                    "data": {
+                        "duration": 10
+                    },
+                    "match": "datahandler_.*"
+                }
+            ]
+        },
+        "entry_state": "RUNNING",
+        "exit_state": "RUNNING",
+        "id": "record"
+    }
+]
