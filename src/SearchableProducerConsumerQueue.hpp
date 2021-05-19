@@ -96,11 +96,7 @@ public:
         start_index = middle_index;
       }
       if (diff == 0) {
-        if (middle_key > key) {
-          return middle_index;
-        } else {
-          return (middle_index == AccessableProducerConsumerQueue<T>::size_ - 1) ? 0 : middle_index+1;
-        }
+        return middle_index;
       }
     }
   }

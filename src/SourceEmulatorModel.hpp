@@ -138,7 +138,6 @@ protected:
 
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);
-        timestamp += m_time_tick_diff * 12;
 
         // queue in to actual DAQSink
         try {
@@ -154,6 +153,8 @@ protected:
         //++m_packet_count_tot;
         //++m_stat_packet_count;
       }
+
+      timestamp += m_time_tick_diff * 12;
 
       m_rate_limiter->limit();
     }

@@ -115,6 +115,9 @@ protected:
     uint64_t end_win_ts = dr.window_end;  // NOLINT
     auto start_idx = m_latency_buffer->find_index(start_win_ts);
     auto end_idx = m_latency_buffer->find_index(end_win_ts);
+    //std::cout << start_idx << ", " << end_idx << std::endl;
+    //std::cout << "Timestamps: " << start_win_ts << ", " << end_win_ts << std::endl;
+    //std::cout << "Found timestamps: " << m_latency_buffer->at(start_idx)->get_timestamp() << ", " << m_latency_buffer->at(end_idx)->get_timestamp() << std::endl;
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PDS (DAPHNE frame) data request for "
       << "Trigger TS=" << dr.trigger_timestamp << " "
@@ -191,8 +194,9 @@ protected:
     } else {
 
       auto elements_handled = 0;
-      
-      for (int index = start_idx; index != end_idx; index = m_latency_buffer->next_index(index)) { // NOLINT
+
+      int last_chunk = m_latency_buffer->at(end_idx)->get_timestamp() == end_win_ts ? m_latency_buffer->next_index(end_idx) : end_idx;
+      for (int index = start_idx; index != m_latency_buffer->next_index(last_chunk); index = m_latency_buffer->next_index(index)) { // NOLINT
         auto* element = static_cast<void*>(m_latency_buffer->at(index));
 
         if (element != nullptr) {
@@ -209,7 +213,6 @@ protected:
         }
       }
    }
-
    // Create fragment from pieces
    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
 
