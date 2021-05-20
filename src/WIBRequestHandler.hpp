@@ -153,7 +153,7 @@ protected:
 
     // Requeue if needed
     if ( rres.result_code == ResultCode::kNotYet ) {
-     if (m_run_marker.load()) {
+      if (m_run_marker.load()) {
         rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
         if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
           rres.request_delay_us = m_min_delay_us; 

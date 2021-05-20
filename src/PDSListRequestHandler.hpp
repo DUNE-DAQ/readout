@@ -36,6 +36,10 @@ namespace readout {
 class PDSListRequestHandler : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, 
                                      SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>> {
 public:
+  using inherited = DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+    SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>;
+  using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
+
   PDSListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<
     types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>& latency_buffer,
                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
@@ -55,16 +59,56 @@ public:
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
   }
-  
-protected:
 
+protected:
   RequestResult
   cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) override // NOLINT
   {
     return pds_cleanup_request(dr);
-
   }
 
+  RequestResult
+  pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) {
+    //size_t occupancy_guess = m_latency_buffer->occupancy();
+    size_t removed_ctr = 0;
+    uint64_t tailts = 0;
+    uint64_t headts = 0; 
+    {
+      SkipListAcc acc(m_latency_buffer->get_skip_list());
+      auto tail = acc.last();
+      auto head = acc.first();
+      if (tail && head) {
+        auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
+        auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
+        tailts = tailptr->get_timestamp();  // NOLINT
+        headts = headptr->get_timestamp(); 
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with " 
+          << "Oldest stored TS=" << tailts << " "
+          << "Newest stored TS=" << headts;
+        if (headts - tailts > m_max_ts_diff) { // ts differnce exceeds maximum
+          ++inherited::m_pop_reqs;
+          uint64_t timediff = m_max_ts_diff;
+          while (timediff >= m_max_ts_diff) {
+            bool removed = acc.remove(*tail);
+            if (!removed) {
+              TLOG_DEBUG(TLVL_WORK_STEPS) << "Unsuccesfull remove from SKL during cleanup: " << removed; 
+            } else {
+              ++removed_ctr;
+            }
+            tail = acc.last();
+            tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail);
+            tailts = tailptr->get_timestamp();
+            timediff = headts - tailts;
+          }
+          inherited::m_pops_count += removed_ctr;
+        }
+      } else {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Didn't manage to get SKL head and tail!";
+      }
+    }
+    inherited::m_cleanup_requested = false;
+    return RequestResult(ResultCode::kCleanup, dr);
+  } 
 
   RequestResult
   data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT
@@ -85,7 +129,7 @@ protected:
     fh.element_id = { dataformats::GeoID::SystemType::kPDS, m_apa_number, m_link_number };
     fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kPDSData);
     return std::move(fh);
-  } 
+  }
 
   RequestResult
   pds_data_request(dfmessages::DataRequest dr, unsigned delay_us) {
@@ -95,114 +139,81 @@ protected:
 
     // Prepare response
     RequestResult rres(ResultCode::kUnknown, dr);
-
-    // Data availability is calculated here
-    size_t occupancy_guess = m_latency_buffer->occupancy();
-    auto front_frame = *(reinterpret_cast<const dataformats::PDSFrame*>( m_latency_buffer->get_ptr(0) )); // NOLINT
-    auto last_frame = *(reinterpret_cast<const dataformats::PDSFrame*>( m_latency_buffer->get_ptr(occupancy_guess) )); // NOLINT
-    uint64_t last_ts = front_frame.get_timestamp();  // NOLINT
-    uint64_t newest_ts = last_frame.get_timestamp();
-
-    uint64_t start_win_ts = dr.window_begin;  // NOLINT
-    uint64_t end_win_ts = dr.window_end;  // NOLINT
-    auto start_idx = -1; // m_latency_buffer->find_index(start_win_ts);
-    auto end_idx = -1; //m_latency_buffer->find_index(end_win_ts);     
-
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDS (DAHPHNE frame) data request for " 
-      << "Trigger TS=" << dr.trigger_timestamp << " "
-      << "Oldest stored TS=" << last_ts << " "
-      << "Newest stored TS=" << newest_ts << " "
-      << "Start of window TS=" << start_win_ts << " "
-      << "End of window TS=" << end_win_ts;
-
-    // Prepare FragmentHeader and empty Fragment pieces list
+    // Prepare FragmentHeader
     auto frag_header = create_fragment_header(dr);
 
-    // List of safe-extraction conditions
+    // TS calculation
+    uint64_t start_win_ts = dr.window_begin;  // NOLINT
+    uint64_t end_win_ts = dr.window_end;  // NOLINT
+    uint64_t tailts = 0; // last ts
+    uint64_t headts = 0; // newest ts
 
+    size_t occupancy_guess = m_latency_buffer->occupancy();
 
-/*    
-    if ( start_idx >= 0 && end_idx < 0 ) { // data is not fully in buffer yet
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
-      rres.result_code = ResultCode::kPass;
-      ++m_bad_requested_count;
-    } 
-    else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
-      if (start_idx >= 0 && end_idx >= 0) { // data is there (double check)
-        rres.result_code = ResultCode::kFound;
-        ++m_found_requested_count;
-      } else {
-        
-      }
-    }
-    else if (start_idx >= 0 && end_idx >= 0) { // data is there
-      rres.result_code = ResultCode::kFound;
-      ++m_found_requested_count; 
-    }
-    else if ( start_idx < 0 end_idx >= 0 ) { // data is partially gone.
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-      rres.result_code = ResultCode::kNotFound;
-      ++m_bad_requested_count;
-    }
-    else if ( newest_ts < end_win_ts ) {
-      rres.result_code = ResultCode::kNotYet; // give it another chance
-    }
-    else {
-      TLOG() << "Don't know how to categorise this request";
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-      rres.result_code = ResultCode::kNotFound;
-      ++m_bad_requested_count;
-    }
+    // Accessing CSKL
+    {
+      SkipListAcc acc(m_latency_buffer->get_skip_list());
+      auto tail = acc.last();
+      auto head = acc.first();
+      if (tail && head) {
+        auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
+        auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
+        tailts = tailptr->get_timestamp();  // NOLINT
+        headts = headptr->get_timestamp();
 
-    // Requeue if needed
-    if ( rres.result_code == ResultCode::kNotYet ) {
-     if (m_run_marker.load()) {
-        rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
-        if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
+        if (tailts <= start_win_ts && end_win_ts <= headts) { // data is there
+          rres.result_code = ResultCode::kFound;
+          ++m_found_requested_count;
+        }
+        else if ( headts < end_win_ts ) {
+          rres.result_code = ResultCode::kNotYet; // give it another chance
+        }
+        else {
+          TLOG() << "Don't know how to categorise this request";
+          frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+          rres.result_code = ResultCode::kNotFound;
+          ++m_bad_requested_count;
+        }
+
+        // Requeue if needed
+        if ( rres.result_code == ResultCode::kNotYet ) {
           rres.request_delay_us = m_min_delay_us; 
-        }
-        return rres; // If kNotYet, return immediately, don't check for fragment pieces.
-      } else {
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-        rres.result_code = ResultCode::kNotFound;
-        ++m_bad_requested_count;
-      }
-    } 
-
-    // Build fragment
-    std::vector<std::pair<void*, size_t> > frag_pieces;
-    std::ostringstream oss;
-    oss << "TS match result on link " << m_link_number << ": " << resultCodeAsString(rres.result_code) << ' ' 
-      << "Trigger number=" << dr.trigger_number << " "
-      << "Oldest stored TS=" << last_ts << " "
-      << "Start of window TS=" << start_win_ts << " "
-      << "End of window TS=" << end_win_ts << " "
-      << "Estimated newest stored TS=" << newest_ts;
-    TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
-
-    if ( rres.result_code != ResultCode::kFound ) {
-      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
-    } else {
-
-      auto elements_handled = 0;
-      
-      for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-        auto* element = static_cast<void*>(m_latency_buffer->getPtr(num_element_offset+idxoffset));
-
-        if (element != nullptr) {
-          frag_pieces.emplace_back( 
-            std::make_pair<void*, size_t>(
-              static_cast<void*>(m_latency_buffer->getPtr(num_element_offset + idxoffset)),
-              std::size_t(m_element_size))
-          );
-          elements_handled++;
-          //TLOG() << "Elements handled: " << elements_handled;
+          return rres; // If kNotYet, return immediately, don't check for fragment pieces.
         } else {
-          TLOG() << "NULLPTR NOHANDLE";
-          break;
+          frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+          rres.result_code = ResultCode::kNotFound;
+          ++m_bad_requested_count;
         }
-      }
-   }
+
+        // Build fragment if found
+        if ( rres.result_code != ResultCode::kFound ) {
+          ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
+        } else {
+    
+          auto elements_handled = 0;
+          
+          for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
+            auto* element = static_cast<void*>(m_latency_buffer->getPtr(num_element_offset+idxoffset));
+    
+            if (element != nullptr) {
+              frag_pieces.emplace_back( 
+                std::make_pair<void*, size_t>(
+                  static_cast<void*>(m_latency_buffer->getPtr(num_element_offset + idxoffset)),
+                  std::size_t(m_element_size))
+              );
+              elements_handled++;
+              //TLOG() << "Elements handled: " << elements_handled;
+            } else {
+              //TLOG() << "NULLPTR NOHANDLE";
+              break;
+            }
+          }
+        }
+
+      } // found both head and tail
+    } // SKL access end
+
+
    // Create fragment from pieces
 
    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
@@ -224,14 +235,11 @@ protected:
     return rres;
   }
 
-  RequestResult
-  pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) {
-    return RequestResult(ResultCode::kCleanup, dr);
-  }
-
 private:
   // Constants
-  static const constexpr uint64_t m_tick_dist = 32; // NOLINT
+  static const constexpr uint64_t m_max_ts_diff = 10000000;
+
+  static const constexpr uint64_t m_tick_dist = 16; // NOLINT
   static const constexpr size_t m_wib_frame_size = 468;
   static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
   static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;

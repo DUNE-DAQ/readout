@@ -7,7 +7,7 @@
                         "qinfos": [
                             {
                                 "dir": "output",
-                                "inst": "pds_queue_fake_link_0",
+                                "inst": "pds_list_fake_link_0",
                                 "name": "output_0"
                             }
                         ]
@@ -20,7 +20,7 @@
                         "qinfos": [
                             {
                                 "dir": "input",
-                                "inst": "pds_queue_fake_link_0",
+                                "inst": "pds_list_fake_link_0",
                                 "name": "raw_input"
                             },
                             {
@@ -40,7 +40,7 @@
                             },
                             {
                                 "dir": "output",
-                                "inst": "pds_queue_recording_link_0",
+                                "inst": "pds_list_recording_link_0",
                                 "name": "raw_recording"
                             }
                         ]
@@ -53,7 +53,7 @@
                         "qinfos": [
                             {
                                 "dir": "input",
-                                "inst": "pds_queue_recording_link_0",
+                                "inst": "pds_list_recording_link_0",
                                 "name": "raw_recording"
                             }
                         ]
@@ -106,12 +106,12 @@
                 },
                 {
                     "capacity": 100000,
-                    "inst": "pds_queue_fake_link_0",
+                    "inst": "pds_list_fake_link_0",
                     "kind": "FollySPSCQueue"
                 },
                 {
                     "capacity": 100000,
-                    "inst": "pds_queue_recording_link_0",
+                    "inst": "pds_list_recording_link_0",
                     "kind": "FollySPSCQueue"
                 }
             ]
@@ -151,10 +151,10 @@
                         "apa_number": 0,
                         "emulator_mode": false,
                         "fake_trigger_flag": 1,
-                        "latency_buffer_size": 50000,
+                        "latency_buffer_size": 30000,
                         "link_number": 0,
-                        "pop_limit_pct": 0.8,
-                        "pop_size_pct": 0.1,
+                        "pop_limit_pct": 0.7,
+                        "pop_size_pct": 0.2,
                         "raw_type": "pds",
                         "source_queue_timeout_ms": 100
                     },

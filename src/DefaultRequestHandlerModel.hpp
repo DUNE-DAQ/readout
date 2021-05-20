@@ -123,13 +123,13 @@ public:
   {
     //TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
     auto size_guess = m_latency_buffer->occupancy();
-    if (!m_cleanup_requested && size_guess > m_pop_limit_size) {
+    if (!m_cleanup_requested.load(std::memory_order_acquire) && size_guess > m_pop_limit_size) {
       dfmessages::DataRequest dr;
       auto delay_us = 0;
       // 10-May-2021, KAB: moved the assignment of m_cleanup_requested so that is is *before* the creation of
       // the future and the addition of the future to the completion queue in order to avoid the race condition
       // in which the future gets run before we have a chance to set the m_cleanup_requested flag here.
-      m_cleanup_requested = true;
+      m_cleanup_requested.store(true);
       auto execfut = std::async(std::launch::deferred, &DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request, this, dr, delay_us);
       m_completion_queue.enqueue(std::move(execfut));
     }
@@ -170,12 +170,11 @@ protected:
       } else {
         m_latency_buffer->pop(to_pop); 
       }
-      m_pops_count += to_pop;     
-
+      //m_pops_count += to_pop; 
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load()+to_pop);
     }
-    m_cleanup_requested = false;
+    m_cleanup_requested.store(false);
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
@@ -229,8 +228,8 @@ protected:
       new_occupancy = m_occupancy;
       double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
       TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs/seconds/1. << " [Hz]"
-          << " Dropped: " << new_pop_count
-          << " Occupancy: " << new_occupancy;
+        << " Dropped: " << new_pop_count
+        << " Occupancy: " << new_occupancy;
       for(int i=0; i<50 && m_run_marker.load(); ++i){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -258,6 +257,15 @@ protected:
   // The run marker
   std::atomic<bool> m_run_marker = false;
 
+protected:
+  // Stats
+  stats::counter_t m_pop_reqs;
+  stats::counter_t m_pops_count;
+  stats::counter_t m_occupancy;
+  std::thread m_stats_thread;
+
+  std::atomic<bool> m_cleanup_requested = false;
+
 private:
   // For recording
   std::atomic<bool> m_recording = false;
@@ -274,13 +282,6 @@ private:
   stats::counter_t m_pop_counter;
   size_t m_buffer_capacity;
 
-  // Stats
-  stats::counter_t m_pop_reqs;
-  stats::counter_t m_pops_count;
-  stats::counter_t m_occupancy;
-  std::thread m_stats_thread;
-
-  std::atomic<bool> m_cleanup_requested = false;
 };
 
 } // namespace readout

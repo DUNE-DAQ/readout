@@ -28,19 +28,12 @@ namespace readout {
 template<class RawType, class KeyType, class KeyGetter>
 class SkipListLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType> {
 
-private:
+public:
   // Folly typenames
   using SkipListT = typename folly::ConcurrentSkipList<RawType>;
   using SkipListTAcc = typename folly::ConcurrentSkipList<RawType>::Accessor; // SKL Accessor
   using SkipListTSkip = typename folly::ConcurrentSkipList<RawType>::Skipper; // Skipper accessor
 
-  // Concurrent SkipList
-  std::shared_ptr<SkipListT> m_skip_list;
-
-  // Conf
-  static constexpr uint32_t unconfigured_head_height = 2; // NOLINT
-
-public:
   SkipListLatencyBufferModel() 
   : m_skip_list(folly::ConcurrentSkipList<RawType>::createInstance(unconfigured_head_height)) {
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
@@ -49,6 +42,11 @@ public:
   void conf(const nlohmann::json& cfg) override {
     //auto params = cfg.get<datalinkhandler::Conf>();
     //m_queue.reset(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(params.latency_buffer_size));
+  }
+
+  std::shared_ptr<SkipListT>&
+  get_skip_list() {
+    return std::ref(m_skip_list);
   }
 
   size_t occupancy() override {
@@ -132,27 +130,32 @@ public:
   }
 
   RawType* 
-  get_ptr(unsigned idx) override// NOLINT
+  get_ptr(unsigned /*idx*/) override// NOLINT
   {
     TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SkipListLatencyBufferModel!";
     return nullptr;
   }
 
   RawType*
-  find_ptr(KeyType& key) override
+  find_ptr(KeyType& /*key*/) override
   {
     return nullptr;
     //return m_queue->find_element(key);
   }
  
   int
-  find_index(KeyType& key) override
+  find_index(KeyType& /*key*/) override
   {
     return -1;
     //return m_queue->find_index(key);
   }
 
 private:
+  // Concurrent SkipList
+  std::shared_ptr<SkipListT> m_skip_list;
+
+  // Conf
+  static constexpr uint32_t unconfigured_head_height = 2; // NOLINT
 
 };
 
