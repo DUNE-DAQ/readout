@@ -73,7 +73,7 @@ public:
       TLOG() << "Queue is empty" << std::endl;
       return -1;
     }
-    end_index -= 1;
+    end_index = end_index == 0 ? AccessableProducerConsumerQueue<T>::size_-1 : end_index - 1;
 
     Key right_key = (m_key_getter)(AccessableProducerConsumerQueue<T>::records_[end_index]);
 
