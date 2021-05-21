@@ -22,16 +22,21 @@ local fakecardreader = {
     khz  : s.number("khz", "f8",
                      doc="A frequency in kHz"),
   
-    linkid : s.number("linkid", "i4",
-                     doc="A count of not too many things"),
+    region_id : s.number("region_id", "u2"),
+    element_id : s.number("element_id", "u4"),
+    system_type : s.string("system_type"),
 
-    linkvec : s.sequence("linkvec", self.linkid,
-                     doc="A sequence of links"),
+    geoid : s.record("GeoID", [s.field("region", self.region_id, doc="" ),
+        s.field("element", self.element_id, doc="" ),
+        s.field("system", self.system_type, doc="" )],
+        doc="GeoID"),
+
+    linkvec : s.sequence("link_vec", self.geoid),
 
     raw_type : s.string("RawType", moo.re.ident,
                   doc="A string field"),
 
-    filepath : s.string("FilePath", moo.re.hierpath,
+    string : s.string("FilePath", moo.re.hierpath,
                   doc="A string field"),
 
     choice : s.boolean("Choice"),
@@ -39,54 +44,31 @@ local fakecardreader = {
     tp_enabled: s.string("TpEnabled", moo.re.ident,
                   doc="A true or false flag for enabling raw WIB TP link"),
 
-    conf: s.record("Conf", [
-        s.field("link_ids", self.linkvec,
-                doc="Link IDs"),
-
+    link_conf : s.record("LinkConfiguration", [
+        s.field("geoid", self.geoid, doc="GeoID of the link"),
         s.field("input_limit", self.uint4, 10485100,
-                doc="Maximum allowed file size"),
-
-        s.field("variable_rate", self.choice, false,
-                doc="Is the ratelimiter adjusted during running"),
-
-        s.field("rate_min_khz", self.khz, 166,
-                doc="Minimum rate of ratelimiter"),
-
-        s.field("rate_max_khz", self.khz, 166,
-                doc="Maximum rate of ratelimiter"),
-
-        s.field("variable_size", self.choice, false,
-                doc="Payload sizes are randomized"),
-
-        s.field("size_min_bytes", self.int8, 5568,
-                doc="Minimum rate of ratelimiter"),
-
-        s.field("size_max_bytes", self.int8, 5568,
-                doc="Maximum rate of ratelimiter"),
-
+            doc="Maximum allowed file size"),
         s.field("rate_khz", self.khz, 166,
-                doc="Rate"),
-
+            doc="Rate"),
         s.field("raw_type", self.raw_type, "wib",
-                doc="User payload type"),
+            doc="User payload type"),
+        s.field("data_filename", self.string, "/tmp/frames.bin",
+            doc="Data file that contains user payloads"),
+        s.field("queue_name", self.string,
+            doc="Name of the output queue")
+        ], doc="Configuration for one link"),
 
-        s.field("data_filename", self.filepath, "/tmp/frames.bin",
-                doc="Data file that contains user payloads"),
+    link_conf_list : s.sequence("link_conf_list", self.link_conf, doc="Link configuration list"),
+
+    conf: s.record("Conf", [
+        s.field("link_confs", self.link_conf_list,
+                doc="Link configurations"),
 
         s.field("queue_timeout_ms", self.uint4, 2000,
                 doc="Queue timeout in milliseconds"),
         
         s.field("set_t0_to", self.int8, -1,
                 doc="The first DAQ timestamp. If -1, t0 from file is used."),
-
-        s.field("tp_enabled", self.tp_enabled, "false",
-                doc="Enables raw WIB TP link"),
-
-        s.field("tp_rate_khz", self.khz, 66,
-                doc="Rate of ratelimiter"),
-
-        s.field("tp_data_filename", self.filepath, "/tmp/tp_frames.bin",
-                doc="Data file that contains user raw WIB TP payloads"),
 
     ], doc="Fake Elink reader module configuration"),
 

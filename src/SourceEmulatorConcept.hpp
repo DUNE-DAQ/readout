@@ -40,10 +40,10 @@ public:
 
   virtual void init(const nlohmann::json& /*args*/) = 0;
   virtual void set_sink(const std::string& /*sink_name*/) = 0;
-  virtual void conf(const nlohmann::json& /*args*/) = 0;
+  virtual void conf(const nlohmann::json& /*args*/, const nlohmann::json& link_conf) = 0;
   virtual void start(const nlohmann::json& /*args*/) = 0;
   virtual void stop(const nlohmann::json& /*args*/) = 0;
-  virtual void get_info(fakecardreaderinfo::Info fcr) = 0;
+  virtual void get_info(fakecardreaderinfo::Info& fcr) = 0;
 
 private:
 

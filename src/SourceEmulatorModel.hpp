@@ -39,13 +39,14 @@ class SourceEmulatorModel : public SourceEmulatorConcept {
 public:
   using sink_t = appfwk::DAQSink<RawType>;
 
-  explicit SourceEmulatorModel(std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate) //NOLINT
+  explicit SourceEmulatorModel(std::string name, std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate) //NOLINT
   : m_run_marker(run_marker)
   , m_time_tick_diff(time_tick_diff)
   , m_dropout_rate(dropout_rate)
   , m_packet_count{0}
   , m_sink_queue_timeout_ms(0)
   , m_raw_data_sink(nullptr)
+  , m_name(name)
   { }
 
   void init(const nlohmann::json& /*args*/) {
@@ -62,13 +63,14 @@ public:
     }
   }
 
-  void conf(const nlohmann::json& args) {
+  void conf(const nlohmann::json& args, const nlohmann::json& link_conf) {
     m_conf = args.get<module_conf_t>();
+    m_link_conf = link_conf.get<link_conf_t>();
     m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
-    m_file_source = std::make_unique<FileSourceBuffer>(m_conf.input_limit, m_conf.size_max_bytes);
+    m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(RawType));
     try {
-      m_file_source->read(m_conf.data_filename);
+      m_file_source->read(m_link_conf.data_filename);
     } 
     catch (const ers::Issue& ex) {
       ers::fatal(ex);
@@ -81,7 +83,7 @@ public:
 
   void start(const nlohmann::json& /*args*/) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
-    m_rate_limiter = std::make_unique<RateLimiter>(m_conf.rate_khz);
+    m_rate_limiter = std::make_unique<RateLimiter>(m_link_conf.rate_khz);
     //m_stats_thread.set_work(&SourceEmulatorModel<RawType>::run_stats, this);
     m_producer_thread = std::thread(&SourceEmulatorModel<RawType>::run_produce, this);
   }
@@ -91,7 +93,7 @@ public:
     m_producer_thread.join();
   }
 
-  void get_info(fakecardreaderinfo::Info fcr) {
+  void get_info(fakecardreaderinfo::Info& fcr) {
     fcr.packets += m_packet_count_tot.load();
     fcr.new_packets += m_packet_count.exchange(0);
   }
@@ -117,7 +119,7 @@ protected:
     auto rptr = reinterpret_cast<RawType*>(source.data()); // NOLINT
 
     // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
-    uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : rptr->get_timestamp(); // NOLINT
+    uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
     uint64_t timestamp = ts_0; // NOLINT
 
@@ -185,11 +187,15 @@ private:
   bool m_sink_is_set = false;
   using module_conf_t = dunedaq::readout::fakecardreader::Conf;
   module_conf_t m_conf;
+  using link_conf_t = dunedaq::readout::fakecardreader::LinkConfiguration;
+  link_conf_t m_link_conf;
 
   std::unique_ptr<RateLimiter> m_rate_limiter;
   std::unique_ptr<FileSourceBuffer> m_file_source;
 
   std::thread m_producer_thread;
+
+  std::string m_name;
 };
 
 } // namespace readout

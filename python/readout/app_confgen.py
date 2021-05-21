@@ -67,9 +67,6 @@ def generate(
         mspec("fake_source", "FakeCardReader", [
                         app.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
-                        ] + [
-                        app.QueueInfo(name=f"tp_output_{idx}", inst=f"tp_fake_link_{idx}", dir="output")
-			    for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
                         ]),
 
         ] + [
@@ -109,16 +106,13 @@ def generate(
 
     confcmd = mrccmd("conf", "INITIAL", "CONFIGURED", [
                 ("fake_source",fcr.Conf(
-                            link_ids=list(range(NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)),
+                            link_confs=[fcr.LinkConfiguration(
+                                geoid=fcr.GeoID(system="TCP", region=0, element=idx),
+                                queue_name=f"output_{idx}"
+                            ) for idx in range(NUMBER_OF_DATA_PRODUCERS)],
                             # input_limit=10485100, # default
-                            rate_khz = CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR*1000),
-                            raw_type = "wib",
-                            data_filename = DATA_FILE,
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
-			    set_t0_to = 0,
-                            tp_enabled = "false",
-                            tp_rate_khz = 0,
-                            tp_data_filename = "./tp_frames.bin"
+			                set_t0_to = 0
                         )),
             ] + [
                 (f"datahandler_{idx}", dlh.Conf(

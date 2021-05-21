@@ -60,7 +60,6 @@ public:
 
 private:
   using sink_t = appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>;
-  using tp_sink_t = appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>;
   // Commands
   void do_conf(const data_t& /*args*/);
   void do_scrap(const data_t& /*args*/);
@@ -68,27 +67,20 @@ private:
   void do_stop(const data_t& /*args*/);
 
   void generate_data(sink_t* queue, int link_id);
-  void generate_tp_data(tp_sink_t* queue, int link_id);
 
   // Configuration
   bool m_configured;
   using module_conf_t = fakecardreader::Conf;
   module_conf_t m_cfg;
 
-  //std::map<int, std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
-  std::vector<std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
+  std::map<std::string, std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
 
   // appfwk Queues
   std::chrono::milliseconds m_queue_timeout_ms;
   std::vector<sink_t*> m_output_queues;
-  std::vector<tp_sink_t*> m_tp_output_queues;
 
   // Internals
   std::unique_ptr<FileSourceBuffer> m_source_buffer;
-  std::unique_ptr<FileSourceBuffer> m_tp_source_buffer;
-
-  // Processor
-  std::vector<std::thread> m_worker_threads;
 
   // Threading
   std::atomic<bool> m_run_marker;
@@ -96,14 +88,7 @@ private:
   // Opmon
   stats::counter_t m_packet_count{0};
   stats::counter_t m_packet_count_tot{0};
-  // Stats
-  stats::counter_t m_stat_packet_count{0};
-  stats::counter_t m_stat_packet_count_tot{0};
-  ReusableThread m_stats_thread;	   
-  void run_stats();
 
-  // raw WIB TP parsing
-  bool m_found_tp_header{false};
 
 };
 
