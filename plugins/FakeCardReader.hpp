@@ -9,26 +9,26 @@
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
-*/
+ */
 #ifndef READOUT_PLUGINS_FAKECARDREADER_HPP_
 #define READOUT_PLUGINS_FAKECARDREADER_HPP_
 
 // package
-#include "readout/fakecardreader/Structs.hpp"
-#include "readout/ReusableThread.hpp"
-#include "readout/ReadoutTypes.hpp"
-#include "ReadoutStatistics.hpp"
-#include "RateLimiter.hpp"
 #include "FileSourceBuffer.hpp"
+#include "RateLimiter.hpp"
+#include "ReadoutStatistics.hpp"
+#include "readout/ReadoutTypes.hpp"
+#include "readout/ReusableThread.hpp"
+#include "readout/fakecardreader/Structs.hpp"
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSink.hpp"
 
 // std
-#include <memory>
-#include <fstream>
 #include <cstdint>
+#include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,19 +39,15 @@ class FakeCardReader : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-  * @brief FakeCardReader Constructor
-  * @param name Instance name for this FakeCardReader instance
-  */
+   * @brief FakeCardReader Constructor
+   * @param name Instance name for this FakeCardReader instance
+   */
   explicit FakeCardReader(const std::string& name);
 
-  FakeCardReader(const FakeCardReader&) =
-    delete; ///< FakeCardReader is not copy-constructible
-  FakeCardReader& operator=(const FakeCardReader&) =
-    delete; ///< FakeCardReader is not copy-assignable
-  FakeCardReader(FakeCardReader&&) =
-    delete; ///< FakeCardReader is not move-constructible
-  FakeCardReader& operator=(FakeCardReader&&) =
-    delete; ///< FakeCardReader is not move-assignable
+  FakeCardReader(const FakeCardReader&) = delete;            ///< FakeCardReader is not copy-constructible
+  FakeCardReader& operator=(const FakeCardReader&) = delete; ///< FakeCardReader is not copy-assignable
+  FakeCardReader(FakeCardReader&&) = delete;                 ///< FakeCardReader is not move-constructible
+  FakeCardReader& operator=(FakeCardReader&&) = delete;      ///< FakeCardReader is not move-assignable
 
   void init(const data_t&) override;
   void get_info(opmonlib::InfoCollector& ci, int level) override;
@@ -89,17 +85,16 @@ private:
   std::atomic<bool> m_run_marker;
 
   // Opmon
-  stats::counter_t m_packet_count{0};
-  stats::counter_t m_packet_count_tot{0};
+  stats::counter_t m_packet_count{ 0 };
+  stats::counter_t m_packet_count_tot{ 0 };
   // Stats
-  stats::counter_t m_stat_packet_count{0};
-  stats::counter_t m_stat_packet_count_tot{0};
-  ReusableThread m_stats_thread;	   
+  stats::counter_t m_stat_packet_count{ 0 };
+  stats::counter_t m_stat_packet_count_tot{ 0 };
+  ReusableThread m_stats_thread;
   void run_stats();
 
   // raw WIB TP parsing
-  bool m_found_tp_header{false};
-
+  bool m_found_tp_header{ false };
 };
 
 } // namespace readout

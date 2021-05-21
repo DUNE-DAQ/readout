@@ -6,8 +6,8 @@
  * received with this code.
  */
 
-#include "readout/RawWIBTp.hpp"
 #include "logging/Logging.hpp"
+#include "readout/RawWIBTp.hpp"
 
 /**
  * @brief Name of this test module
@@ -68,14 +68,14 @@ BOOST_AUTO_TEST_CASE(TpHeader_BitfieldMethods)
 
   header.m_crate_no = 0x1;
   header.m_fiber_no = 0x2;
-  header.m_wire_no  = 0x3;
-  header.m_slot_no  = 0x4;
-  header.m_flags    = 0x5;
+  header.m_wire_no = 0x3;
+  header.m_slot_no = 0x4;
+  header.m_flags = 0x5;
   BOOST_REQUIRE_EQUAL(header.m_crate_no, 0x1);
   BOOST_REQUIRE_EQUAL(header.m_fiber_no, 0x2);
   BOOST_REQUIRE_EQUAL(header.m_wire_no, 0x3);
   BOOST_REQUIRE_EQUAL(header.m_slot_no, 0x4);
-  BOOST_REQUIRE_EQUAL(header.m_flags, 0x5); 
+  BOOST_REQUIRE_EQUAL(header.m_flags, 0x5);
 }
 
 BOOST_AUTO_TEST_CASE(TpData_StreamMethods)
@@ -119,15 +119,15 @@ BOOST_AUTO_TEST_CASE(TpData_BitfieldMethods)
   tp.m_peak_time = 0x4;
   tp.m_sum_adc = 0x5;
   tp.m_tp_flags = 0x6;
-  tp.m_hit_continue = 0x0;  
+  tp.m_hit_continue = 0x0;
 
   BOOST_REQUIRE_EQUAL(tp.m_start_time, 0x1);
   BOOST_REQUIRE_EQUAL(tp.m_end_time, 0x2);
   BOOST_REQUIRE_EQUAL(tp.m_peak_adc, 0x3);
   BOOST_REQUIRE_EQUAL(tp.m_peak_time, 0x4);
-  BOOST_REQUIRE_EQUAL(tp.m_sum_adc, 0x5); 
-  BOOST_REQUIRE_EQUAL(tp.m_tp_flags, 0x6); 
-  BOOST_REQUIRE_EQUAL(tp.m_hit_continue, 0x0); 
+  BOOST_REQUIRE_EQUAL(tp.m_sum_adc, 0x5);
+  BOOST_REQUIRE_EQUAL(tp.m_tp_flags, 0x6);
+  BOOST_REQUIRE_EQUAL(tp.m_hit_continue, 0x0);
 }
 
 BOOST_AUTO_TEST_CASE(TpPedinfo_StreamMethods)
@@ -176,14 +176,14 @@ BOOST_AUTO_TEST_CASE(TpPedinfo_BitfieldMethods)
   BOOST_REQUIRE_EQUAL(ped.m_accumulator, 0x2);
   BOOST_REQUIRE_EQUAL(ped.m_padding_1, 0x3);
   BOOST_REQUIRE_EQUAL(ped.m_padding_2, 0x4);
-  BOOST_REQUIRE_EQUAL(ped.m_padding_3, 0x5); 
-  BOOST_REQUIRE_EQUAL(ped.m_padding_4, 0x6); 
+  BOOST_REQUIRE_EQUAL(ped.m_padding_3, 0x5);
+  BOOST_REQUIRE_EQUAL(ped.m_padding_4, 0x6);
 }
 
 BOOST_AUTO_TEST_CASE(TpDataBlock_StreamMethods)
 {
   TpDataBlock block;
- 
+
   TpData data_1;
   TpData data_2;
   block.set_tp(data_1);
@@ -240,20 +240,20 @@ BOOST_AUTO_TEST_CASE(TpDataBlock_BitfieldMethods)
   const TpData* tp_1_ptr = block.get_tp(0);
   const TpData* tp_2_ptr = block.get_tp(1);
   BOOST_REQUIRE_EQUAL(block.get_num_tp_per_block(), 2);
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_start_time, 0x1);  
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_end_time, 0x2);  
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_peak_adc, 0x3);  
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_peak_time, 0x4);  
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_sum_adc, 0x5);  
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_tp_flags, 0x6);  
-  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_hit_continue, 0x0);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_start_time, 0x7);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_end_time, 0x8);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_peak_adc, 0x9);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_peak_time, 0xa);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_sum_adc, 0xb);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_tp_flags, 0xc);  
-  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_hit_continue, 0x1);   
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_start_time, 0x1);
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_end_time, 0x2);
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_peak_adc, 0x3);
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_peak_time, 0x4);
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_sum_adc, 0x5);
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_tp_flags, 0x6);
+  BOOST_REQUIRE_EQUAL(tp_1_ptr->m_hit_continue, 0x0);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_start_time, 0x7);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_end_time, 0x8);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_peak_adc, 0x9);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_peak_time, 0xa);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_sum_adc, 0xb);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_tp_flags, 0xc);
+  BOOST_REQUIRE_EQUAL(tp_2_ptr->m_hit_continue, 0x1);
 }
 
 BOOST_AUTO_TEST_CASE(RawWIBTp_StreamMethods)
@@ -324,7 +324,7 @@ BOOST_AUTO_TEST_CASE(RawWIBTp_TpMethods)
   tp_2.m_sum_adc = 0xb;
   tp_2.m_tp_flags = 0xc;
   tp_2.m_hit_continue = 0x1;
- 
+
   rwtp.set_tp(tp_1);
   rwtp.set_tp(tp_2);
 
@@ -367,21 +367,20 @@ BOOST_AUTO_TEST_CASE(RawWIBTp_TpMethods)
   const TpData* tp_4_ptr = rwtp.get_tp(3);
 
   BOOST_REQUIRE_EQUAL(rwtp.get_num_tp_per_block(), 4);
-  BOOST_REQUIRE_EQUAL(rwtp.get_start_time(*tp_3_ptr), 0x10);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_end_time(*tp_3_ptr), 0x20);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_peak_adc(*tp_3_ptr), 0x30);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_peak_time(*tp_3_ptr), 0x40);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_sum_adc(*tp_3_ptr), 0x50);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_tp_flags(*tp_3_ptr), 0x60);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_hit_continue(*tp_3_ptr), 0x1);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_start_time(*tp_4_ptr), 0x70);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_end_time(*tp_4_ptr), 0x80);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_peak_adc(*tp_4_ptr), 0x90);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_peak_time(*tp_4_ptr), 0xa0);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_sum_adc(*tp_4_ptr), 0xb0);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_tp_flags(*tp_4_ptr), 0xc0);  
-  BOOST_REQUIRE_EQUAL(rwtp.get_hit_continue(*tp_4_ptr), 0x0);  
+  BOOST_REQUIRE_EQUAL(rwtp.get_start_time(*tp_3_ptr), 0x10);
+  BOOST_REQUIRE_EQUAL(rwtp.get_end_time(*tp_3_ptr), 0x20);
+  BOOST_REQUIRE_EQUAL(rwtp.get_peak_adc(*tp_3_ptr), 0x30);
+  BOOST_REQUIRE_EQUAL(rwtp.get_peak_time(*tp_3_ptr), 0x40);
+  BOOST_REQUIRE_EQUAL(rwtp.get_sum_adc(*tp_3_ptr), 0x50);
+  BOOST_REQUIRE_EQUAL(rwtp.get_tp_flags(*tp_3_ptr), 0x60);
+  BOOST_REQUIRE_EQUAL(rwtp.get_hit_continue(*tp_3_ptr), 0x1);
+  BOOST_REQUIRE_EQUAL(rwtp.get_start_time(*tp_4_ptr), 0x70);
+  BOOST_REQUIRE_EQUAL(rwtp.get_end_time(*tp_4_ptr), 0x80);
+  BOOST_REQUIRE_EQUAL(rwtp.get_peak_adc(*tp_4_ptr), 0x90);
+  BOOST_REQUIRE_EQUAL(rwtp.get_peak_time(*tp_4_ptr), 0xa0);
+  BOOST_REQUIRE_EQUAL(rwtp.get_sum_adc(*tp_4_ptr), 0xb0);
+  BOOST_REQUIRE_EQUAL(rwtp.get_tp_flags(*tp_4_ptr), 0xc0);
+  BOOST_REQUIRE_EQUAL(rwtp.get_hit_continue(*tp_4_ptr), 0x0);
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()

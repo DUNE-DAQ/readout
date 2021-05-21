@@ -26,16 +26,18 @@ namespace readout {
  *    limiter.limit();
  *  }
  */
-class RateLimiter {
+class RateLimiter
+{
 public:
   explicit RateLimiter(double kilohertz)
-  : m_max_overshoot(10 * time::ms)
+    : m_max_overshoot(10 * time::ms)
   {
     adjust(kilohertz);
     init();
   }
 
-  void init() {
+  void init()
+  {
     m_now = gettime();
     m_deadline = m_now + m_period.load();
   }
@@ -51,27 +53,30 @@ public:
    *    }
    *  }
    */
-  void adjust(double kilohertz) {
+  void adjust(double kilohertz)
+  {
     m_kilohertz.store(kilohertz);
-    m_period.store( static_cast<time::timestamp_t>((1000.f/m_kilohertz) * static_cast<double>(time::us)) );
+    m_period.store(static_cast<time::timestamp_t>((1000.f / m_kilohertz) * static_cast<double>(time::us)));
   }
 
-  void limit() {
-    if(m_now > m_deadline + m_max_overshoot) {
+  void limit()
+  {
+    if (m_now > m_deadline + m_max_overshoot) {
       m_deadline = m_now + m_period.load();
     } else {
-      while(m_now < m_deadline) {
-        m_now = gettime();            
+      while (m_now < m_deadline) {
+        m_now = gettime();
       }
       m_deadline += m_period.load();
     }
   }
 
 protected:
-  time::timestamp_t gettime() {
+  time::timestamp_t gettime()
+  {
     ::timespec ts;
     ::clock_gettime(CLOCK_MONOTONIC, &ts);
-    return time::timestamp_t(ts.tv_sec)*time::s + time::timestamp_t(ts.tv_nsec)*time::ns;            
+    return time::timestamp_t(ts.tv_sec) * time::s + time::timestamp_t(ts.tv_nsec) * time::ns;
   }
 
 private:
@@ -84,5 +89,5 @@ private:
 
 } // namespace readout
 } // namespace dunedaq
- 
+
 #endif // READOUT_SRC_RATELIMITER_HPP_

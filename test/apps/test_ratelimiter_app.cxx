@@ -1,20 +1,20 @@
 /**
- * @file test_ratelimiter_app.cxx Test application for 
+ * @file test_ratelimiter_app.cxx Test application for
  * ratelimiter implementation
  *
  * This is part of the DUNE DAQ Application Framework, copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "RateLimiter.hpp"
 #include "RandomEngine.hpp"
+#include "RateLimiter.hpp"
 
 #include "logging/Logging.hpp"
 
 #include <atomic>
-#include <string>
 #include <chrono>
 #include <memory>
+#include <string>
 
 using namespace dunedaq::readout;
 
@@ -24,7 +24,7 @@ main(int /*argc*/, char** /*argv[]*/)
   int runsecs = 15;
 
   // Run marker
-  std::atomic<bool> marker{true};
+  std::atomic<bool> marker{ true };
 
   // RateLimiter
   TLOG() << "Creating ratelimiter with 1MHz...";
@@ -51,7 +51,7 @@ main(int /*argc*/, char** /*argv[]*/)
     while (marker) {
       TLOG() << "Adjusting rate to: " << rand_rates[idx] << "[kHz]";
       rl.adjust(rand_rates[idx]);
-      if (idx > runsecs-1) {
+      if (idx > runsecs - 1) {
         idx = 0;
       } else {
         ++idx;
@@ -85,7 +85,7 @@ main(int /*argc*/, char** /*argv[]*/)
   }
 
   // Check
-  //TLOG() << "Operations in 5 seconds (should be really close to 5 million:): " << sumops; 
+  // TLOG() << "Operations in 5 seconds (should be really close to 5 million:): " << sumops;
 
   // Exit
   TLOG() << "Exiting.";

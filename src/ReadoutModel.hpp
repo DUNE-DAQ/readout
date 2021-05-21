@@ -1,17 +1,17 @@
 /**
-* @file ReadoutModel.hpp Glue between data source, payload raw processor, 
-* latency buffer and request handler.
-*
-* This is part of the DUNE DAQ , copyright 2020.
-* Licensing/copyright details are in the COPYING file that you should have
-* received with this code.
-*/
+ * @file ReadoutModel.hpp Glue between data source, payload raw processor,
+ * latency buffer and request handler.
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ */
 #ifndef READOUT_SRC_READOUTMODEL_HPP_
 #define READOUT_SRC_READOUTMODEL_HPP_
 
-#include "appfwk/cmd/Structs.hpp"
-#include "appfwk/cmd/Nljs.hpp"
 #include "appfwk/app/Nljs.hpp"
+#include "appfwk/cmd/Nljs.hpp"
+#include "appfwk/cmd/Structs.hpp"
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
@@ -23,55 +23,57 @@
 #include "dataformats/ComponentRequest.hpp"
 #include "dataformats/Fragment.hpp"
 
-#include "dfmessages/TimeSync.hpp"
 #include "dfmessages/DataRequest.hpp"
+#include "dfmessages/TimeSync.hpp"
 
+#include "readout/ReadoutLogging.hpp"
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/Nljs.hpp"
-#include "readout/ReadoutLogging.hpp"
 
 #include "LatencyBufferConcept.hpp"
-#include "RequestHandlerConcept.hpp"
 #include "RawDataProcessorConcept.hpp"
+#include "RequestHandlerConcept.hpp"
 
 #include "ReadoutIssues.hpp"
 #include "ReadoutStatistics.hpp"
 #include "readout/ReusableThread.hpp"
 
 #include <functional>
-#include <utility>
 #include <memory>
 #include <string>
+#include <utility>
 
-using dunedaq::readout::logging::TLVL_WORK_STEPS;
-using dunedaq::readout::logging::TLVL_TAKE_NOTE;
 using dunedaq::readout::logging::TLVL_QUEUE_POP;
+using dunedaq::readout::logging::TLVL_TAKE_NOTE;
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
 namespace dunedaq {
 namespace readout {
 
 template<class RawType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
-class ReadoutModel : public ReadoutConcept {
+class ReadoutModel : public ReadoutConcept
+{
 public:
   explicit ReadoutModel(std::atomic<bool>& run_marker)
-  : m_run_marker(run_marker)
-  , m_fake_trigger(false)
-  , m_stats_thread(0)
-  , m_consumer_thread(0)
-  , m_source_queue_timeout_ms(0)
-  , m_raw_data_source(nullptr)
-  , m_latency_buffer_size(0)
-  , m_latency_buffer_impl(nullptr)
-  , m_raw_processor_impl(nullptr)
-  , m_requester_thread(0)
-  , m_timesync_queue_timeout_ms(0)
-  , m_timesync_thread(0)
-  { }
+    : m_run_marker(run_marker)
+    , m_fake_trigger(false)
+    , m_stats_thread(0)
+    , m_consumer_thread(0)
+    , m_source_queue_timeout_ms(0)
+    , m_raw_data_source(nullptr)
+    , m_latency_buffer_size(0)
+    , m_latency_buffer_impl(nullptr)
+    , m_raw_processor_impl(nullptr)
+    , m_requester_thread(0)
+    , m_timesync_queue_timeout_ms(0)
+    , m_timesync_thread(0)
+  {}
 
-  void init(const nlohmann::json& args) {
+  void init(const nlohmann::json& args)
+  {
     m_queue_config = args.get<appfwk::app::ModInit>();
     // Reset queues
-    for (const auto& qi : m_queue_config.qinfos) { 
+    for (const auto& qi : m_queue_config.qinfos) {
       try {
         if (qi.name == "raw_input") {
           TLOG() << "Setup queue " << qi.name;
@@ -92,8 +94,7 @@ public:
           // throw error
           ers::error(ResourceQueueError(ERS_HERE, "Unknown queue requested!", qi.name, ""));
         }
-      }
-      catch (const ers::Issue& excpt) {
+      } catch (const ers::Issue& excpt) {
         ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
       }
     }
@@ -104,27 +105,27 @@ public:
     m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink));
   }
 
-  void conf(const nlohmann::json& args) {
+  void conf(const nlohmann::json& args)
+  {
     auto conf = args.get<datalinkhandler::Conf>();
     if (conf.fake_trigger_flag == 0) {
       m_fake_trigger = false;
     } else {
       m_fake_trigger = true;
-   }
+    }
     m_latency_buffer_size = conf.latency_buffer_size;
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
     // Configure implementations:
     m_raw_processor_impl->conf(args);
-    //m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
+    // m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
     try {
       m_latency_buffer_impl->conf(args);
     } catch (const std::bad_alloc& be) {
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
     }
-
 
     // Configure threads:
     m_stats_thread.set_name("stats", conf.link_number);
@@ -136,40 +137,45 @@ public:
     m_this_link_number = conf.link_number;
   }
 
-  void start(const nlohmann::json& args) {
+  void start(const nlohmann::json& args)
+  {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_request_handler_impl->start(args);
-    m_stats_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
-    m_consumer_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
-    m_requester_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
-    m_timesync_thread.set_work(&ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
+    m_stats_thread.set_work(
+      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
+    m_consumer_thread.set_work(
+      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
+    m_requester_thread.set_work(
+      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
+    m_timesync_thread.set_work(
+      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
   }
 
-  void stop(const nlohmann::json& args) {    
+  void stop(const nlohmann::json& args)
+  {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Stoppping threads...";
     m_request_handler_impl->stop(args);
     while (!m_timesync_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));         
-    } 
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     while (!m_consumer_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));        
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     while (!m_requester_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));        
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    while (!m_stats_thread.get_readiness()) {	
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));         	
+    while (!m_stats_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
     m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
     m_raw_processor_impl->reset_last_daq_time();
   }
 
-  void record(const nlohmann::json& args) override {
-    m_request_handler_impl->record(args);
-  }
+  void record(const nlohmann::json& args) override { m_request_handler_impl->record(args); }
 
-  void get_info(opmonlib::InfoCollector & ci, int /*level*/) {
+  void get_info(opmonlib::InfoCollector& ci, int /*level*/)
+  {
     datalinkhandlerinfo::Info dli;
     dli.packets = m_packet_count_tot.load();
     dli.new_packets = m_packet_count.exchange(0);
@@ -179,10 +185,9 @@ public:
     ci.add(dli);
   }
 
-
 private:
-
-  void run_consume() {
+  void run_consume()
+  {
     m_rawq_timeout_count = 0;
     m_packet_count = 0;
     m_packet_count_tot = 0;
@@ -193,7 +198,7 @@ private:
       RawType payload;
       // Try to acquire data
       try {
-        //m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
+        // m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
         m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
         m_raw_processor_impl->process_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
@@ -203,16 +208,16 @@ private:
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ++m_rawq_timeout_count;
-        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+        // ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
-  }   
+  }
 
-  void run_timesync() {
+  void run_timesync()
+  {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "TimeSync thread started...";
     m_request_count = 0;
     m_request_count_tot = 0;
@@ -220,24 +225,24 @@ private:
     while (m_run_marker.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(m_raw_processor_impl->get_last_daq_time());
-        //TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
+        // TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.daq_time != 0) {
           try {
             m_timesync_sink->push(std::move(timesyncmsg));
-          } catch (const ers::Issue &excpt) {
+          } catch (const ers::Issue& excpt) {
             ers::warning(CannotWriteToQueue(ERS_HERE, "timesync message queue", excpt));
           }
 
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
-            dr.trigger_timestamp = timesyncmsg.daq_time > 500*time::us ? timesyncmsg.daq_time - 500*time::us : 0;
+            dr.trigger_timestamp = timesyncmsg.daq_time > 500 * time::us ? timesyncmsg.daq_time - 500 * time::us : 0;
             auto width = 1000;
             uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
-              << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
-                << " window_end=" << dr.window_end;
+                                        << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
+                                        << " window_end=" << dr.window_end;
             m_request_handler_impl->issue_request(dr);
             ++m_request_count;
             ++m_request_count_tot;
@@ -248,17 +253,17 @@ private:
             once_per_run = false;
           }
         }
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // ++m_timesyncqueue_timeout;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     once_per_run = true;
     TLOG_DEBUG(TLVL_WORK_STEPS) << "TimeSync thread joins...";
-  } 
+  }
 
-  void run_requests() {
+  void run_requests()
+  {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread started...";
     m_request_count = 0;
     m_request_count_tot = 0;
@@ -272,15 +277,15 @@ private:
         TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
                                    << ", run number " << data_request.run_number << " (APA number " << m_this_apa_number
                                    << ", link number " << m_this_link_number << ")";
-      }
-      catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // not an error, safe to continue
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread joins... ";
   }
 
-  void run_stats() {
+  void run_stats()
+  {
     // Temporarily, for debugging, a rate checker thread...
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread started...";
     int new_packets = 0;
@@ -288,13 +293,15 @@ private:
     while (m_run_marker.load()) {
       auto now = std::chrono::high_resolution_clock::now();
       new_packets = m_stats_packet_count.exchange(0);
-      double seconds =  std::chrono::duration_cast<std::chrono::microseconds>(now-t0).count()/1000000.;
-      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets/seconds/1000.) << " [kHz]";	
+      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets / seconds / 1000.)
+                                 << " [kHz]";
       auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
       if (rawq_timeouts > 0) {
-        TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts) << " times!";
+        TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts)
+                                   << " times!";
       }
-      for (int i=0; i<100 && m_run_marker.load(); ++i) { // 100 x 100ms = 10s sleeps
+      for (int i = 0; i < 100 && m_run_marker.load(); ++i) { // 100 x 100ms = 10s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
@@ -308,16 +315,16 @@ private:
   // CONFIGURATION
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
-  uint32_t m_this_apa_number; // NOLINT
+  uint32_t m_this_apa_number;  // NOLINT
   uint32_t m_this_link_number; // NOLINT
 
   // STATS
-  stats::counter_t m_packet_count{0};
-  stats::counter_t m_packet_count_tot{0};
-  stats::counter_t m_request_count{0};
-  stats::counter_t m_request_count_tot{0};
-  stats::counter_t m_rawq_timeout_count{0};
-  stats::counter_t m_stats_packet_count{0};
+  stats::counter_t m_packet_count{ 0 };
+  stats::counter_t m_packet_count_tot{ 0 };
+  stats::counter_t m_request_count{ 0 };
+  stats::counter_t m_request_count_tot{ 0 };
+  stats::counter_t m_rawq_timeout_count{ 0 };
+  stats::counter_t m_stats_packet_count{ 0 };
   ReusableThread m_stats_thread;
 
   // CONSUMER
@@ -331,7 +338,7 @@ private:
   // REQUEST SOURCE
   std::chrono::milliseconds m_request_queue_timeout_ms;
   using request_source_qt = appfwk::DAQSource<dfmessages::DataRequest>;
-  std::unique_ptr<request_source_qt> m_request_source; 
+  std::unique_ptr<request_source_qt> m_request_source;
 
   // FRAGMENT SINK
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
@@ -359,7 +366,6 @@ private:
   using timesync_sink_qt = appfwk::DAQSink<dfmessages::TimeSync>;
   std::unique_ptr<timesync_sink_qt> m_timesync_sink;
   ReusableThread m_timesync_thread;
-
 };
 
 } // namespace readout

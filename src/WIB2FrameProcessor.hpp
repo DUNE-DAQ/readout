@@ -1,16 +1,16 @@
 /**
-* @file WIB2FrameProcessor.hpp WIB2 specific Task based raw processor
-*
-* This is part of the DUNE DAQ , copyright 2020.
-* Licensing/copyright details are in the COPYING file that you should have
-* received with this code.
-*/
+ * @file WIB2FrameProcessor.hpp WIB2 specific Task based raw processor
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ */
 #ifndef READOUT_SRC_WIB2FRAMEPROCESSOR_HPP_
 #define READOUT_SRC_WIB2FRAMEPROCESSOR_HPP_
 
-#include "TaskRawDataProcessorModel.hpp"
-#include "ReadoutStatistics.hpp"
 #include "ReadoutIssues.hpp"
+#include "ReadoutStatistics.hpp"
+#include "TaskRawDataProcessorModel.hpp"
 #include "Time.hpp"
 
 #include "dataformats/wib2/WIB2Frame.hpp"
@@ -18,49 +18,50 @@
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
-#include <string>
 #include <atomic>
 #include <functional>
+#include <string>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
 namespace dunedaq {
 namespace readout {
 
-class WIB2FrameProcessor : public TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT> {
+class WIB2FrameProcessor : public TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>
+{
 
 public:
   using inherited = TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB2_SUPERCHUNK_STRUCT*;
   using wib2frameptr = dunedaq::dataformats::WIB2Frame*;
 
-
   WIB2FrameProcessor()
-  : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>()
+    : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>()
   {
-    m_tasklist.push_back( std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1) );
-    //m_tasklist.push_back( std::bind(&WIB2FrameProcessor::frame_error_check, this, std::placeholders::_1) );
-  } 
+    m_tasklist.push_back(std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1));
+    // m_tasklist.push_back( std::bind(&WIB2FrameProcessor::frame_error_check, this, std::placeholders::_1) );
+  }
 
 protected:
-  // Internals  
+  // Internals
   time::timestamp_t m_previous_ts = 0;
   time::timestamp_t m_current_ts = 0;
   bool m_first_ts_missmatch = true;
   bool m_problem_reported = false;
-  stats::counter_t m_ts_error_ctr{0};
+  stats::counter_t m_ts_error_ctr{ 0 };
 
   /**
    * Pipeline Stage 1.: Check proper timestamp increments in WIB frame
    * */
-  void timestamp_check(frameptr fp) {
+  void timestamp_check(frameptr fp)
+  {
     // If EMU data, emulate perfectly incrementing timestamp
-    if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
-      uint64_t ts_next = m_previous_ts + 384;
-      for (unsigned int i=0; i<12; ++i) { // NOLINT
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)fp)+i*468); // NOLINT
-        auto& wfh = wf->header; //const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());       
-        //wfh->set_timestamp(ts_next);
+    if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
+      uint64_t ts_next = m_previous_ts + 384; // NOLINT(build/unsigned)
+      for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)fp) + i * 468); // NOLINT
+        auto& wfh = wf->header; // const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());
+        // wfh->set_timestamp(ts_next);
         wfh.timestamp_1 = ts_next;
         wfh.timestamp_2 = ts_next >> 32;
         ts_next += 32;
@@ -75,8 +76,8 @@ protected:
     if (m_current_ts - m_previous_ts != 384) {
       ++m_ts_error_ctr;
       if (m_first_ts_missmatch) { // log once
-        TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts) 
-          << " current: "+std::to_string(m_current_ts);
+        TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
+                                     << " current: " + std::to_string(m_current_ts);
         m_first_ts_missmatch = false;
       }
     }
@@ -96,12 +97,12 @@ protected:
   /**
    * Pipeline Stage 2.: Check WIB headers for error flags
    * */
-  void frame_error_check(frameptr /*fp*/) {
+  void frame_error_check(frameptr /*fp*/)
+  {
     // check error fields
   }
 
 private:
-
 };
 
 } // namespace readout

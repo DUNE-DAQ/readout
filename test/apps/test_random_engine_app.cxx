@@ -1,5 +1,5 @@
 /**
- * @file test_ratelimiter_app.cxx Test application for 
+ * @file test_ratelimiter_app.cxx Test application for
  * ratelimiter implementation
  *
  * This is part of the DUNE DAQ Application Framework, copyright 2020.
@@ -11,9 +11,10 @@
 #include "logging/Logging.hpp"
 
 #include <atomic>
-#include <string>
 #include <chrono>
 #include <memory>
+#include <sstream>
+#include <string>
 
 using namespace dunedaq::readout;
 
@@ -29,17 +30,19 @@ main(int /*argc*/, char** /*argv[]*/)
 
   auto population_rates = re.get_random_population(100, 1.2f, 7.5f);
 
-  TLOG() << "Population sizes: ";
-  for (unsigned i=0; i<population_sizes.size(); ++i) { // NOLINT
-    std::cout << population_sizes[i] << ' ';
+  std::ostringstream oss;
+  oss << "Population sizes: ";
+  for (unsigned i = 0; i < population_sizes.size(); ++i) { // NOLINT
+    oss << population_sizes[i] << ' ';
   }
-  std::cout << '\n';
+  TLOG() << oss.str();
+  oss.str("");
 
-  TLOG() << "Population rates: ";
-  for (unsigned i=0; i<population_rates.size(); ++i) { // NOLINT
-    std::cout << population_rates[i] << ' ';
+  oss << "Population rates: ";
+  for (unsigned i = 0; i < population_rates.size(); ++i) { // NOLINT
+    oss << population_rates[i] << ' ';
   }
-  std::cout << '\n';
+  TLOG() << oss.str();
 
   // Exit
   TLOG() << "Exiting.";

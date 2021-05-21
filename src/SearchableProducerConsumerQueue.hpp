@@ -19,13 +19,15 @@ namespace dunedaq {
 namespace readout {
 
 template<class T, class Key, class KeyGetter>
-class SearchableProducerConsumerQueue : public AccessableProducerConsumerQueue<T> {
+class SearchableProducerConsumerQueue : public AccessableProducerConsumerQueue<T>
+{
 public:
-  explicit SearchableProducerConsumerQueue(uint32_t size) : AccessableProducerConsumerQueue<T>(size) { // NOLINT
+  explicit SearchableProducerConsumerQueue(uint32_t size) // NOLINT(build/unsigned)
+    : AccessableProducerConsumerQueue<T>(size)
+  {}
 
-  }
-
-  T* find(Key key) {
+  T* find(Key key)
+  {
     unsigned int start_index = AccessableProducerConsumerQueue<T>::readIndex_.load(std::memory_order_relaxed);
     unsigned int end_index = AccessableProducerConsumerQueue<T>::writeIndex_.load(std::memory_order_acquire);
 
@@ -43,15 +45,18 @@ public:
     }
 
     while (true) {
-      unsigned int diff = start_index <= end_index ? end_index - start_index : AccessableProducerConsumerQueue<T>::size_ + end_index - start_index;
-      unsigned int middle_index = start_index + ((diff+1)/2);
-      if (middle_index >= AccessableProducerConsumerQueue<T>::size_) middle_index -= AccessableProducerConsumerQueue<T>::size_;
+      unsigned int diff = start_index <= end_index
+                            ? end_index - start_index
+                            : AccessableProducerConsumerQueue<T>::size_ + end_index - start_index;
+      unsigned int middle_index = start_index + ((diff + 1) / 2);
+      if (middle_index >= AccessableProducerConsumerQueue<T>::size_)
+        middle_index -= AccessableProducerConsumerQueue<T>::size_;
       T* element_between = &AccessableProducerConsumerQueue<T>::records_[middle_index];
       Key middle_key = (m_key_getter)(*element_between);
       if (middle_key == key) {
         return element_between;
       } else if (middle_key > key) {
-        end_index = middle_index != 0 ? middle_index - 1 : AccessableProducerConsumerQueue<T>::size_-1;
+        end_index = middle_index != 0 ? middle_index - 1 : AccessableProducerConsumerQueue<T>::size_ - 1;
       } else {
         start_index = middle_index;
       }
@@ -59,7 +64,9 @@ public:
         if (middle_key > key) {
           return element_between;
         } else {
-          return (middle_index == AccessableProducerConsumerQueue<T>::size_ - 1) ? &AccessableProducerConsumerQueue<T>::records_[0] : element_between+1;
+          return (middle_index == AccessableProducerConsumerQueue<T>::size_ - 1)
+                   ? &AccessableProducerConsumerQueue<T>::records_[0]
+                   : element_between + 1;
         }
       }
     }
@@ -67,7 +74,6 @@ public:
 
 private:
   KeyGetter m_key_getter;
-
 };
 
 } // namespace readout

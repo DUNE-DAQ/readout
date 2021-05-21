@@ -14,74 +14,68 @@
 
 namespace dunedaq {
 
-    ERS_DECLARE_ISSUE(readout, InternalError,
-                      " Readout Internal Error: " << intererror,
-                      ((std::string)intererror))
+ERS_DECLARE_ISSUE(readout, InternalError, " Readout Internal Error: " << intererror, ((std::string)intererror))
 
-    ERS_DECLARE_ISSUE(readout, CommandError,
-                              " Command Error: " << commanderror,
-                              ((std::string)commanderror))
+ERS_DECLARE_ISSUE(readout, CommandError, " Command Error: " << commanderror, ((std::string)commanderror))
 
-    ERS_DECLARE_ISSUE(readout, InitializationError,
-                      " Readout Initialization Error: " << initerror,
-                      ((std::string)initerror)) 
+ERS_DECLARE_ISSUE(readout,
+                  InitializationError,
+                  " Readout Initialization Error: " << initerror,
+                  ((std::string)initerror))
 
-    ERS_DECLARE_ISSUE(readout, ConfigurationError,
-                      " Readout Configuration Error: " << conferror,
-                      ((std::string)conferror)) 
+ERS_DECLARE_ISSUE(readout, ConfigurationError, " Readout Configuration Error: " << conferror, ((std::string)conferror))
 
-    ERS_DECLARE_ISSUE(readout, CannotOpenFile,
-                      " Couldn't open binary file: " << filename,
-                      ((std::string)filename))
+ERS_DECLARE_ISSUE(readout, CannotOpenFile, " Couldn't open binary file: " << filename, ((std::string)filename))
 
-    ERS_DECLARE_ISSUE(readout, CannotWriteToFile,
-                      " Could not write to file: " << filename,
-                      ((std::string)filename))
+ERS_DECLARE_ISSUE(readout, CannotWriteToFile, " Could not write to file: " << filename, ((std::string)filename))
 
-    ERS_DECLARE_ISSUE(readout, EmptySourceBuffer,
-                      " Source Buffer is empty, check file: " << filename,
-                      ((std::string)filename))
+ERS_DECLARE_ISSUE(readout,
+                  EmptySourceBuffer,
+                  " Source Buffer is empty, check file: " << filename,
+                  ((std::string)filename))
 
-    ERS_DECLARE_ISSUE(readout, CannotReadFromQueue,
-                      " Failed attempt to read from the queue: " << queuename,
-                      ((std::string)queuename))
+ERS_DECLARE_ISSUE(readout,
+                  CannotReadFromQueue,
+                  " Failed attempt to read from the queue: " << queuename,
+                  ((std::string)queuename))
 
-    ERS_DECLARE_ISSUE(readout, CannotWriteToQueue,
-                      " Failed attempt to write to the queue: " << queuename <<". Data will be lost!",
-                      ((std::string)queuename))
+ERS_DECLARE_ISSUE(readout,
+                  CannotWriteToQueue,
+                  " Failed attempt to write to the queue: " << queuename << ". Data will be lost!",
+                  ((std::string)queuename))
 
+ERS_DECLARE_ISSUE(readout,
+                  TrmWithEmptyFragment,
+                  " Trigger Matching result with empty fragment: " << trmdetails,
+                  ((std::string)trmdetails))
 
-    ERS_DECLARE_ISSUE(readout, TrmWithEmptyFragment,
-                      " Trigger Matching result with empty fragment: " << trmdetails,
-                      ((std::string)trmdetails))
+ERS_DECLARE_ISSUE_BASE(readout,
+                       FailedReadoutInitialization,
+                       readout::InitializationError,
+                       " Couldnt initialize Readout with current Init arguments " << initparams << ' ',
+                       ((std::string)name),
+                       ((std::string)initparams))
 
-    ERS_DECLARE_ISSUE_BASE(readout,
-                           FailedReadoutInitialization,
-                           readout::InitializationError,
-                           " Couldnt initialize Readout with current Init arguments " << initparams << ' ',
-                           ((std::string)name),
-                           ((std::string)initparams))
+ERS_DECLARE_ISSUE_BASE(readout,
+                       NoImplementationAvailableError,
+                       readout::ConfigurationError,
+                       " No " << impl << " implementation available for raw type: " << rawt << ' ',
+                       ((std::string)impl),
+                       ((std::string)rawt))
 
-    ERS_DECLARE_ISSUE_BASE(readout,
-                           NoImplementationAvailableError,
-                           readout::ConfigurationError,
-                           " No " << impl << " implementation available for raw type: " << rawt << ' ',
-                           ((std::string)impl),
-                           ((std::string)rawt))
+ERS_DECLARE_ISSUE_BASE(readout,
+                       DefaultImplementationCalled,
+                       readout::InternalError,
+                       " Default " << impl << " implementation called! Function: " << func << ' ',
+                       ((std::string)impl),
+                       ((std::string)func))
 
-    ERS_DECLARE_ISSUE_BASE(readout,
-                           DefaultImplementationCalled,
-                           readout::InternalError,
-                           " Default " << impl << " implementation called! Function: " << func << ' ',
-                           ((std::string)impl),
-                           ((std::string)func))
-
-    ERS_DECLARE_ISSUE_BASE(readout,
-                           ResourceQueueError,
-                           readout::ConfigurationError,
-                           " The " << queueType << " queue was not successfully created. ",
-                           ((std::string)name),
-                           ((std::string)queueType))
+ERS_DECLARE_ISSUE_BASE(readout,
+                       ResourceQueueError,
+                       readout::ConfigurationError,
+                       " The " << queueType << " queue was not successfully created. ",
+                       ((std::string)name),
+                       ((std::string)queueType))
 
 } // namespace dunedaq
 
