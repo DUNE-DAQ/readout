@@ -29,7 +29,7 @@ namespace dunedaq {
     template<class RawType>
     class RecorderImpl : public RecorderConcept {
     public:
-      RecorderImpl(std::string name) : m_work_thread(0), m_name(name) {
+      explicit RecorderImpl(std::string name) : m_work_thread(0), m_name(name) {
 
       }
 

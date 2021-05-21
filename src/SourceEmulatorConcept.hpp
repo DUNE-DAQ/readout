@@ -18,6 +18,7 @@
 
 #include <thread>
 #include <map>
+#include <string>
 
 namespace dunedaq {
 namespace readout {

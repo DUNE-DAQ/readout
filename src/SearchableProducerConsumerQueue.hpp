@@ -101,11 +101,11 @@ public:
     }
   }
 
-  T* at(int index) {
+  T* at(uint index) {
     return &AccessableProducerConsumerQueue<T>::records_[index];
   }
 
-  int next_index(int index) {
+  int next_index(uint index) {
     return (index == AccessableProducerConsumerQueue<T>::size_ - 1) ? 0 : index + 1;
   }
 

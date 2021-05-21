@@ -19,6 +19,7 @@
 
 #include <utility>
 #include <string>
+#include <memory>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 

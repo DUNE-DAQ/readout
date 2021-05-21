@@ -56,7 +56,7 @@ protected:
   void timestamp_check(frameptr fp) {
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
-      uint64_t ts_next = m_previous_ts + 384;
+      uint64_t ts_next = m_previous_ts + 384; // NOLINT
       for (unsigned int i=0; i<12; ++i) { // NOLINT
         auto wf = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)fp)+i*468); // NOLINT
         auto& wfh = wf->header; //const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());       

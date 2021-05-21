@@ -46,14 +46,14 @@ public:
   : m_latency_buffer(latency_buffer)
   , m_fragment_sink(fragment_sink)
   , m_snb_sink(snb_sink)
+  , m_pop_reqs(0)
+  , m_pops_count(0)
+  , m_occupancy(0)
   , m_pop_limit_pct(0.0f)
   , m_pop_size_pct(0.0f)
   , m_pop_limit_size(0)
   , m_pop_counter{0}
   , m_buffer_capacity(0)
-  , m_pop_reqs(0)
-  , m_pops_count(0)
-  , m_occupancy(0)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
@@ -257,7 +257,6 @@ protected:
   // The run marker
   std::atomic<bool> m_run_marker = false;
 
-protected:
   // Stats
   stats::counter_t m_pop_reqs;
   stats::counter_t m_pops_count;

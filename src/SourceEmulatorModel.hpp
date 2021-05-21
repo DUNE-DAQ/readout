@@ -5,8 +5,8 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef READOUT_SRC_SOURCEEMULATOR_HPP_
-#define READOUT_SRC_SOURCEEMULATOR_HPP_
+#ifndef READOUT_SRC_SOURCEEMULATORMODEL_HPP_
+#define READOUT_SRC_SOURCEEMULATORMODEL_HPP_
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
@@ -39,7 +39,7 @@ class SourceEmulatorModel : public SourceEmulatorConcept {
 public:
   using sink_t = appfwk::DAQSink<RawType>;
 
-  explicit SourceEmulatorModel(std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate)
+  explicit SourceEmulatorModel(std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate) //NOLINT
   : m_run_marker(run_marker)
   , m_time_tick_diff(time_tick_diff)
   , m_dropout_rate(dropout_rate)
@@ -168,7 +168,7 @@ private:
   uint32_t m_this_apa_number; // NOLINT
   uint32_t m_this_link_number; // NOLINT
 
-  uint64_t m_time_tick_diff;
+  uint64_t m_time_tick_diff; //NOLINT
   double m_dropout_rate;
 
   // STATS
@@ -195,4 +195,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_SOURCEEMULATOR_HPP_
+#endif // READOUT_SRC_SOURCEEMULATORMODEL_HPP_
