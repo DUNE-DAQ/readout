@@ -84,6 +84,11 @@ FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/) {
 
   fcr.packets = m_packet_count_tot.load();
   fcr.new_packets = m_packet_count.exchange(0);
+
+  for (std::unique_ptr<SourceEmulatorConcept>& emu : m_source_emus) {
+    emu->get_info(fcr);
+  }
+
   ci.add(fcr);
 }
 

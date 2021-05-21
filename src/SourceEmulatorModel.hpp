@@ -44,7 +44,6 @@ public:
   , m_time_tick_diff(time_tick_diff)
   , m_dropout_rate(dropout_rate)
   , m_packet_count{0}
-  , m_byte_count{0}
   , m_sink_queue_timeout_ms(0)
   , m_raw_data_sink(nullptr)
   { }
@@ -65,6 +64,7 @@ public:
 
   void conf(const nlohmann::json& args) {
     m_conf = args.get<module_conf_t>();
+    m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
     m_file_source = std::make_unique<FileSourceBuffer>(m_conf.input_limit, m_conf.size_max_bytes);
     try {
@@ -91,16 +91,9 @@ public:
     m_producer_thread.join();
   }
 
-  void get_info(opmonlib::InfoCollector & /*ci*/, int /*level*/) {
-/*
-    datalinkhandlerinfo::Info dli;
-    dli.packets = m_packet_count_tot.load();
-    dli.new_packets = m_packet_count.exchange(0);
-    dli.requests = m_request_count_tot.load();
-    dli.new_requests = m_request_count.exchange(0);
-
-    ci.add(dli);
-*/
+  void get_info(fakecardreaderinfo::Info fcr) {
+    fcr.packets += m_packet_count_tot.load();
+    fcr.new_packets += m_packet_count.exchange(0);
   }
 
 
@@ -111,7 +104,6 @@ protected:
 
     //pthread_setname_np(pthread_self(), get_name().c_str());
 
-    uint64_t timestamp = 0;
     int offset = 0;
     auto& source = m_file_source->get();
 
@@ -121,6 +113,13 @@ protected:
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       num_elem = m_file_source->num_elements();
     }
+
+    auto rptr = reinterpret_cast<RawType*>(source.data()); // NOLINT
+
+    // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
+    uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : rptr->get_timestamp(); // NOLINT
+    TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
+    uint64_t timestamp = ts_0; // NOLINT
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
@@ -150,8 +149,7 @@ protected:
         // Count packet and limit rate if needed.
         ++offset;
         ++m_packet_count;
-        //++m_packet_count_tot;
-        //++m_stat_packet_count;
+        ++m_packet_count_tot;
       }
 
       timestamp += m_time_tick_diff * 12;
@@ -175,8 +173,9 @@ private:
 
   // STATS
   stats::counter_t m_packet_count{0};
-  stats::counter_t m_byte_count{0};
-  //ReusableThread m_stats_thread;
+  stats::counter_t m_packet_count_tot{0};
+
+  fakecardreader::Conf m_cfg;
 
   // RAW SINK
   std::chrono::milliseconds m_sink_queue_timeout_ms;
