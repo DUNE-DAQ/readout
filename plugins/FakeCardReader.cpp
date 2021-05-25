@@ -107,9 +107,19 @@ FakeCardReader::do_conf(const data_t& args)
     for (const auto& emu_conf : m_cfg.link_confs) {
       if (m_source_emus.find(emu_conf.queue_name) == m_source_emus.end()) {
         TLOG() << "Cannot find queue: " << emu_conf.queue_name << std::endl;
-        ers::error(InitializationError(ERS_HERE, "Cannot find queue: " + emu_conf.queue_name));
+        throw InitializationError(ERS_HERE, "Cannot find queue: " + emu_conf.queue_name);
+      }
+      if (m_source_emus[emu_conf.queue_name]->is_configured()) {
+        TLOG() << "Emulator for queue name " << emu_conf.queue_name << " was already configured";
+        throw InitializationError(ERS_HERE, "Emulator configured twice: " + emu_conf.queue_name);
       }
       m_source_emus[emu_conf.queue_name]->conf(args, emu_conf);
+    }
+
+    for (auto& [name, emu] : m_source_emus) {
+      if (!emu->is_configured()) {
+        throw InitializationError(ERS_HERE, "Not all links were configured");
+      }
     }
 
     // Mark configured
@@ -121,9 +131,13 @@ FakeCardReader::do_conf(const data_t& args)
 }
 
 void
-FakeCardReader::do_scrap(const data_t& /*args*/)
+FakeCardReader::do_scrap(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_scrap() method";
+
+  for (auto& [name, emu] : m_source_emus) {
+    emu->scrap(args);
+  }
 
   m_configured = false;
 
@@ -138,10 +152,8 @@ FakeCardReader::do_start(const data_t& args)
   m_packet_count = 0;
   m_packet_count_tot = 0;
 
-  int idx=0;
   for (auto& [name, emu] : m_source_emus) {
     emu->start(args);
-    ++idx;
   }
 
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_start() method";
@@ -151,6 +163,8 @@ void
 FakeCardReader::do_stop(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_stop() method";
+
+  m_run_marker = false;
 
   for (auto& [name, emu] : m_source_emus) {
     emu->stop(args);

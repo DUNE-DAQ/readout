@@ -46,6 +46,7 @@ public:
   , m_packet_count{0}
   , m_sink_queue_timeout_ms(0)
   , m_raw_data_sink(nullptr)
+  , m_producer_thread(0)
   , m_name(name)
   { }
 
@@ -64,33 +65,49 @@ public:
   }
 
   void conf(const nlohmann::json& args, const nlohmann::json& link_conf) {
-    m_conf = args.get<module_conf_t>();
-    m_link_conf = link_conf.get<link_conf_t>();
-    m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
+    if (m_is_configured) {
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "This emulator is already configured!";
+    } else {
+      m_conf = args.get<module_conf_t>();
+      m_link_conf = link_conf.get<link_conf_t>();
+      m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
-    m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(RawType));
-    try {
-      m_file_source->read(m_link_conf.data_filename);
-    } 
-    catch (const ers::Issue& ex) {
-      ers::fatal(ex);
-      throw ConfigurationError(ERS_HERE, "", ex);
+      m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(RawType));
+      try {
+        m_file_source->read(m_link_conf.data_filename);
+      }
+      catch (const ers::Issue& ex) {
+        ers::fatal(ex);
+        throw ConfigurationError(ERS_HERE, "", ex);
+      }
+
+      m_is_configured = true;
+
     }
+    // Configure thread:
+    m_producer_thread.set_name("fakeprod", m_link_conf.geoid.element);
+  }
 
-    // Configure threads:
-    //m_producer_thread.set_name("fakeprod", conf.link_number);
+  bool is_configured() override {
+    return m_is_configured;
+  }
+
+  void scrap(const nlohmann::json& /*args*/) {
+    m_is_configured = false;
   }
 
   void start(const nlohmann::json& /*args*/) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_rate_limiter = std::make_unique<RateLimiter>(m_link_conf.rate_khz);
     //m_stats_thread.set_work(&SourceEmulatorModel<RawType>::run_stats, this);
-    m_producer_thread = std::thread(&SourceEmulatorModel<RawType>::run_produce, this);
+    m_producer_thread.set_work(&SourceEmulatorModel<RawType>::run_produce, this);
   }
 
 
   void stop(const nlohmann::json& /*args*/) {
-    m_producer_thread.join();
+    while (!m_producer_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
   }
 
   void get_info(fakecardreaderinfo::Info& fcr) {
@@ -193,9 +210,10 @@ private:
   std::unique_ptr<RateLimiter> m_rate_limiter;
   std::unique_ptr<FileSourceBuffer> m_file_source;
 
-  std::thread m_producer_thread;
+  ReusableThread m_producer_thread;
 
   std::string m_name;
+  bool m_is_configured = false;
 };
 
 } // namespace readout
