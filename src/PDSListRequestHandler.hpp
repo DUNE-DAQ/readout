@@ -39,6 +39,7 @@ public:
   using inherited = DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
     SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>;
   using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
+  using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
 
   PDSListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<
     types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>& latency_buffer,
@@ -141,12 +142,14 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
     // Prepare FragmentHeader
     auto frag_header = create_fragment_header(dr);
+    // Prepare empty fragment piece container
+    std::vector<std::pair<void*, size_t> > frag_pieces;
 
     // TS calculation
     uint64_t start_win_ts = dr.window_begin;  // NOLINT
     uint64_t end_win_ts = dr.window_end;  // NOLINT
-    uint64_t tailts = 0; // last ts
-    uint64_t headts = 0; // newest ts
+    uint64_t tailts = 0; // newest ts
+    uint64_t headts = 0; // oldest ts
 
     size_t occupancy_guess = m_latency_buffer->occupancy();
 
@@ -161,11 +164,11 @@ protected:
         tailts = tailptr->get_timestamp();  // NOLINT
         headts = headptr->get_timestamp();
 
-        if (tailts <= start_win_ts && end_win_ts <= headts) { // data is there
+        if (headts <= start_win_ts && end_win_ts <= tailts) { // data is there
           rres.result_code = ResultCode::kFound;
           ++m_found_requested_count;
         }
-        else if ( headts < end_win_ts ) {
+        else if ( tailts < end_win_ts ) {
           rres.result_code = ResultCode::kNotYet; // give it another chance
         }
         else {
@@ -177,60 +180,89 @@ protected:
 
         // Requeue if needed
         if ( rres.result_code == ResultCode::kNotYet ) {
-          rres.request_delay_us = m_min_delay_us; 
-          return rres; // If kNotYet, return immediately, don't check for fragment pieces.
-        } else {
-          frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-          rres.result_code = ResultCode::kNotFound;
-          ++m_bad_requested_count;
+          if (m_run_marker.load()) {
+            rres.request_delay_us = m_min_delay_us; 
+            return rres; // If kNotYet, return immediately, don't check for fragment pieces.
+          } else {
+            frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+            rres.result_code = ResultCode::kNotFound;
+            ++m_bad_requested_count;
+          }
         }
-
+      
+        std::ostringstream oss;
+        oss << "TS match result on link " << m_link_number << ": " << resultCodeAsString(rres.result_code) << ' '
+            << "Trigger number=" << dr.trigger_number << " "
+            << "Oldest stored TS=" << tailts << " "
+            << "Newest stored TS=" << headts << " "
+            << "Start of window TS=" << start_win_ts << " "
+            << "End of window TS=" << end_win_ts;
+        TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+      
         // Build fragment if found
         if ( rres.result_code != ResultCode::kFound ) {
           ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
         } else {
     
-          auto elements_handled = 0;
-          
-          for (uint32_t idxoffset=0; idxoffset<num_elements_in_window; ++idxoffset) { // NOLINT
-            auto* element = static_cast<void*>(m_latency_buffer->getPtr(num_element_offset+idxoffset));
+          // Prepare key struct
+          types::PDS_SUPERCHUNK_STRUCT trig_key_start;
+          trig_key_start.set_timestamp(start_win_ts);
+
+          types::PDS_SUPERCHUNK_STRUCT trig_key_end;
+          trig_key_end.set_timestamp(end_win_ts); //! sort order is TS decremented
     
-            if (element != nullptr) {
-              frag_pieces.emplace_back( 
+          // Find iterator to lower bound of key
+          auto close = acc.lower_bound(trig_key_start);
+
+          // ... or with Skipper
+          //SkipListSkip skip(acc);
+          //skip.to(trig_key);
+
+          // Frag piece counter
+          auto elements_handled = 0;     
+ 
+         if (close.good()) {
+            frag_pieces.emplace_back( // emplace first pointer
+              std::make_pair<void*, size_t>(
+                static_cast<void*>(&(*close)), sizeof(types::PDS_SUPERCHUNK_STRUCT))
+            ); 
+            ++elements_handled;
+            auto it_ts = (*close).get_timestamp();
+            while (it_ts < end_win_ts) { // while window not closed
+              close++; // iterate
+              if (!close.good()) { // reached invalid it state
+                break;
+              }
+              frag_pieces.emplace_back( // emplace first pointer
                 std::make_pair<void*, size_t>(
-                  static_cast<void*>(m_latency_buffer->getPtr(num_element_offset + idxoffset)),
-                  std::size_t(m_element_size))
+                  static_cast<void*>(&(*close)), sizeof(types::PDS_SUPERCHUNK_STRUCT))
               );
-              elements_handled++;
-              //TLOG() << "Elements handled: " << elements_handled;
-            } else {
-              //TLOG() << "NULLPTR NOHANDLE";
-              break;
+              it_ts = (*close).get_timestamp();
+              ++elements_handled;             
             }
           }
-        }
+
+        } // found request
 
       } // found both head and tail
     } // SKL access end
 
 
-   // Create fragment from pieces
+    // Create fragment from pieces
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fragment with " << frag_pieces.size() << " pieces.";
+    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
 
-   auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
-
-   // Set header
-   frag->set_header_fields(frag_header);
-   // Push to Fragment queue
-   try {
-     m_fragment_sink->push( std::move(frag) );
-   }
-   catch (const ers::Issue& excpt) {
-     std::ostringstream oss;
-     oss << "fragments output queueu for link " << m_link_number ;
-     ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
-   }
-
-*/
+    // Set header
+    frag->set_header_fields(frag_header);
+    // Push to Fragment queue
+    try {
+      m_fragment_sink->push( std::move(frag) );
+    }
+    catch (const ers::Issue& excpt) {
+      std::ostringstream oss;
+      oss << "fragments output queueu for link " << m_link_number ;
+      ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+    }
 
     return rres;
   }

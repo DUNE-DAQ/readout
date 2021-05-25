@@ -28,7 +28,7 @@
 #include "WIB2RequestHandler.hpp"
 #include "PDSFrameProcessor.hpp"
 #include "PDSQueueRequestHandler.hpp"
-//#include "PDSListRequestHandler.hpp"
+#include "PDSListRequestHandler.hpp"
 
 #include <utility>
 #include <memory>
