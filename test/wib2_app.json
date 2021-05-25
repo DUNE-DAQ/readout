@@ -9,6 +9,11 @@
                                 "dir": "output",
                                 "inst": "wib2_fake_link_0",
                                 "name": "output_0"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib2_fake_link_1",
+                                "name": "output_1"
                             }
                         ]
                     },
@@ -53,12 +58,58 @@
                         "qinfos": [
                             {
                                 "dir": "input",
+                                "inst": "wib2_fake_link_1",
+                                "name": "raw_input"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "time_sync_q",
+                                "name": "timesync"
+                            },
+                            {
+                                "dir": "input",
+                                "inst": "data_requests_1",
+                                "name": "requests"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "data_fragments_q",
+                                "name": "fragments"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "wib2_recording_link_1",
+                                "name": "raw_recording"
+                            }
+                        ]
+                    },
+                    "inst": "datahandler_1",
+                    "plugin": "DataLinkHandler"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
                                 "inst": "wib2_recording_link_0",
                                 "name": "raw_recording"
                             }
                         ]
                     },
                     "inst": "data_recorder_0",
+                    "plugin": "DataRecorder"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "wib2_recording_link_1",
+                                "name": "raw_recording"
+                            }
+                        ]
+                    },
+                    "inst": "data_recorder_1",
                     "plugin": "DataRecorder"
                 },
                 {
@@ -100,6 +151,11 @@
                     "kind": "FollySPSCQueue"
                 },
                 {
+                    "capacity": 1000,
+                    "inst": "data_requests_1",
+                    "kind": "FollySPSCQueue"
+                },
+                {
                     "capacity": 100,
                     "inst": "time_sync_q",
                     "kind": "FollyMPMCQueue"
@@ -111,7 +167,17 @@
                 },
                 {
                     "capacity": 100000,
+                    "inst": "wib2_fake_link_1",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
                     "inst": "wib2_recording_link_0",
+                    "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 100000,
+                    "inst": "wib2_recording_link_1",
                     "kind": "FollySPSCQueue"
                 }
             ]
@@ -125,24 +191,34 @@
             "modules": [
                 {
                     "data": {
-                        "data_filename": "./frames.bin",
-                        "input_limit": 10485100,
-                        "link_ids": [
-                            0
+                        "link_confs": [
+                            {
+                                "data_filename": "/tmp/frames.bin",
+                                "geoid": {
+                                    "element": 0,
+                                    "region": 0,
+                                    "system": "TPC"
+                                },
+                                "input_limit": 10485100,
+                                "queue_name": "output_0",
+                                "rate_khz": 166.0,
+                                "raw_type": "wib2"
+                            },
+                            {
+                                "data_filename": "/tmp/frames.bin",
+                                "geoid": {
+                                    "element": 1,
+                                    "region": 0,
+                                    "system": "TPC"
+                                },
+                                "input_limit": 10485100,
+                                "queue_name": "output_1",
+                                "rate_khz": 166.0,
+                                "raw_type": "wib2"
+                            }
                         ],
                         "queue_timeout_ms": 100,
-                        "rate_khz": 16.666666666666668,
-                        "rate_max_khz": 166.0,
-                        "rate_min_khz": 166.0,
-                        "raw_type": "wib2",
-                        "set_t0_to": 0,
-                        "size_max_bytes": 5568,
-                        "size_min_bytes": 5568,
-                        "tp_data_filename": "./tp_frames.bin",
-                        "tp_enabled": "false",
-                        "tp_rate_khz": 0.0,
-                        "variable_rate": false,
-                        "variable_size": false
+                        "set_t0_to": 0
                     },
                     "match": "fake_source"
                 },
@@ -151,7 +227,7 @@
                         "apa_number": 0,
                         "emulator_mode": false,
                         "fake_trigger_flag": 1,
-                        "latency_buffer_size": 50000,
+                        "latency_buffer_size": 500000,
                         "link_number": 0,
                         "pop_limit_pct": 0.8,
                         "pop_size_pct": 0.1,
@@ -162,11 +238,33 @@
                 },
                 {
                     "data": {
+                        "apa_number": 0,
+                        "emulator_mode": false,
+                        "fake_trigger_flag": 1,
+                        "latency_buffer_size": 500000,
+                        "link_number": 1,
+                        "pop_limit_pct": 0.8,
+                        "pop_size_pct": 0.1,
+                        "raw_type": "wib2",
+                        "source_queue_timeout_ms": 100
+                    },
+                    "match": "datahandler_1"
+                },
+                {
+                    "data": {
                         "compression_algorithm": "None",
                         "output_file": "output_0.out",
                         "stream_buffer_size": 8388608
                     },
                     "match": "data_recorder_0"
+                },
+                {
+                    "data": {
+                        "compression_algorithm": "None",
+                        "output_file": "output_1.out",
+                        "stream_buffer_size": 8388608
+                    },
+                    "match": "data_recorder_1"
                 }
             ]
         },

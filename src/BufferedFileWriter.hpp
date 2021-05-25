@@ -98,7 +98,9 @@ namespace dunedaq {
        * @throw ConfigurationError If the compression algorithm parameter is not recognized.
        */
       void open(std::string filename, size_t buffer_size, std::string compression_algorithm = "None") {
-        if (m_is_open) flush();
+        if (m_is_open) {
+          close();
+        }
 
         m_filename = filename;
         m_buffer_size = buffer_size;
