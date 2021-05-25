@@ -27,7 +27,7 @@
 #include "dfmessages/DataRequest.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
-#include "readout/datalinkhandlerinfo/Nljs.hpp"
+#include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "LatencyBufferConcept.hpp"
