@@ -72,34 +72,34 @@ protected:
   pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) {
     //size_t occupancy_guess = m_latency_buffer->occupancy();
     size_t removed_ctr = 0;
-    uint64_t tailts = 0;
-    uint64_t headts = 0; 
+    uint64_t tailts = 0; // newest
+    uint64_t headts = 0; // oldest
     {
       SkipListAcc acc(m_latency_buffer->get_skip_list());
       auto tail = acc.last();
       auto head = acc.first();
       if (tail && head) {
-        auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
-        auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
-        tailts = tailptr->get_timestamp();  // NOLINT
-        headts = headptr->get_timestamp(); 
+        //auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
+        //auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
+        tailts = (*tail).get_timestamp(); //tailptr->get_timestamp();  // NOLINT
+        headts = (*head).get_timestamp(); //headptr->get_timestamp(); 
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with " 
-          << "Oldest stored TS=" << tailts << " "
-          << "Newest stored TS=" << headts;
-        if (headts - tailts > m_max_ts_diff) { // ts differnce exceeds maximum
+          << "Oldest stored TS=" << headts << " "
+          << "Newest stored TS=" << tailts;
+        if (tailts - headts > m_max_ts_diff) { // ts differnce exceeds maximum
           ++inherited::m_pop_reqs;
           uint64_t timediff = m_max_ts_diff;
           while (timediff >= m_max_ts_diff) {
-            bool removed = acc.remove(*tail);
+            bool removed = acc.remove(*head);
             if (!removed) {
               TLOG_DEBUG(TLVL_WORK_STEPS) << "Unsuccesfull remove from SKL during cleanup: " << removed; 
             } else {
               ++removed_ctr;
             }
-            tail = acc.last();
-            tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail);
-            tailts = tailptr->get_timestamp();
-            timediff = headts - tailts;
+            head = acc.first();
+            //headptr = reinterpret_cast<const dataformats::PDSFrame*>(head);
+            headts = (*head).get_timestamp(); // headptr->get_timestamp();
+            timediff = tailts - headts;
           }
           inherited::m_pops_count += removed_ctr;
         }
@@ -159,10 +159,10 @@ protected:
       auto tail = acc.last();
       auto head = acc.first();
       if (tail && head) {
-        auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
-        auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
-        tailts = tailptr->get_timestamp();  // NOLINT
-        headts = headptr->get_timestamp();
+        //auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
+        //auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
+        tailts = (*tail).get_timestamp(); //tailptr->get_timestamp();  // NOLINT
+        headts = (*head).get_timestamp(); //headptr->get_timestamp();
 
         if (headts <= start_win_ts && end_win_ts <= tailts) { // data is there
           rres.result_code = ResultCode::kFound;
@@ -221,7 +221,7 @@ protected:
           // Frag piece counter
           auto elements_handled = 0;     
  
-         if (close.good()) {
+          if (close.good()) {
             frag_pieces.emplace_back( // emplace first pointer
               std::make_pair<void*, size_t>(
                 static_cast<void*>(&(*close)), sizeof(types::PDS_SUPERCHUNK_STRUCT))
@@ -233,6 +233,7 @@ protected:
               if (!close.good()) { // reached invalid it state
                 break;
               }
+              //TLOG_DEBUG(TLVL_WORK_STEPS) << "    -> TS: " << (*close).get_timestamp();
               frag_pieces.emplace_back( // emplace first pointer
                 std::make_pair<void*, size_t>(
                   static_cast<void*>(&(*close)), sizeof(types::PDS_SUPERCHUNK_STRUCT))
@@ -246,7 +247,6 @@ protected:
 
       } // found both head and tail
     } // SKL access end
-
 
     // Create fragment from pieces
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fragment with " << frag_pieces.size() << " pieces.";
