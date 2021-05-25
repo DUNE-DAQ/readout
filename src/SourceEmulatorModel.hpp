@@ -39,7 +39,7 @@ class SourceEmulatorModel : public SourceEmulatorConcept {
 public:
   using sink_t = appfwk::DAQSink<RawType>;
 
-  explicit SourceEmulatorModel(std::string name, std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate) //NOLINT
+  explicit SourceEmulatorModel(std::string name, std::atomic<bool>& run_marker, uint64_t time_tick_diff, double dropout_rate, double rate_khz) //NOLINT
   : m_run_marker(run_marker)
   , m_time_tick_diff(time_tick_diff)
   , m_dropout_rate(dropout_rate)
@@ -48,6 +48,7 @@ public:
   , m_raw_data_sink(nullptr)
   , m_producer_thread(0)
   , m_name(name)
+  , m_rate_khz(rate_khz)
   { }
 
   void init(const nlohmann::json& /*args*/) {
@@ -98,7 +99,7 @@ public:
 
   void start(const nlohmann::json& /*args*/) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
-    m_rate_limiter = std::make_unique<RateLimiter>(m_link_conf.rate_khz);
+    m_rate_limiter = std::make_unique<RateLimiter>(m_rate_khz / m_link_conf.slowdown);
     //m_stats_thread.set_work(&SourceEmulatorModel<RawType>::run_stats, this);
     m_producer_thread.set_work(&SourceEmulatorModel<RawType>::run_produce, this);
   }
@@ -214,6 +215,7 @@ private:
 
   std::string m_name;
   bool m_is_configured = false;
+  double m_rate_khz;
 };
 
 } // namespace readout

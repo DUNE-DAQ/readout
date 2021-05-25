@@ -108,6 +108,7 @@ def generate(
                 ("fake_source",fcr.Conf(
                             link_confs=[fcr.LinkConfiguration(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                                slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}"
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS)],
                             # input_limit=10485100, # default

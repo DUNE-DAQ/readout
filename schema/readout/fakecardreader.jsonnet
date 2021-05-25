@@ -21,6 +21,9 @@ local fakecardreader = {
 
     khz  : s.number("khz", "f8",
                      doc="A frequency in kHz"),
+
+    slowdown_t : s.number("slowdown_t", "f8",
+                     doc="Slowdown factor"),
   
     region_id : s.number("region_id", "u2"),
     element_id : s.number("element_id", "u4"),
@@ -45,8 +48,8 @@ local fakecardreader = {
         s.field("geoid", self.geoid, doc="GeoID of the link"),
         s.field("input_limit", self.uint4, 10485100,
             doc="Maximum allowed file size"),
-        s.field("rate_khz", self.khz, 166,
-            doc="Rate"),
+        s.field("slowdown", self.slowdown_t, 1,
+            doc="Slowdown factor"),
         s.field("data_filename", self.string, "/tmp/frames.bin",
             doc="Data file that contains user payloads"),
         s.field("queue_name", self.string,
