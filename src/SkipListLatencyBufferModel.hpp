@@ -39,7 +39,7 @@ public:
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
 
-  void conf(const nlohmann::json& cfg) override {
+  void conf(const nlohmann::json& /*cfg*/) override {
     //auto params = cfg.get<datalinkhandler::Conf>();
     //m_queue.reset(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(params.latency_buffer_size));
   }

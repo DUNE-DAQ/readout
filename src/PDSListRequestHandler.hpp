@@ -151,7 +151,7 @@ protected:
     uint64_t tailts = 0; // newest ts
     uint64_t headts = 0; // oldest ts
 
-    size_t occupancy_guess = m_latency_buffer->occupancy();
+    //size_t occupancy_guess = m_latency_buffer->occupancy();
 
     // Accessing CSKL
     {
@@ -283,7 +283,7 @@ private:
   stats::counter_t m_found_requested_count{0};
   stats::counter_t m_bad_requested_count{0};
 
-  uint32_t m_apa_number; // NOLINT
+  uint16_t m_apa_number; // NOLINT
   uint32_t m_link_number; // NOLINT
 
 };
