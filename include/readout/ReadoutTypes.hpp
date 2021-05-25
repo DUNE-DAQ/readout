@@ -53,7 +53,7 @@ struct WIB_SUPERCHUNK_STRUCT {
   bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data);
-    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const {
@@ -87,7 +87,7 @@ struct WIB2_SUPERCHUNK_STRUCT {
   bool operator<(const WIB2_SUPERCHUNK_STRUCT& other) const {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data);
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&other.data);
-    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const {
@@ -123,7 +123,7 @@ struct PDS_SUPERCHUNK_STRUCT {
   bool operator<(const PDS_SUPERCHUNK_STRUCT& other) const {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data);
-    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const {
