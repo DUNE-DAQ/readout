@@ -6,7 +6,7 @@
  * received with this code.
 */
 #include "readout/fakecardreader/Nljs.hpp"
-#include "readout/fakecardreaderinfo/Nljs.hpp"
+#include "readout/fakecardreaderinfo/InfoNljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "FakeCardReader.hpp"

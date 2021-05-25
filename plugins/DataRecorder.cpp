@@ -7,7 +7,7 @@
 */
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
-#include "readout/datarecorderinfo/Nljs.hpp"
+#include "readout/datarecorderinfo/InfoNljs.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "DataRecorder.hpp"

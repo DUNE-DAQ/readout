@@ -9,7 +9,7 @@
 
 #include "DummyConsumer.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
-#include "readout/dummyconsumerinfo/Nljs.hpp"
+#include "readout/dummyconsumerinfo/InfoNljs.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
