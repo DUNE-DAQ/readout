@@ -32,13 +32,13 @@ QUEUE_POP_WAIT_MS=100;
 CLOCK_SPEED_HZ = 50000000;
 
 def generate(
+        FRONTEND_TYPE='wib',
         NUMBER_OF_DATA_PRODUCERS=1,          
         NUMBER_OF_TP_PRODUCERS=1,          
         DATA_RATE_SLOWDOWN_FACTOR = 1,
         RUN_NUMBER = 333, 
         DATA_FILE="./frames.bin"
     ):
-    
 
     # Define modules and queues
     queue_bare_specs = [
@@ -48,13 +48,13 @@ def generate(
             app.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            app.QueueSpec(inst=f"wib_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"{FRONTEND_TYPE}_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
             app.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS) 
         ] + [
-            app.QueueSpec(inst=f"wib_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
     
@@ -65,21 +65,21 @@ def generate(
 
     mod_specs = [
         mspec("fake_source", "FakeCardReader", [
-                        app.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
+                        app.QueueInfo(name=f"output_{idx}", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
                         ]),
 
         ] + [
                 mspec(f"datahandler_{idx}", "DataLinkHandler", [
-                            app.QueueInfo(name="raw_input", inst=f"wib_fake_link_{idx}", dir="input"),
+                            app.QueueInfo(name="raw_input", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="input"),
                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                             app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
-                            app.QueueInfo(name="raw_recording", inst=f"wib_recording_link_{idx}", dir="output")
+                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
-                            app.QueueInfo(name="raw_recording", inst=f"wib_recording_link_{idx}", dir="input")
+                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"timesync_consumer", "DummyConsumerTimeSync", [
@@ -116,7 +116,6 @@ def generate(
                         )),
             ] + [
                 (f"datahandler_{idx}", dlh.Conf(
-                        raw_type = "wib",
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
@@ -191,13 +190,14 @@ if __name__ == '__main__':
     import click
 
     @click.command(context_settings=CONTEXT_SETTINGS)
+    @click.option('-f', '--frontend-type', default='wib')
     @click.option('-n', '--number-of-data-producers', default=1)
     @click.option('-t', '--number-of-tp-producers', default=0)
     @click.option('-s', '--data-rate-slowdown-factor', default=10)
     @click.option('-r', '--run-number', default=333)
     @click.option('-d', '--data-file', type=click.Path(), default='./frames.bin')
     @click.argument('json_file', type=click.Path(), default='fake_readout.json')
-    def cli(number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
+    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
         """
           JSON_FILE: Input raw data file.
           JSON_FILE: Output json configuration file.
@@ -205,6 +205,7 @@ if __name__ == '__main__':
 
         with open(json_file, 'w') as f:
             f.write(generate(
+                    FRONTEND_TYPE = frontend_type,
                     NUMBER_OF_DATA_PRODUCERS = number_of_data_producers,
                     NUMBER_OF_TP_PRODUCERS = number_of_tp_producers,
                     DATA_RATE_SLOWDOWN_FACTOR = data_rate_slowdown_factor,

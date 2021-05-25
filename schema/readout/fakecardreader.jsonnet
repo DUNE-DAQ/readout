@@ -33,9 +33,6 @@ local fakecardreader = {
 
     linkvec : s.sequence("link_vec", self.geoid),
 
-    raw_type : s.string("RawType", moo.re.ident,
-                  doc="A string field"),
-
     string : s.string("FilePath", moo.re.hierpath,
                   doc="A string field"),
 
@@ -50,8 +47,6 @@ local fakecardreader = {
             doc="Maximum allowed file size"),
         s.field("rate_khz", self.khz, 166,
             doc="Rate"),
-        s.field("raw_type", self.raw_type, "wib",
-            doc="User payload type"),
         s.field("data_filename", self.string, "/tmp/frames.bin",
             doc="Data file that contains user payloads"),
         s.field("queue_name", self.string,

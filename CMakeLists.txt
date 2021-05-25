@@ -51,7 +51,10 @@ daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRAR
 
 ##############################################################################
 # Test configurations
-file(COPY test/fake_readout.json DESTINATION test)
+file(COPY test/wib_app.json DESTINATION test) 
+file(COPY test/wib2_app.json DESTINATION test) 
+file(COPY test/pds_queue_app.json DESTINATION test) 
+file(COPY test/pds_list_app.json DESTINATION test) 
 
 ##############################################################################
 # Unit Tests
