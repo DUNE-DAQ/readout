@@ -145,7 +145,7 @@ public:
   }
 
   // DataRequest struct!?
-  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT
+  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT(build/unsigned)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
     auto reqfut = std::async(std::launch::async,
@@ -157,7 +157,7 @@ public:
   }
 
 protected:
-  RequestResult cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT
+  RequestResult cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT(build/unsigned)
   {
     // auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = m_latency_buffer->occupancy();
@@ -168,7 +168,7 @@ protected:
       // SNB handling
       if (m_recording) {
         RawType element;
-        for (unsigned i = 0; i < to_pop; ++i) { // NOLINT
+        for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
           if (m_latency_buffer->read(element)) {
             try {
               if (m_recording)

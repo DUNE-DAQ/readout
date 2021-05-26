@@ -37,16 +37,18 @@ struct KeyGetter
 BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_find)
 {
   TLOG() << "Fill up a queue and check if the elements can be found" << std::endl;
-  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> queue(10000); // NOLINT
-  for (uint32_t timestamp_counter = 0; timestamp_counter < 10000; timestamp_counter += 10) {            // NOLINT
+  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> // NOLINT(build/unsigned)
+    queue(10000);
+  for (uint32_t timestamp_counter = 0; timestamp_counter < 10000; timestamp_counter += 10) { // NOLINT(build/unsigned)
     char* payload = static_cast<char*>(malloc(1024));
-    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT
+    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper wrapper(1024, payload);
     bool queue_write = queue.write(std::move(wrapper));
     BOOST_REQUIRE(queue_write);
 
-    for (uint32_t expected_timestamp = 0; expected_timestamp <= timestamp_counter; expected_timestamp += 10) { // NOLINT
-      uint32_t timestamp;                                                                                      // NOLINT
+    for (uint32_t expected_timestamp = 0; expected_timestamp <= timestamp_counter; // NOLINT(build/unsigned)
+         expected_timestamp += 10) {
+      uint32_t timestamp; // NOLINT(build/unsigned)
       types::VariableSizePayloadWrapper* found_element = queue.find_element(expected_timestamp);
       BOOST_REQUIRE(found_element);
       std::memcpy(&timestamp, found_element->data.get(), sizeof(timestamp));
@@ -58,16 +60,18 @@ BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_find)
 BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_find_upper)
 {
   TLOG() << "Search for elements that are not in the queue" << std::endl;
-  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> queue(10000); // NOLINT
-  for (uint32_t timestamp_counter = 10; timestamp_counter < 10000; timestamp_counter += 10) {           // NOLINT
+  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> // NOLINT(build/unsigned)
+    queue(10000);
+  for (uint32_t timestamp_counter = 10; timestamp_counter < 10000; timestamp_counter += 10) { // NOLINT(build/unsigned)
     char* payload = static_cast<char*>(malloc(1024));
-    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT
+    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper wrapper(1024, payload);
     bool queue_write = queue.write(std::move(wrapper));
     BOOST_REQUIRE(queue_write);
 
-    for (uint32_t expected_timestamp = 5; expected_timestamp <= timestamp_counter; expected_timestamp += 10) { // NOLINT
-      uint32_t timestamp;                                                                                      // NOLINT
+    for (uint32_t expected_timestamp = 5; expected_timestamp <= timestamp_counter; // NOLINT(build/unsigned)
+         expected_timestamp += 10) {
+      uint32_t timestamp; // NOLINT(build/unsigned)
       types::VariableSizePayloadWrapper* found_element = queue.find_element(expected_timestamp);
       BOOST_REQUIRE(found_element);
       std::memcpy(&timestamp, found_element->data.get(), sizeof(timestamp));
@@ -79,10 +83,11 @@ BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_find_upper)
 BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_find_outside)
 {
   TLOG() << "Try to find elements that are bigger than the biggest one in the queue" << std::endl;
-  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> queue(10); // NOLINT
+  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> // NOLINT(build/unsigned)
+    queue(10);
   char* payload = static_cast<char*>(malloc(1024));
-  uint32_t timestamp = 42;                       // NOLINT
-  memcpy(payload, &timestamp, sizeof(uint32_t)); // NOLINT
+  uint32_t timestamp = 42;                       // NOLINT(build/unsigned)
+  memcpy(payload, &timestamp, sizeof(uint32_t)); // NOLINT(build/unsigned)
   types::VariableSizePayloadWrapper wrapper(1024, payload);
   bool queue_write = queue.write(std::move(wrapper));
   BOOST_REQUIRE(queue_write);
@@ -94,10 +99,11 @@ BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_find_outside)
 BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_overrun)
 {
   TLOG() << "Cause an overrun of the cyclic buffer" << std::endl;
-  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> queue(1001); // NOLINT
-  for (uint32_t timestamp_counter = 0; timestamp_counter < 1000; ++timestamp_counter) {                // NOLINT
+  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> // NOLINT(build/unsigned)
+    queue(1001);
+  for (uint32_t timestamp_counter = 0; timestamp_counter < 1000; ++timestamp_counter) { // NOLINT(build/unsigned)
     char* payload = static_cast<char*>(malloc(1024));
-    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT
+    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper wrapper(1024, payload);
     bool queue_write = queue.write(std::move(wrapper));
     BOOST_REQUIRE(queue_write);
@@ -109,16 +115,16 @@ BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_overrun)
     BOOST_REQUIRE(read_successful);
   }
 
-  for (uint32_t timestamp_counter = 1000; timestamp_counter < 1500; ++timestamp_counter) { // NOLINT
+  for (uint32_t timestamp_counter = 1000; timestamp_counter < 1500; ++timestamp_counter) { // NOLINT(build/unsigned)
     char* payload = static_cast<char*>(malloc(1024));
-    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT
+    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper wrapper(1024, payload);
     bool queue_write = queue.write(std::move(wrapper));
     BOOST_REQUIRE(queue_write);
   }
 
-  for (uint32_t expected_timestamp = 500; expected_timestamp < 1500; ++expected_timestamp) { // NOLINT
-    uint32_t timestamp;                                                                      // NOLINT
+  for (uint32_t expected_timestamp = 500; expected_timestamp < 1500; ++expected_timestamp) { // NOLINT(build/unsigned)
+    uint32_t timestamp;                                                                      // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper* found_element = queue.find_element(expected_timestamp);
     BOOST_REQUIRE(found_element);
     std::memcpy(&timestamp, found_element->data.get(), sizeof(timestamp));
@@ -129,10 +135,11 @@ BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_overrun)
 BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_overrun_find_upper)
 {
   TLOG() << "Cause an overrun of the cyclic buffer and search for upper timestamps" << std::endl;
-  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> queue(1001); // NOLINT
-  for (uint32_t timestamp_counter = 10; timestamp_counter < 10000; timestamp_counter += 10) {          // NOLINT
+  SearchableProducerConsumerQueue<types::VariableSizePayloadWrapper, uint32_t, KeyGetter> // NOLINT(build/unsigned)
+    queue(1001);
+  for (uint32_t timestamp_counter = 10; timestamp_counter < 10000; timestamp_counter += 10) { // NOLINT(build/unsigned)
     char* payload = static_cast<char*>(malloc(1024));
-    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT
+    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper wrapper(1024, payload);
     bool queue_write = queue.write(std::move(wrapper));
     BOOST_REQUIRE(queue_write);
@@ -144,16 +151,18 @@ BOOST_AUTO_TEST_CASE(VariableSizeElementQueue_overrun_find_upper)
     BOOST_REQUIRE(read_successful);
   }
 
-  for (uint32_t timestamp_counter = 10000; timestamp_counter < 15000; timestamp_counter += 10) { // NOLINT
+  for (uint32_t timestamp_counter = 10000; timestamp_counter < 15000; // NOLINT(build/unsigned)
+       timestamp_counter += 10) {
     char* payload = static_cast<char*>(malloc(1024));
-    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT
+    memcpy(payload, &timestamp_counter, sizeof(uint32_t)); // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper wrapper(1024, payload);
     bool queue_write = queue.write(std::move(wrapper));
     BOOST_REQUIRE(queue_write);
   }
 
-  for (uint32_t expected_timestamp = 5005; expected_timestamp < 14995; expected_timestamp += 10) { // NOLINT
-    uint32_t timestamp;                                                                            // NOLINT
+  for (uint32_t expected_timestamp = 5005; expected_timestamp < 14995; // NOLINT(build/unsigned)
+       expected_timestamp += 10) {
+    uint32_t timestamp; // NOLINT(build/unsigned)
     types::VariableSizePayloadWrapper* found_element = queue.find_element(expected_timestamp);
     BOOST_REQUIRE(found_element);
     std::memcpy(&timestamp, found_element->data.get(), sizeof(timestamp));

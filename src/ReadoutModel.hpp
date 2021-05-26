@@ -315,8 +315,8 @@ private:
   // CONFIGURATION
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
-  uint32_t m_this_apa_number;  // NOLINT
-  uint32_t m_this_link_number; // NOLINT
+  uint32_t m_this_apa_number;  // NOLINT(build/unsigned)
+  uint32_t m_this_link_number; // NOLINT(build/unsigned)
 
   // STATS
   stats::counter_t m_packet_count{ 0 };

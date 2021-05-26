@@ -31,14 +31,14 @@ namespace types {
  */
 struct LinkId
 {
-  uint8_t card_id_;   // NOLINT
-  uint32_t link_tag_; // NOLINT
+  uint8_t card_id_;   // NOLINT(build/unsigned)
+  uint32_t link_tag_; // NOLINT(build/unsigned)
 };
 
 class Timestamped
 {
-  virtual uint64_t get_timestamp() const = 0; // NOLINT
-  virtual void set_timestamp(uint64_t) = 0;   // NOLINT
+  virtual uint64_t get_timestamp() const = 0; // NOLINT(build/unsigned)
+  virtual void set_timestamp(uint64_t) = 0;   // NOLINT(build/unsigned)
 };
 
 /**
@@ -60,20 +60,20 @@ struct WIB_SUPERCHUNK_STRUCT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
-  uint64_t get_timestamp() const
-  {                                                                                                           // NOLINT
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
     return reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
   }
 
-  void set_timestamp(uint64_t ts)
-  {                                                                                                // NOLINT
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
     reinterpret_cast<dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
   }
 
-  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25)
-  {                                                                                               // NOLINT
-    uint64_t ts_next = first_timestamp;                                                           // NOLINT
-    for (unsigned int i = 0; i < 12; ++i) {                                                       // NOLINT
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    for (unsigned int i = 0; i < 12; ++i) {
       auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data)) + i * 464); // NOLINT
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
       wfh->set_timestamp(ts_next);
@@ -99,22 +99,22 @@ struct WIB2_SUPERCHUNK_STRUCT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
-  uint64_t get_timestamp() const
-  {                                                                                          // NOLINT
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
     return reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data)->get_timestamp(); // NOLINT
   }
 
-  void set_timestamp(uint64_t ts)
-  {                                                                         // NOLINT
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
     auto frame = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(&data); // NOLINT
     frame->header.timestamp_1 = ts;
     frame->header.timestamp_2 = ts >> 32;
   }
 
-  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25)
-  {                                                                                                 // NOLINT
-    uint64_t ts_next = first_timestamp;                                                             // NOLINT
-    for (unsigned int i = 0; i < 12; ++i) {                                                         // NOLINT
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    for (unsigned int i = 0; i < 12; ++i) {
       auto w2f = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)(&data)) + i * 468); // NOLINT
       w2f->header.timestamp_1 = ts_next;
       w2f->header.timestamp_2 = ts_next >> 32;
@@ -140,22 +140,22 @@ struct PDS_SUPERCHUNK_STRUCT
     return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
   }
 
-  uint64_t get_timestamp() const
-  {                                                                                         // NOLINT
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
     return reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data)->get_timestamp(); // NOLINT
   }
 
-  void set_timestamp(uint64_t ts)
-  {                                                                        // NOLINT
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
     auto frame = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&data); // NOLINT
     frame->header.timestamp_wf_1 = ts;
     frame->header.timestamp_wf_2 = ts >> 32;
   }
 
-  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25)
-  {                                                                                                 // NOLINT
-    uint64_t ts_next = first_timestamp;                                                             // NOLINT
-    for (unsigned int i = 0; i < 12; ++i) {                                                         // NOLINT
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    for (unsigned int i = 0; i < 12; ++i) {
       auto pdsf = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
       pdsf->header.timestamp_wf_1 = ts_next;
       pdsf->header.timestamp_wf_2 = ts_next >> 32;
@@ -192,10 +192,10 @@ struct VariableSizePayloadWrapper
   std::unique_ptr<char> data = nullptr;
 };
 
-typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT uint64_t
+typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT(build/unsigned)
 typedef std::unique_ptr<BlockPtrSink> UniqueBlockPtrSink;
 
-typedef dunedaq::appfwk::DAQSource<std::uint64_t> BlockPtrSource; // NOLINT uint64_t
+typedef dunedaq::appfwk::DAQSource<std::uint64_t> BlockPtrSource; // NOLINT(build/unsigned)
 typedef std::unique_ptr<BlockPtrSource> UniqueBlockPtrSource;
 
 typedef dunedaq::appfwk::DAQSink<WIB_SUPERCHUNK_STRUCT> WIBFrameSink;
@@ -218,9 +218,9 @@ struct RAW_WIB_TP_STRUCT
 
 struct TpSubframe
 {
-  uint32_t word1; // NOLINT
-  uint32_t word2; // NOLINT
-  uint32_t word3; // NOLINT
+  uint32_t word1; // NOLINT(build/unsigned)
+  uint32_t word2; // NOLINT(build/unsigned)
+  uint32_t word3; // NOLINT(build/unsigned)
 };
 
 } // namespace types

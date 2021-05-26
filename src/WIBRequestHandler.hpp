@@ -17,6 +17,7 @@
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <future>
@@ -60,7 +61,7 @@ public:
   }
 
 protected:
-  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT
+  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT(build/unsigned)
   {
     return tpc_data_request(dr, delay_us);
   }
@@ -82,12 +83,12 @@ protected:
   inline void dump_to_buffer(const void* data,
                              std::size_t size,
                              void* buffer,
-                             uint32_t buffer_pos, // NOLINT
+                             uint32_t buffer_pos, // NOLINT(build/unsigned)
                              const std::size_t& buffer_size)
   {
-    auto bytes_to_copy = size; // NOLINT
+    auto bytes_to_copy = size;
     while (bytes_to_copy > 0) {
-      auto n = std::min(bytes_to_copy, buffer_size - buffer_pos); // NOLINT
+      auto n = std::min(bytes_to_copy, buffer_size - buffer_pos);
       std::memcpy(static_cast<char*>(buffer) + buffer_pos, static_cast<const char*>(data), n);
       buffer_pos += n;
       bytes_to_copy -= n;
@@ -109,16 +110,17 @@ protected:
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
     dataformats::WIBHeader front_wh =
-      *(reinterpret_cast<const dataformats::WIBHeader*>(m_latency_buffer->get_ptr(0)));                        // NOLINT
-    uint64_t start_win_ts = dr.window_begin;                                                                  // NOLINT
-    uint64_t end_win_ts = dr.window_end;                                                                      // NOLINT
-    uint64_t last_ts = front_wh.get_timestamp();                                                              // NOLINT
-    uint64_t newest_ts =                                                                                      // NOLINT
-      last_ts + (occupancy_guess - m_safe_num_elements_margin) * m_tick_dist * m_frames_per_element;          // NOLINT
-    int64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;                                          // NOLINT
-    int32_t num_element_offset = time_tick_diff / m_frames_per_element;                                       // NOLINT
-    uint32_t num_elements_in_window = (end_win_ts - start_win_ts) / (m_tick_dist * m_frames_per_element) + 1; // NOLINT
-    int32_t min_num_elements = num_element_offset + num_elements_in_window + m_safe_num_elements_margin;      // NOLINT
+      *(reinterpret_cast<const dataformats::WIBHeader*>(m_latency_buffer->get_ptr(0))); // NOLINT
+    uint64_t start_win_ts = dr.window_begin;                                            // NOLINT(build/unsigned)
+    uint64_t end_win_ts = dr.window_end;                                                // NOLINT(build/unsigned)
+    uint64_t last_ts = front_wh.get_timestamp();                                        // NOLINT(build/unsigned)
+    uint64_t newest_ts =                                                                // NOLINT(build/unsigned)
+      last_ts + (occupancy_guess - m_safe_num_elements_margin) * m_tick_dist * m_frames_per_element;
+    int64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;
+    int32_t num_element_offset = time_tick_diff / m_frames_per_element;
+    uint32_t num_elements_in_window = // NOLINT(build/unsigned)
+      (end_win_ts - start_win_ts) / (m_tick_dist * m_frames_per_element) + 1;
+    int32_t min_num_elements = num_element_offset + num_elements_in_window + m_safe_num_elements_margin;
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "TPC (WIB frame) data request for "
                                 << "Trigger TS=" << dr.trigger_timestamp << " "
@@ -189,7 +191,7 @@ protected:
 
       auto elements_handled = 0;
 
-      for (uint32_t idxoffset = 0; idxoffset < num_elements_in_window; ++idxoffset) { // NOLINT
+      for (uint32_t idxoffset = 0; idxoffset < num_elements_in_window; ++idxoffset) { // NOLINT(build/unsigned)
         auto* element = static_cast<void*>(m_latency_buffer->get_ptr(num_element_offset + idxoffset));
 
         if (element != nullptr) {
@@ -228,20 +230,20 @@ protected:
 
 private:
   // Constants
-  static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT
+  static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
   static const constexpr size_t m_wib_frame_size = 464;
-  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
+  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
-  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT
+  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT(build/unsigned)
 
-  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT
+  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
 
   // Stats
   stats::counter_t m_found_requested_count{ 0 };
   stats::counter_t m_bad_requested_count{ 0 };
 
-  uint16_t m_apa_number;  // NOLINT
-  uint32_t m_link_number; // NOLINT
+  uint16_t m_apa_number;  // NOLINT(build/unsigned)
+  uint32_t m_link_number; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

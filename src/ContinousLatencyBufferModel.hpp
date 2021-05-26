@@ -30,7 +30,7 @@ template<class RawType, class KeyType = int>
 class ContinousLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
 {
 
-  static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT
+  static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT(build/unsigned)
 public:
   ContinousLatencyBufferModel()
     : m_queue(new AccessableProducerConsumerQueue<RawType>(unconfigured_buffer_size))
@@ -67,7 +67,7 @@ public:
     return false;
   }
 
-  RawType* get_ptr(unsigned idx) override // NOLINT
+  RawType* get_ptr(unsigned idx) override // NOLINT(build/unsigned)
   {
     if (idx == 0) {
       return m_queue->frontPtr();
@@ -88,9 +88,9 @@ public:
     return false;
   }
 
-  void pop(unsigned num = 1) override // NOLINT
+  void pop(unsigned num = 1) override // NOLINT(build/unsigned)
   {
-    for (unsigned i = 0; i < num; ++i) { // NOLINT
+    for (unsigned i = 0; i < num; ++i) { // NOLINT(build/unsigned)
       m_queue->popFront();
     }
   }

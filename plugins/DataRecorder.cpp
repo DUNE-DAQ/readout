@@ -75,7 +75,7 @@ void
 DataRecorder::get_info(opmonlib::InfoCollector& ci, int level)
 {
   recorder->get_info(ci, level);
-  }
+}
 
 void
 DataRecorder::do_conf(const data_t& args)

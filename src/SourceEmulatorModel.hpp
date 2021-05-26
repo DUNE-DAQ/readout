@@ -46,9 +46,9 @@ public:
 
   explicit SourceEmulatorModel(std::string name,
                                std::atomic<bool>& run_marker,
-                               uint64_t time_tick_diff,
+                               uint64_t time_tick_diff, // NOLINT(build/unsigned)
                                double dropout_rate,
-                               double rate_khz) // NOLINT
+                               double rate_khz)
     : m_run_marker(run_marker)
     , m_time_tick_diff(time_tick_diff)
     , m_dropout_rate(dropout_rate)
@@ -140,9 +140,9 @@ protected:
     auto rptr = reinterpret_cast<RawType*>(source.data()); // NOLINT
 
     // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
-    uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT
+    uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT(build/unsigned)
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
-    uint64_t timestamp = ts_0; // NOLINT
+    uint64_t timestamp = ts_0; // NOLINT(build/unsigned)
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
@@ -150,7 +150,8 @@ protected:
         offset = 0;
       }
 
-      bool create_frame = static_cast<double>(rand()) / static_cast<double>(RAND_MAX) >= m_dropout_rate; // NOLINT
+      bool create_frame =
+        static_cast<double>(rand()) / static_cast<double>(RAND_MAX) >= m_dropout_rate; // NOLINT(runtime/threadsafe_fn)
       if (create_frame) {
         RawType payload;
         // Memcpy from file buffer to flat char array
@@ -186,10 +187,10 @@ private:
   std::atomic<bool>& m_run_marker;
 
   // CONFIGURATION
-  uint32_t m_this_apa_number;  // NOLINT
-  uint32_t m_this_link_number; // NOLINT
+  uint32_t m_this_apa_number;  // NOLINT(build/unsigned)
+  uint32_t m_this_link_number; // NOLINT(build/unsigned)
 
-  uint64_t m_time_tick_diff; // NOLINT
+  uint64_t m_time_tick_diff; // NOLINT(build/unsigned)
   double m_dropout_rate;
 
   // STATS

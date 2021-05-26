@@ -32,14 +32,14 @@ main(int /*argc*/, char** /*argv[]*/)
 
   std::ostringstream oss;
   oss << "Population sizes: ";
-  for (unsigned i = 0; i < population_sizes.size(); ++i) { // NOLINT
+  for (unsigned i = 0; i < population_sizes.size(); ++i) { // NOLINT(build/unsigned)
     oss << population_sizes[i] << ' ';
   }
   TLOG() << oss.str();
   oss.str("");
 
   oss << "Population rates: ";
-  for (unsigned i = 0; i < population_rates.size(); ++i) { // NOLINT
+  for (unsigned i = 0; i < population_rates.size(); ++i) { // NOLINT(build/unsigned)
     oss << population_rates[i] << ' ';
   }
   TLOG() << oss.str();

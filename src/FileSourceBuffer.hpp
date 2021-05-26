@@ -16,6 +16,7 @@
 #include <fstream>
 #include <limits>
 #include <string>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -55,12 +56,12 @@ public:
 
     // Check for exact match
     if (m_chunk_size > 0) {
-    int remainder = filesize % m_chunk_size;
-    if (remainder > 0) {
-      ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
-    }
-    // Set usable element count
-    m_element_count = filesize / m_chunk_size;
+      int remainder = filesize % m_chunk_size;
+      if (remainder > 0) {
+        ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+      }
+      // Set usable element count
+      m_element_count = filesize / m_chunk_size;
       TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available elements: " << std::to_string(m_element_count);
     }
 
@@ -88,7 +89,7 @@ private:
 
   // Internals
   std::ifstream m_rawdata_ifs;
-  std::vector<std::uint8_t> m_input_buffer; // NOLINT
+  std::vector<std::uint8_t> m_input_buffer; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

@@ -59,7 +59,7 @@ struct AccessableProducerConsumerQueue
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit AccessableProducerConsumerQueue(uint32_t size) // NOLINT
+  explicit AccessableProducerConsumerQueue(uint32_t size) // NOLINT(build/unsigned)
     : size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -264,11 +264,12 @@ protected: // hardware_destructive_interference_size is set to 128.
   std::thread ptrlogger;
 
   char pad0_[folly::hardware_destructive_interference_size]; // NOLINT(runtime/arrays)
-  const uint32_t size_;                                      // NOLINT
+  const uint32_t size_;                                      // NOLINT(build/unsigned)
   T* const records_;
 
-  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_;  // NOLINT
-  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_; // NOLINT
+  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_; // NOLINT(build/unsigned)
+  alignas(
+    folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_; // NOLINT(build/unsigned)
 
   char pad1_[folly::hardware_destructive_interference_size - sizeof(writeIndex_)]; // NOLINT(runtime/arrays)
 };

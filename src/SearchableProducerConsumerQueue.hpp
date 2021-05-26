@@ -73,9 +73,11 @@ public:
   }
 
   int find_index(Key key)
-  {                                                                                                            // NOLINT
-    unsigned int start_index = AccessableProducerConsumerQueue<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT
-    unsigned int end_index = AccessableProducerConsumerQueue<T>::writeIndex_.load(std::memory_order_acquire);  // NOLINT
+  {
+    unsigned int start_index =
+      AccessableProducerConsumerQueue<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
+    unsigned int end_index =
+      AccessableProducerConsumerQueue<T>::writeIndex_.load(std::memory_order_acquire); // NOLINT(build/unsigned)
 
     if (start_index == end_index) {
       TLOG() << "Queue is empty" << std::endl;

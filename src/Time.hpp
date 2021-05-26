@@ -15,7 +15,7 @@ namespace dunedaq {
 namespace readout {
 namespace time {
 
-using timestamp_t = std::uint64_t; // NOLINT
+using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
 inline constexpr timestamp_t ns = 1;
 inline constexpr timestamp_t us = 1000 * ns;
@@ -25,7 +25,7 @@ inline constexpr timestamp_t s = 1000 * ms;
 template<typename ChronoType>
 inline int64_t
 now_as()
-{ // NOLINT
+{
   auto now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
   return std::chrono::duration_cast<ChronoType>(duration).count();
