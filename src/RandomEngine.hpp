@@ -8,8 +8,8 @@
 * Licensing/copyright details are in the COPYING file that you should have
 * received with this code.
 */
-#ifndef READOUT_INCLUDE_READOUT_RANDOMENGINE_HPP_
-#define READOUT_INCLUDE_READOUT_RANDOMENGINE_HPP_
+#ifndef READOUT_SRC_RANDOMENGINE_HPP_
+#define READOUT_SRC_RANDOMENGINE_HPP_
 
 #include <atomic>
 #include <chrono>
@@ -20,6 +20,7 @@
 #include <string>
 
 #include <random>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -77,4 +78,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_INCLUDE_READOUT_RANDOMENGINE_HPP_
+#endif // READOUT_SRC_RANDOMENGINE_HPP_

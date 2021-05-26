@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace dunedaq {
 namespace readout {

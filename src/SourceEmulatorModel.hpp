@@ -147,7 +147,7 @@ protected:
         offset = 0;
       }
 
-      bool create_frame = static_cast<double>(rand()) / static_cast<double>(RAND_MAX) >= m_dropout_rate;
+      bool create_frame = static_cast<double>(rand()) / static_cast<double>(RAND_MAX) >= m_dropout_rate; // NOLINT
       if (create_frame) {
         RawType payload;
         // Memcpy from file buffer to flat char array

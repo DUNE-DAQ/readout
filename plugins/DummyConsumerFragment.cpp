@@ -14,12 +14,13 @@
 #include "dataformats/Fragment.hpp"
 
 #include <memory>
+#include <string>
 
 namespace dunedaq {
   namespace readout {
   class DummyConsumerFragment : public DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>> {
   public:
-    DummyConsumerFragment(const std::string name) : DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>(name) {
+    explicit DummyConsumerFragment(const std::string name) : DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>(name) {
 
     }
 
@@ -30,8 +31,8 @@ namespace dunedaq {
         << header.window_begin << ", window_end: " << header.window_end;
     }
   };
-  }
-}
+  } // namespace readout
+} // namespace dunedaq
 
 DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::DummyConsumerFragment)
 

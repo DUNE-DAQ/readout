@@ -90,7 +90,7 @@ protected:
     fh.window_begin = dr.window_begin;
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
-    fh.element_id = { dataformats::GeoID::SystemType::kPDS, static_cast<uint16_t>(m_apa_number), m_link_number };
+    fh.element_id = { dataformats::GeoID::SystemType::kPDS, static_cast<uint16_t>(m_apa_number), m_link_number }; // NOLINT
     fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kPDSData);
     return std::move(fh);
   } 

@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-using namespace dunedaq::readout::logging;
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
 namespace dunedaq {
 namespace readout {
@@ -136,20 +136,16 @@ protected:
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
-    }
-    else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
+    } else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count; 
-    }
-    else if ( last_ts > start_win_ts ) { // data is gone.
+    } else if ( last_ts > start_win_ts ) { // data is gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;
-    }
-    else if ( newest_ts < end_win_ts ) {
+    } else if ( newest_ts < end_win_ts ) {
       rres.result_code = ResultCode::kNotYet; // give it another chance
-    }
-    else {
+    } else {
       TLOG() << "Don't know how to categorise this request";
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
@@ -247,4 +243,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_WIB2REQUESTHANDLER_HPP_
