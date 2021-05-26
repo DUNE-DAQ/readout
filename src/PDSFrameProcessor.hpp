@@ -46,6 +46,7 @@ protected:
   // Internals
   time::timestamp_t m_previous_ts = 0;
   time::timestamp_t m_current_ts = 0;
+  bool m_first_ts_fake = true;
   bool m_first_ts_missmatch = true;
   bool m_problem_reported = false;
   stats::counter_t m_ts_error_ctr{ 0 };
@@ -58,11 +59,16 @@ protected:
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
       // RS warning : not fixed rate!
+      if (m_first_ts_fake) {
+        fp->fake_timestamp(m_previous_ts, 16);
+        m_first_ts_fake = false;
+      } else {
+        fp->fake_timestamp(m_previous_ts + 192, 16);
+      }
     }
 
     // Acquire timestamp
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(fp); // NOLINT
-    m_current_ts = wfptr->get_timestamp();
+    m_current_ts = fp->get_timestamp();
 
     // Check timestamp
     // RS warning : not fixed rate!
