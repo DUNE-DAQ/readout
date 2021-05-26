@@ -29,7 +29,7 @@ template<class RawType, class KeyType, class KeyGetter>
 class SearchableLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
 {
 
-  static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT
+  static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT(build/unsigned)
 public:
   SearchableLatencyBufferModel()
     : m_queue(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(unconfigured_buffer_size))
@@ -70,14 +70,14 @@ public:
     return false;
   }
 
-  void pop(unsigned num = 1) override // NOLINT
+  void pop(unsigned num = 1) override // NOLINT(build/unsigned)
   {
-    for (unsigned i = 0; i < num; ++i) { // NOLINT
+    for (unsigned i = 0; i < num; ++i) { // NOLINT(build/unsigned)
       m_queue->popFront();
     }
   }
 
-  RawType* get_ptr(unsigned idx) override // NOLINT
+  RawType* get_ptr(unsigned idx) override // NOLINT(build/unsigned)
   {
     if (idx == 0) {
       return m_queue->frontPtr();

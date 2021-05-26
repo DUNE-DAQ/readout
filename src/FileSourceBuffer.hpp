@@ -16,6 +16,7 @@
 #include <fstream>
 #include <limits>
 #include <string>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -74,8 +75,8 @@ public:
 
   const int& num_elements() { return std::ref(m_element_count); }
 
-  std::vector<std::uint8_t>& get()
-  { // NOLINT
+  std::vector<std::uint8_t>& get() // NOLINT(build/unsigned)
+  {
     return std::ref(m_input_buffer);
   }
 
@@ -88,7 +89,7 @@ private:
 
   // Internals
   std::ifstream m_rawdata_ifs;
-  std::vector<std::uint8_t> m_input_buffer; // NOLINT
+  std::vector<std::uint8_t> m_input_buffer; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

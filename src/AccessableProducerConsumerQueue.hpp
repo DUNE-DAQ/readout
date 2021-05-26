@@ -1,4 +1,5 @@
-/*
+/** @file AccessableProducerConsumerQueue.hpp
+ *
  * Copyright 2012-present Facebook, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +20,10 @@
 
 // Modification by Roland Sipos for DUNE-DAQ software framework
 
-#pragma once
+#ifndef READOUT_SRC_ACCESSABLEPRODUCERCONSUMERQUEUE_HPP_
+#define READOUT_SRC_ACCESSABLEPRODUCERCONSUMERQUEUE_HPP_
+
+#include <folly/lang/Align.h>
 
 #include <atomic>
 #include <cassert>
@@ -55,7 +59,7 @@ struct AccessableProducerConsumerQueue
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit AccessableProducerConsumerQueue(uint32_t size) // NOLINT
+  explicit AccessableProducerConsumerQueue(uint32_t size) // NOLINT(build/unsigned)
     : size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -65,18 +69,18 @@ struct AccessableProducerConsumerQueue
     if (!records_) {
       throw std::bad_alloc();
     }
-    /*
+#if 0
         ptrlogger = std::thread([&](){
           while(true) {
             auto const currentRead = readIndex_.load(std::memory_order_relaxed);
             auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
-            std::cout << "BEG:" << std::hex << &records_[0] << " END:" << &records_[size] << std::dec
+            TLOG() << "BEG:" << std::hex << &records_[0] << " END:" << &records_[size] << std::dec
                       << " R:" << currentRead << " - W:" << currentWrite
-                      << " OFLOW:" << overflow_ctr << '\n';
+                      << " OFLOW:" << overflow_ctr;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
           }
         });
-    */
+#endif
   }
 
   ~AccessableProducerConsumerQueue()
@@ -260,14 +264,17 @@ protected: // hardware_destructive_interference_size is set to 128.
   std::thread ptrlogger;
 
   char pad0_[folly::hardware_destructive_interference_size]; // NOLINT(runtime/arrays)
-  const uint32_t size_;                                      // NOLINT
+  const uint32_t size_;                                      // NOLINT(build/unsigned)
   T* const records_;
 
-  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_;  // NOLINT
-  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_; // NOLINT
+  alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_; // NOLINT(build/unsigned)
+  alignas(
+    folly::hardware_destructive_interference_size) std::atomic<unsigned int> writeIndex_; // NOLINT(build/unsigned)
 
   char pad1_[folly::hardware_destructive_interference_size - sizeof(writeIndex_)]; // NOLINT(runtime/arrays)
 };
 
 } // namespace readout
 } // namespace dunedaq
+
+#endif // READOUT_SRC_ACCESSABLEPRODUCERCONSUMERQUEUE_HPP_

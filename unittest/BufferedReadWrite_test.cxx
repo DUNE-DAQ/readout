@@ -6,7 +6,6 @@
  * received with this code.
  */
 
-
 /**
  * @brief Name of this test module
  */
@@ -14,21 +13,23 @@
 
 #include "boost/test/unit_test.hpp"
 
+#include "BufferedFileReader.hpp"
+#include "BufferedFileWriter.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "BufferedFileWriter.hpp"
-#include "BufferedFileReader.hpp"
 
-#include <string>
 #include <cstdio>
+#include <string>
 #include <vector>
 
 using namespace dunedaq::readout;
 
 BOOST_AUTO_TEST_SUITE(BufferedReadWrite_test)
 
-void test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& reader, uint numbers_to_write) {
-  std::vector<int> numbers(numbers_to_write/sizeof(int));
+void
+test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& reader, uint numbers_to_write)
+{
+  std::vector<int> numbers(numbers_to_write / sizeof(int));
 
   bool write_successful = false;
   for (uint i = 0; i < numbers.size(); ++i) {
@@ -43,7 +44,8 @@ void test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& r
   bool read_successful = false;
   for (uint i = 0; i < numbers.size(); ++i) {
     read_successful = reader.read(read_value);
-    if (!read_successful) TLOG() << i << std::endl;
+    if (!read_successful)
+      TLOG() << i << std::endl;
     BOOST_REQUIRE(read_successful);
     BOOST_REQUIRE_EQUAL(read_value, numbers[i]);
   }
@@ -190,7 +192,4 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_superchunk)
   remove("test.out");
 }
 
-
-
 BOOST_AUTO_TEST_SUITE_END()
-

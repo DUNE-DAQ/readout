@@ -16,10 +16,9 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <random>
 #include <string>
 #include <thread>
-
-#include <random>
 #include <vector>
 
 namespace dunedaq {
@@ -40,30 +39,30 @@ public:
   RandomEngine& operator=(RandomEngine&&) = delete;      ///< RandomEngine is not move-assignable
 
   std::vector<int> get_random_population(unsigned size, int low, int high)
-  { // NOLINT
+  {
     std::uniform_int_distribution<> dist(low, high);
     std::vector<int> population;
-    for (unsigned i = 0; i < size; ++i) { // NOLINT
+    for (unsigned i = 0; i < size; ++i) { // NOLINT(build/unsigned)
       population.push_back(dist(m_mt));
     }
     return population;
   }
 
   std::vector<float> get_random_population(unsigned size, float low, float high)
-  { // NOLINT
+  {
     std::uniform_real_distribution<> dist(low, high);
     std::vector<float> population;
-    for (unsigned i = 0; i < size; ++i) { // NOLINT
+    for (unsigned i = 0; i < size; ++i) { // NOLINT(build/unsigned)
       population.push_back(dist(m_mt));
     }
     return population;
   }
 
   std::vector<double> get_random_population(unsigned size, double low, double high)
-  { // NOLINT
+  {
     std::uniform_real_distribution<> dist(low, high);
     std::vector<double> population;
-    for (unsigned i = 0; i < size; ++i) { // NOLINT
+    for (unsigned i = 0; i < size; ++i) { // NOLINT(build/unsigned)
       population.push_back(dist(m_mt));
     }
     return population;

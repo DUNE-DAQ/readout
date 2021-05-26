@@ -35,27 +35,30 @@ namespace dunedaq {
 namespace readout {
 
 class PDSListRequestHandler
-  : public DefaultRequestHandlerModel<
-      types::PDS_SUPERCHUNK_STRUCT,
-      SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>
+  : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                                      SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                 uint64_t, // NOLINT(build/unsigned)
+                                                                 types::PDSTimestampGetter>>
 {
 public:
-  using inherited = DefaultRequestHandlerModel<
-    types::PDS_SUPERCHUNK_STRUCT,
-    SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>;
+  using inherited = DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                                               SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                          uint64_t, // NOLINT(build/unsigned)
+                                                                          types::PDSTimestampGetter>>;
   using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
   using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
 
-  PDSListRequestHandler(
-    std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>&
-      latency_buffer,
-    std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-    std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
-    : DefaultRequestHandlerModel<
-        types::PDS_SUPERCHUNK_STRUCT,
-        SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>(latency_buffer,
-                                                                                                       fragment_sink,
-                                                                                                       snb_sink)
+  PDSListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                   uint64_t, // NOLINT(build/unsigned)
+                                                                   types::PDSTimestampGetter>>& latency_buffer,
+                        std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                        std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
+    : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                                 SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                            uint64_t, // NOLINT(build/unsigned)
+                                                            types::PDSTimestampGetter>>(latency_buffer,
+                                                                                        fragment_sink,
+                                                                                        snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSListRequestHandler created...";
   }
@@ -63,16 +66,18 @@ public:
   void conf(const nlohmann::json& args) override
   {
     // Call up to the base class, whose conf function does useful things
-    DefaultRequestHandlerModel<
-      types::PDS_SUPERCHUNK_STRUCT,
-      SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>::conf(args);
+    DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                               SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                          uint64_t, // NOLINT(build/unsigned)
+                                                          types::PDSTimestampGetter>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
   }
 
 protected:
-  RequestResult cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) override // NOLINT
+  RequestResult cleanup_request(dfmessages::DataRequest dr,
+                                unsigned /** delay_us */ = 0) override // NOLINT(build/unsigned)
   {
     return pds_cleanup_request(dr);
   }
@@ -81,8 +86,8 @@ protected:
   {
     // size_t occupancy_guess = m_latency_buffer->occupancy();
     size_t removed_ctr = 0;
-    uint64_t tailts = 0; // oldest
-    uint64_t headts = 0; // newest
+    uint64_t tailts = 0; // oldest // NOLINT(build/unsigned)
+    uint64_t headts = 0; // newest // NOLINT(build/unsigned)
     {
       SkipListAcc acc(m_latency_buffer->get_skip_list());
       auto tail = acc.last();
@@ -90,14 +95,14 @@ protected:
       if (tail && head) {
         // auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
         // auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
-        tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();  // NOLINT
+        tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();
         headts = (*head).get_timestamp(); // headptr->get_timestamp();
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with "
                                     << "Oldest stored TS=" << tailts << " "
                                     << "Newest stored TS=" << headts;
         if (headts - tailts > m_max_ts_diff) { // ts differnce exceeds maximum
-          ++inherited::m_pop_reqs;
-          uint64_t timediff = m_max_ts_diff;
+          ++(inherited::m_pop_reqs);
+          uint64_t timediff = m_max_ts_diff; // NOLINT(build/unsigned)
           while (timediff >= m_max_ts_diff) {
             bool removed = acc.remove(*tail);
             if (!removed) {
@@ -120,7 +125,7 @@ protected:
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
-  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT
+  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT(build/unsigned)
   {
     return pds_data_request(dr, delay_us);
   }
@@ -154,10 +159,10 @@ protected:
     std::vector<std::pair<void*, size_t>> frag_pieces;
 
     // TS calculation
-    uint64_t start_win_ts = dr.window_begin; // NOLINT
-    uint64_t end_win_ts = dr.window_end;     // NOLINT
-    uint64_t tailts = 0;                     // oldest ts
-    uint64_t headts = 0;                     // newest ts
+    uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
+    uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
+    uint64_t tailts = 0;                     // oldest ts // NOLINT(build/unsigned)
+    uint64_t headts = 0;                     // newest ts // NOLINT(build/unsigned)
 
     // size_t occupancy_guess = m_latency_buffer->occupancy();
 
@@ -169,7 +174,7 @@ protected:
       if (tail && head) {
         // auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
         // auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
-        tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();  // NOLINT
+        tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();
         headts = (*head).get_timestamp(); // headptr->get_timestamp();
 
         if (tailts <= start_win_ts && end_win_ts <= headts) { // data is there
@@ -277,22 +282,22 @@ protected:
 
 private:
   // Constants
-  static const constexpr uint64_t m_max_ts_diff = 10000000;
+  static const constexpr uint64_t m_max_ts_diff = 10000000; // NOLINT(build/unsigned)
 
-  static const constexpr uint64_t m_tick_dist = 16; // NOLINT
+  static const constexpr uint64_t m_tick_dist = 16; // NOLINT(build/unsigned)
   static const constexpr size_t m_wib_frame_size = 468;
-  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
+  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
-  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT
+  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT(build/unsigned)
 
-  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT
+  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
 
   // Stats
   stats::counter_t m_found_requested_count{ 0 };
   stats::counter_t m_bad_requested_count{ 0 };
 
-  uint16_t m_apa_number;  // NOLINT
-  uint32_t m_link_number; // NOLINT
+  uint16_t m_apa_number;  // NOLINT(build/unsigned)
+  uint32_t m_link_number; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

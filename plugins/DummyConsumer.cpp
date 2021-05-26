@@ -16,10 +16,10 @@
 #include "logging/Logging.hpp"
 #include <string>
 
-using namespace dunedaq::readout::logging;
-
 namespace dunedaq {
 namespace readout {
+
+using namespace logging;
 
 template<class T>
 DummyConsumer<T>::DummyConsumer(const std::string& name)

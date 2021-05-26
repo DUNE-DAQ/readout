@@ -76,11 +76,13 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       if (inst.find("pds_queue") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
         raw_type_name = "pds";
-        auto readout_model = std::make_unique<
-          ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-                       PDSQueueRequestHandler,
-                       SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
-                       PDSFrameProcessor>>(run_marker); // NOLINT
+        auto readout_model =
+          std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
+                                        PDSQueueRequestHandler,
+                                        SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                     uint64_t, // NOLINT(build/unsigned)
+                                                                     types::PDSTimestampGetter>,
+                                        PDSFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }
@@ -89,11 +91,13 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       if (inst.find("pds_list") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using SkipList LB";
         raw_type_name = "pds";
-        auto readout_model = std::make_unique<
-          ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-                       PDSListRequestHandler,
-                       SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
-                       PDSFrameProcessor>>(run_marker); // NOLINT
+        auto readout_model =
+          std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
+                                        PDSListRequestHandler,
+                                        SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                   uint64_t, // NOLINT(build/unsigned)
+                                                                   types::PDSTimestampGetter>,
+                                        PDSFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

@@ -81,7 +81,7 @@ public:
     return success;
   }
 
-  /* Reads closest match. */
+  // Reads closest match.
   bool read(RawType& element) override
   {
     bool found = false;
@@ -98,7 +98,7 @@ public:
 
   bool place(RawType&& new_element, KeyType& /*key*/) override { return write(std::move(new_element)); }
 
-  /* Finds exact match, contrary to read(). */
+  // Finds exact match, contrary to read().
   bool find(RawType& element, KeyType& /*key*/) override
   {
     bool found = false;
@@ -113,7 +113,7 @@ public:
     return found;
   }
 
-  void pop(unsigned num = 1) override // NOLINT
+  void pop(unsigned num = 1) override // NOLINT(build/unsigned)
   {
     {
       SkipListTAcc acc(m_skip_list);
@@ -123,7 +123,7 @@ public:
     }
   }
 
-  RawType* get_ptr(unsigned /*idx*/) override // NOLINT
+  RawType* get_ptr(unsigned /*idx*/) override // NOLINT(build/unsigned)
   {
     TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SkipListLatencyBufferModel!";
     return nullptr;
@@ -146,7 +146,7 @@ private:
   std::shared_ptr<SkipListT> m_skip_list;
 
   // Conf
-  static constexpr uint32_t unconfigured_head_height = 2; // NOLINT
+  static constexpr uint32_t unconfigured_head_height = 2; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

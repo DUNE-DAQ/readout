@@ -34,22 +34,23 @@ namespace dunedaq {
 namespace readout {
 
 class PDSQueueRequestHandler
-  : public DefaultRequestHandlerModel<
-      types::PDS_SUPERCHUNK_STRUCT,
-      SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>
-{ // NOLINT
+  : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                                      SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                   uint64_t, // NOLINT(build/unsigned)
+                                                                   types::PDSTimestampGetter>>
+{
 public:
-  PDSQueueRequestHandler(
-    std::unique_ptr<SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>&
-      latency_buffer, // NOLINT
-    std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-    std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
-    : DefaultRequestHandlerModel<
-        types::PDS_SUPERCHUNK_STRUCT,
-        SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>(
-        latency_buffer,
-        fragment_sink,
-        snb_sink) // NOLINT
+  PDSQueueRequestHandler(std::unique_ptr<SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                                      uint64_t, // NOLINT(build/unsigned)
+                                                                      types::PDSTimestampGetter>>& latency_buffer,
+                         std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                         std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
+    : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                                 SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                              uint64_t, // NOLINT(build/unsigned)
+                                                              types::PDSTimestampGetter>>(latency_buffer,
+                                                                                          fragment_sink,
+                                                                                          snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSQueueRequestHandler created...";
   }
@@ -57,33 +58,33 @@ public:
   void conf(const nlohmann::json& args) override
   {
     // Call up to the base class, whose conf function does useful things
-    DefaultRequestHandlerModel<
-      types::PDS_SUPERCHUNK_STRUCT,
-      SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>::
-      conf(args); // NOLINT
+    DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
+                               SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                            uint64_t, // NOLINT(build/unsigned)
+                                                            types::PDSTimestampGetter>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
   }
 
 protected:
-  /**
+#if 0 // TODO, Eric Flumerfelt <eflumerf@fnal.gov> May-26-2021: Remove if unused
   RequestResult
-  cleanup_request(dfmessages::DataRequest dr, unsigned delay_us  = 0) override // NOLINT
+  cleanup_request(dfmessages::DataRequest dr, unsigned delay_us  = 0) override 
   {
     return pds_cleanup_request(dr);
 
   }
-  */
+#endif
 
-  /**
+#if 0 // TODO, Eric Flumerfelt <eflumerf@fnal.gov> May-26-2021: Remove if unused
   RequestResult
   pds_cleanup_request(dfmessages::DataRequest dr, unsigned delay_us = 0) {
     return RequestResult(ResultCode::kCleanup, dr);
   }
-  */
+#endif
 
-  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) // NOLINT
+  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0)
   {
     return pds_data_request(dr, delay_us);
   }
@@ -98,8 +99,8 @@ protected:
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
     fh.element_id = { dataformats::GeoID::SystemType::kPDS,
-                      static_cast<uint16_t>(m_apa_number),
-                      m_link_number }; // NOLINT
+                      static_cast<uint16_t>(m_apa_number), // NOLINT(build/unsigned)
+                      m_link_number };
     fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kPDSData);
     return std::move(fh);
   }
@@ -118,11 +119,11 @@ protected:
     auto front_frame = *(reinterpret_cast<const dataformats::PDSFrame*>(m_latency_buffer->get_ptr(0))); // NOLINT
     auto last_frame =
       *(reinterpret_cast<const dataformats::PDSFrame*>(m_latency_buffer->get_ptr(occupancy_guess))); // NOLINT
-    uint64_t last_ts = front_frame.get_timestamp();                                                  // NOLINT
-    uint64_t newest_ts = last_frame.get_timestamp();                                                 // NOLINT
+    uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
+    uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
 
-    uint64_t start_win_ts = dr.window_begin; // NOLINT
-    uint64_t end_win_ts = dr.window_end;     // NOLINT
+    uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
+    uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
     auto start_idx = m_latency_buffer->find_index(start_win_ts);
     auto end_idx = m_latency_buffer->find_index(end_win_ts);
     // std::cout << start_idx << ", " << end_idx << std::endl;
@@ -203,7 +204,7 @@ protected:
       int last_chunk =
         m_latency_buffer->at(end_idx)->get_timestamp() == end_win_ts ? m_latency_buffer->next_index(end_idx) : end_idx;
       for (int index = start_idx; index != m_latency_buffer->next_index(last_chunk);
-           index = m_latency_buffer->next_index(index)) { // NOLINT
+           index = m_latency_buffer->next_index(index)) {
         auto* element = static_cast<void*>(m_latency_buffer->at(index));
 
         if (element != nullptr) {
@@ -236,20 +237,20 @@ protected:
 
 private:
   // Constants
-  static const constexpr uint64_t m_tick_dist = 16; // NOLINT
+  static const constexpr uint64_t m_tick_dist = 16; // NOLINT(build/unsigned)
   static const constexpr size_t m_pds_frame_size = 584;
-  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT
+  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t m_element_size = m_pds_frame_size * m_frames_per_element;
-  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT
+  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT(build/unsigned)
 
-  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT
+  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
 
   // Stats
   stats::counter_t m_found_requested_count{ 0 };
   stats::counter_t m_bad_requested_count{ 0 };
 
-  uint32_t m_apa_number;  // NOLINT
-  uint32_t m_link_number; // NOLINT
+  uint32_t m_apa_number;  // NOLINT(build/unsigned)
+  uint32_t m_link_number; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

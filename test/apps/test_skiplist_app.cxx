@@ -1,13 +1,13 @@
 /**
- * @file test_ratelimiter_app.cxx Test application for 
+ * @file test_ratelimiter_app.cxx Test application for
  * ratelimiter implementation
  *
  * This is part of the DUNE DAQ Application Framework, copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "RateLimiter.hpp"
 #include "RandomEngine.hpp"
+#include "RateLimiter.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -16,10 +16,11 @@
 #include "folly/ConcurrentSkipList.h"
 
 #include <atomic>
-#include <string>
 #include <chrono>
 #include <memory>
 #include <set>
+#include <string>
+#include <utility>
 
 using namespace dunedaq::readout;
 using namespace folly;
@@ -31,7 +32,7 @@ main(int /*argc*/, char** /*argv[]*/)
   // ConcurrentSkipList from Folly
   typedef ConcurrentSkipList<types::WIB_SUPERCHUNK_STRUCT> SkipListT;
   typedef SkipListT::Accessor SkipListTAcc;
-  //typedef SkipListT::Skipper SkipListTSkip; //Skipper accessor to test
+  // typedef SkipListT::Skipper SkipListTSkip; //Skipper accessor to test
 
   // Skiplist instance
   auto head_height = 2;
@@ -41,7 +42,7 @@ main(int /*argc*/, char** /*argv[]*/)
   int runsecs = 15;
 
   // Run marker
-  std::atomic<bool> marker{true};
+  std::atomic<bool> marker{ true };
 
   // RateLimiter
   TLOG() << "Creating ratelimiter with 10 KHz...";
@@ -56,7 +57,7 @@ main(int /*argc*/, char** /*argv[]*/)
     while (marker) {
       TLOG() << "Adjusting rate to: " << rand_rates[idx] << " [kHz]";
       rl.adjust(rand_rates[idx]);
-      if (idx > runsecs-1) {
+      if (idx > runsecs - 1) {
         idx = 0;
       } else {
         ++idx;
@@ -65,14 +66,14 @@ main(int /*argc*/, char** /*argv[]*/)
     }
   });
 
-
   // Producer thread
   auto producer = std::thread([&]() {
     TLOG() << "SkipList Producer spawned... Creating accessor.";
-    uint64_t ts = 0;
+    uint64_t ts = 0; // NOLINT(build/unsigned)
     while (marker) {
       types::WIB_SUPERCHUNK_STRUCT pl;
-      auto plptr = const_cast<dunedaq::dataformats::WIBHeader*>(reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&pl));
+      auto plptr = const_cast<dunedaq::dataformats::WIBHeader*>(
+        reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&pl)); // NOLINT
       plptr->timestamp_1 = ts;
       plptr->timestamp_2 = ts >> 32;
       {
@@ -85,24 +86,23 @@ main(int /*argc*/, char** /*argv[]*/)
     TLOG() << "Producer joins...";
   });
 
-
   // Cleanup thread
   auto cleaner = std::thread([&]() {
     std::string tname("Cleaner");
     TLOG() << "SkipList " << tname << " spawned... Creating accessor.";
-    uint64_t max_time_diff = 100000; // accounts for few seconds in FE clock
+    uint64_t max_time_diff = 100000; // accounts for few seconds in FE clock // NOLINT(build/unsigned)
     while (marker) {
       SkipListTAcc cleanacc(skl);
       TLOG() << tname << ": SkipList size: " << cleanacc.size();
       auto tail = cleanacc.last();
       auto head = cleanacc.first();
       if (tail && head) {
-        auto tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail);
-        auto headptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(head);
+        auto tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail); // NOLINT
+        auto headptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(head); // NOLINT
         auto tailts = tailptr->get_timestamp();
         auto headts = headptr->get_timestamp();
         if (headts - tailts > max_time_diff) { // ts differnce exceeds maximum
-          uint64_t timediff = max_time_diff;
+          uint64_t timediff = max_time_diff;   // NOLINT(build/unsigned)
           auto removed_ctr = 0;
           while (timediff >= max_time_diff) {
             bool removed = cleanacc.remove(*tail);
@@ -112,12 +112,12 @@ main(int /*argc*/, char** /*argv[]*/)
               ++removed_ctr;
             }
             tail = cleanacc.last();
-            tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail);
+            tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail); // NOLINT
             tailts = tailptr->get_timestamp();
             timediff = headts - tailts;
           }
-          TLOG() << tname <<  ": Cleared " << removed_ctr << " elements.";
-        }      
+          TLOG() << tname << ": Cleared " << removed_ctr << " elements.";
+        }
       } else {
         TLOG() << tname << ": Didn't manage to get SKL head and tail!";
       }
@@ -125,7 +125,6 @@ main(int /*argc*/, char** /*argv[]*/)
     }
     TLOG() << "Cleaner joins...";
   });
-
 
   // Data extractor (Trigger Matcher, timestamp finder.)
   auto extractor = std::thread([&]() {
@@ -137,29 +136,31 @@ main(int /*argc*/, char** /*argv[]*/)
         auto tail = exacc.last();
         auto head = exacc.first();
         if (tail && head) {
-          auto tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail);
-          auto headptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(head);
+          auto tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail); // NOLINT
+          auto headptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(head); // NOLINT
           auto tailts = tailptr->get_timestamp();
           auto headts = headptr->get_timestamp();
 
           // Adjust trigger right in between:
-          auto trigts = (tailts + headts) / static_cast<uint64_t>(2); // NOLINT
+          auto trigts = (tailts + headts) / static_cast<uint64_t>(2); // NOLINT(build/unsigned)
           types::WIB_SUPERCHUNK_STRUCT trigger_pl;
-          auto trigptr = const_cast<dunedaq::dataformats::WIBHeader*>(reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&trigger_pl));
+          auto trigptr = const_cast<dunedaq::dataformats::WIBHeader*>(
+            reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&trigger_pl)); // NOLINT
           trigptr->timestamp_1 = trigts;
           trigptr->timestamp_2 = trigts >> 32;
 
           // Find closest to trigger payload
           auto close = exacc.lower_bound(trigger_pl);
-          //if (close) {
-            auto foundptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&(*close));
-            auto foundts = foundptr->get_timestamp();
-            TLOG() << tname << ": Found element lower bound to " << trigts << " in skiplist with timestamp --> " << foundts;
+          // if (close) {
+          auto foundptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&(*close)); // NOLINT
+          auto foundts = foundptr->get_timestamp();
+          TLOG() << tname << ": Found element lower bound to " << trigts << " in skiplist with timestamp --> "
+                 << foundts;
           //} else {
-            //TLOG() << tname << ": Timestamp doesn't seem to be in Skiplist...";
+          // TLOG() << tname << ": Timestamp doesn't seem to be in Skiplist...";
           //}
           //
-        //} else {
+          //} else {
           // TLOG() << tname << ": Didn't manage to get SKL head and tail!";
         }
       }
@@ -168,14 +169,12 @@ main(int /*argc*/, char** /*argv[]*/)
     TLOG() << "Extractor joins...";
   });
 
-
   // Killswitch that flips the run marker
   auto killswitch = std::thread([&]() {
     TLOG() << "Application will terminate in 5s...";
     std::this_thread::sleep_for(std::chrono::seconds(runsecs));
     marker.store(false);
   });
-
 
   // Join local threads
   TLOG() << "Flipping killswitch in order to stop threads...";
@@ -201,4 +200,4 @@ main(int /*argc*/, char** /*argv[]*/)
   std::this_thread::sleep_for(std::chrono::seconds(2));
 
   return 0;
-}
+} // NOLINT(readability/fn_size)
