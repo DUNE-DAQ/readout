@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <deque>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
@@ -72,8 +73,8 @@ protected:
   pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) {
     //size_t occupancy_guess = m_latency_buffer->occupancy();
     size_t removed_ctr = 0;
-    uint64_t tailts = 0; // newest
-    uint64_t headts = 0; // oldest
+    uint64_t tailts = 0; // oldest
+    uint64_t headts = 0; // newest
     {
       SkipListAcc acc(m_latency_buffer->get_skip_list());
       auto tail = acc.last();
@@ -84,22 +85,22 @@ protected:
         tailts = (*tail).get_timestamp(); //tailptr->get_timestamp();  // NOLINT
         headts = (*head).get_timestamp(); //headptr->get_timestamp(); 
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with " 
-          << "Oldest stored TS=" << headts << " "
-          << "Newest stored TS=" << tailts;
-        if (tailts - headts > m_max_ts_diff) { // ts differnce exceeds maximum
+          << "Oldest stored TS=" << tailts << " "
+          << "Newest stored TS=" << headts;
+        if (headts - tailts > m_max_ts_diff) { // ts differnce exceeds maximum
           ++inherited::m_pop_reqs;
           uint64_t timediff = m_max_ts_diff;
           while (timediff >= m_max_ts_diff) {
-            bool removed = acc.remove(*head);
+            bool removed = acc.remove(*tail);
             if (!removed) {
               TLOG_DEBUG(TLVL_WORK_STEPS) << "Unsuccesfull remove from SKL during cleanup: " << removed; 
             } else {
               ++removed_ctr;
             }
-            head = acc.first();
+            tail = acc.last();
             //headptr = reinterpret_cast<const dataformats::PDSFrame*>(head);
-            headts = (*head).get_timestamp(); // headptr->get_timestamp();
-            timediff = tailts - headts;
+            tailts = (*tail).get_timestamp(); // headptr->get_timestamp();
+            timediff = headts - tailts;
           }
           inherited::m_pops_count += removed_ctr;
         }
@@ -143,13 +144,14 @@ protected:
     // Prepare FragmentHeader
     auto frag_header = create_fragment_header(dr);
     // Prepare empty fragment piece container
+    std::deque<std::pair<void*, size_t>> frag_deq; // for push front (reverse ordered list)
     std::vector<std::pair<void*, size_t> > frag_pieces;
 
     // TS calculation
     uint64_t start_win_ts = dr.window_begin;  // NOLINT
     uint64_t end_win_ts = dr.window_end;  // NOLINT
-    uint64_t tailts = 0; // newest ts
-    uint64_t headts = 0; // oldest ts
+    uint64_t tailts = 0; // oldest ts
+    uint64_t headts = 0; // newest ts
 
     //size_t occupancy_guess = m_latency_buffer->occupancy();
 
@@ -164,11 +166,11 @@ protected:
         tailts = (*tail).get_timestamp(); //tailptr->get_timestamp();  // NOLINT
         headts = (*head).get_timestamp(); //headptr->get_timestamp();
 
-        if (headts <= start_win_ts && end_win_ts <= tailts) { // data is there
+        if (tailts <= start_win_ts && end_win_ts <= headts) { // data is there
           rres.result_code = ResultCode::kFound;
           ++m_found_requested_count;
         }
-        else if ( tailts < end_win_ts ) {
+        else if ( headts < end_win_ts ) {
           rres.result_code = ResultCode::kNotYet; // give it another chance
         }
         else {
@@ -212,7 +214,7 @@ protected:
           trig_key_end.set_timestamp(end_win_ts); //! sort order is TS decremented
     
           // Find iterator to lower bound of key
-          auto close = acc.lower_bound(trig_key_start);
+          auto close = acc.lower_bound(trig_key_end);
 
           // ... or with Skipper
           //SkipListSkip skip(acc);
@@ -222,19 +224,21 @@ protected:
           auto elements_handled = 0;     
  
           if (close.good()) {
-            frag_pieces.emplace_back( // emplace first pointer
+            //frag_pieces.emplace_back( // emplace first pointer
+            frag_deq.push_front(
               std::make_pair<void*, size_t>(
                 static_cast<void*>(&(*close)), sizeof(types::PDS_SUPERCHUNK_STRUCT))
             ); 
             ++elements_handled;
             auto it_ts = (*close).get_timestamp();
-            while (it_ts < end_win_ts) { // while window not closed
+            while (it_ts > start_win_ts) { // while window not closed
               close++; // iterate
               if (!close.good()) { // reached invalid it state
                 break;
               }
               //TLOG_DEBUG(TLVL_WORK_STEPS) << "    -> TS: " << (*close).get_timestamp();
-              frag_pieces.emplace_back( // emplace first pointer
+              //frag_pieces.emplace_back( // emplace first pointer
+              frag_deq.push_front(
                 std::make_pair<void*, size_t>(
                   static_cast<void*>(&(*close)), sizeof(types::PDS_SUPERCHUNK_STRUCT))
               );
@@ -249,7 +253,13 @@ protected:
     } // SKL access end
 
     // Create fragment from pieces
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fragment with " << frag_pieces.size() << " pieces.";
+    while (!frag_deq.empty()){
+      TLOG() << "BOOM BOOM";
+      frag_pieces.emplace_back(std::move(frag_deq.front()));
+      frag_deq.pop_front();
+    }
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fragment with " << frag_pieces.size() << " pieces. "
+                                << "(Deque consumed? " << frag_deq.size() << ")";
     auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
 
     // Set header

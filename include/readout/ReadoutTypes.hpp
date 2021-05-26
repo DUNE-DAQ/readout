@@ -123,7 +123,7 @@ struct PDS_SUPERCHUNK_STRUCT {
   bool operator<(const PDS_SUPERCHUNK_STRUCT& other) const {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data);
-    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
+    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const {
