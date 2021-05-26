@@ -5,7 +5,9 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
+#include "RecorderImpl.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/Nljs.hpp"
@@ -25,7 +27,6 @@ namespace readout {
 
 DataRecorder::DataRecorder(const std::string& name)
   : DAQModule(name)
-  , m_work_thread(0)
 {
   register_command("conf", &DataRecorder::do_conf);
   register_command("start", &DataRecorder::do_start);
@@ -37,76 +38,61 @@ DataRecorder::init(const data_t& args)
 {
   try {
     auto qi = appfwk::queue_index(args, { "raw_recording" });
-    m_input_queue.reset(new source_t(qi["raw_recording"].inst));
+    auto inst = qi["raw_recording"].inst;
+
+    // IF WIB2
+    if (inst.find("wib2") != std::string::npos) {
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for wib2";
+      recorder.reset(new RecorderImpl<types::WIB2_SUPERCHUNK_STRUCT>(get_name()));
+      recorder->init(args);
+      return;
+    }
+
+    // IF WIB
+    if (inst.find("wib") != std::string::npos) {
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for wib";
+      recorder.reset(new RecorderImpl<types::WIB_SUPERCHUNK_STRUCT>(get_name()));
+      recorder->init(args);
+      return;
+    }
+
+    // IF PDS
+    if (inst.find("pds") != std::string::npos) {
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for pds";
+      recorder.reset(new RecorderImpl<types::PDS_SUPERCHUNK_STRUCT>(get_name()));
+      recorder->init(args);
+      return;
+    }
+
+    throw ConfigurationError(ERS_HERE, "Could not create DataRecorder of type " + inst);
+
   } catch (const ers::Issue& excpt) {
     throw ResourceQueueError(ERS_HERE, "Could not initialize queue", "raw_recording", "");
   }
 }
 
 void
-DataRecorder::get_info(opmonlib::InfoCollector& ci, int /* level */)
+DataRecorder::get_info(opmonlib::InfoCollector& ci, int level)
 {
-  datarecorderinfo::Info info;
-  info.packets_processed = m_packets_processed_total;
-  double time_diff =
-    std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - m_time_point_last_info)
-      .count();
-  info.throughput_processed_packets = m_packets_processed_since_last_info / time_diff;
-
-  ci.add(info);
-
-  m_packets_processed_since_last_info = 0;
-  m_time_point_last_info = std::chrono::steady_clock::now();
-}
+  recorder->get_info(ci, level);
+  }
 
 void
 DataRecorder::do_conf(const data_t& args)
 {
-  m_conf = args.get<datarecorder::Conf>();
-  std::string output_file = m_conf.output_file;
-  if (remove(output_file.c_str()) == 0) {
-    TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run" << std::endl;
-  }
-
-  m_buffered_writer.open(m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm);
-  m_work_thread.set_name(get_name(), 0);
+  recorder->do_conf(args);
 }
 
 void
-DataRecorder::do_start(const data_t& /* args */)
+DataRecorder::do_start(const data_t& args)
 {
-  m_run_marker.store(true);
-  m_work_thread.set_work(&DataRecorder::do_work, this);
+  recorder->do_start(args);
 }
 
 void
-DataRecorder::do_stop(const data_t& /* args */)
+DataRecorder::do_stop(const data_t& args)
 {
-  m_run_marker.store(false);
-  while (!m_work_thread.get_readiness()) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-}
-
-void
-DataRecorder::do_work()
-{
-  m_time_point_last_info = std::chrono::steady_clock::now();
-
-  types::WIB_SUPERCHUNK_STRUCT element;
-  while (m_run_marker) {
-    try {
-      m_input_queue->pop(element, std::chrono::milliseconds(100));
-      m_packets_processed_total++;
-      m_packets_processed_since_last_info++;
-      if (!m_buffered_writer.write(element)) {
-        throw CannotWriteToFile(ERS_HERE, m_conf.output_file);
-      }
-    } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-      continue;
-    }
-  }
-  m_buffered_writer.flush();
+  recorder->do_stop(args);
 }
 
 } // namespace readout

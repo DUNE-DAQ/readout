@@ -21,6 +21,10 @@
 #include "ReadoutModel.hpp"
 
 #include "ContinousLatencyBufferModel.hpp"
+#include "PDSFrameProcessor.hpp"
+#include "PDSListRequestHandler.hpp"
+#include "PDSQueueRequestHandler.hpp"
+#include "SkipListLatencyBufferModel.hpp"
 #include "WIB2FrameProcessor.hpp"
 #include "WIB2RequestHandler.hpp"
 #include "WIBFrameProcessor.hpp"
@@ -68,8 +72,30 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
-      // IF PDS
-      if (inst.find("pds") != std::string::npos) {
+      // IF PDS queue
+      if (inst.find("pds_queue") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
+        raw_type_name = "pds";
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
+                       PDSQueueRequestHandler,
+                       SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
+                       PDSFrameProcessor>>(run_marker); // NOLINT
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      // IF PDS skiplist
+      if (inst.find("pds_list") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using SkipList LB";
+        raw_type_name = "pds";
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
+                       PDSListRequestHandler,
+                       SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
+                       PDSFrameProcessor>>(run_marker); // NOLINT
+        readout_model->init(args);
+        return std::move(readout_model);
       }
 
       // IF variadic

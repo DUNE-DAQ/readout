@@ -14,8 +14,8 @@
 #include "appfwk/DAQSource.hpp"
 
 #include "dataformats/pds/PDSFrame.hpp"
-
-//#include "nlohmann/json.hpp"
+#include "dataformats/wib/WIBFrame.hpp"
+#include "dataformats/wib2/WIB2Frame.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
@@ -23,8 +23,6 @@
 namespace dunedaq {
 namespace readout {
 namespace types {
-
-// using cfg_data_t = nlohmann::json;
 
 /**
  * @brief A FULLMODE Elink is identified by the following:
@@ -37,6 +35,12 @@ struct LinkId
   uint32_t link_tag_; // NOLINT
 };
 
+class Timestamped
+{
+  virtual uint64_t get_timestamp() const = 0; // NOLINT
+  virtual void set_timestamp(uint64_t) = 0;   // NOLINT
+};
+
 /**
  * @brief SuperChunk concept: The FELIX user payloads are called CHUNKs.
  * There is mechanism in firmware to aggregate WIB frames to a user payload
@@ -46,7 +50,36 @@ struct LinkId
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 struct WIB_SUPERCHUNK_STRUCT
 {
+  // data
   char data[WIB_SUPERCHUNK_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const
+  {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
+  }
+
+  uint64_t get_timestamp() const
+  {                                                                                                           // NOLINT
+    return reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
+  }
+
+  void set_timestamp(uint64_t ts)
+  {                                                                                                // NOLINT
+    reinterpret_cast<dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25)
+  {                                                                                               // NOLINT
+    uint64_t ts_next = first_timestamp;                                                           // NOLINT
+    for (unsigned int i = 0; i < 12; ++i) {                                                       // NOLINT
+      auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data)) + i * 464); // NOLINT
+      auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      wfh->set_timestamp(ts_next);
+      ts_next += offset;
+    }
+  }
 };
 
 /**
@@ -56,7 +89,38 @@ struct WIB_SUPERCHUNK_STRUCT
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
 struct WIB2_SUPERCHUNK_STRUCT
 {
+  // data
   char data[WIB2_SUPERCHUNK_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const WIB2_SUPERCHUNK_STRUCT& other) const
+  {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&other.data); // NOLINT
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
+  }
+
+  uint64_t get_timestamp() const
+  {                                                                                          // NOLINT
+    return reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data)->get_timestamp(); // NOLINT
+  }
+
+  void set_timestamp(uint64_t ts)
+  {                                                                         // NOLINT
+    auto frame = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(&data); // NOLINT
+    frame->header.timestamp_1 = ts;
+    frame->header.timestamp_2 = ts >> 32;
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25)
+  {                                                                                                 // NOLINT
+    uint64_t ts_next = first_timestamp;                                                             // NOLINT
+    for (unsigned int i = 0; i < 12; ++i) {                                                         // NOLINT
+      auto w2f = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)(&data)) + i * 468); // NOLINT
+      w2f->header.timestamp_1 = ts_next;
+      w2f->header.timestamp_2 = ts_next >> 32;
+      ts_next += offset;
+    }
+  }
 };
 
 /**
@@ -66,7 +130,38 @@ struct WIB2_SUPERCHUNK_STRUCT
 const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
 struct PDS_SUPERCHUNK_STRUCT
 {
+  // data
   char data[PDS_SUPERCHUNK_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const PDS_SUPERCHUNK_STRUCT& other) const
+  {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data); // NOLINT
+    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+  }
+
+  uint64_t get_timestamp() const
+  {                                                                                         // NOLINT
+    return reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data)->get_timestamp(); // NOLINT
+  }
+
+  void set_timestamp(uint64_t ts)
+  {                                                                        // NOLINT
+    auto frame = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&data); // NOLINT
+    frame->header.timestamp_wf_1 = ts;
+    frame->header.timestamp_wf_2 = ts >> 32;
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25)
+  {                                                                                                 // NOLINT
+    uint64_t ts_next = first_timestamp;                                                             // NOLINT
+    for (unsigned int i = 0; i < 12; ++i) {                                                         // NOLINT
+      auto pdsf = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
+      pdsf->header.timestamp_wf_1 = ts_next;
+      pdsf->header.timestamp_wf_2 = ts_next >> 32;
+      ts_next += offset;
+    }
+  }
 };
 
 /**

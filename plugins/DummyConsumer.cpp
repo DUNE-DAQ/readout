@@ -78,6 +78,7 @@ DummyConsumer<T>::do_work()
   while (m_run_marker) {
     try {
       m_input_queue->pop(element, std::chrono::milliseconds(100));
+      packet_callback(element);
       m_packets_processed++;
     } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
       continue;

@@ -11,6 +11,7 @@
 
 #include "BufferedFileWriter.hpp"
 #include "ReadoutStatistics.hpp"
+#include "RecorderConcept.hpp"
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
@@ -45,24 +46,8 @@ private:
   void do_conf(const nlohmann::json& obj);
   void do_start(const nlohmann::json& obj);
   void do_stop(const nlohmann::json& obj);
-  void do_work();
 
-  // Queue
-  using source_t = dunedaq::appfwk::DAQSource<types::WIB_SUPERCHUNK_STRUCT>;
-  std::unique_ptr<source_t> m_input_queue;
-
-  // Internal
-  datarecorder::Conf m_conf;
-  BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> m_buffered_writer;
-
-  // Threading
-  ReusableThread m_work_thread;
-  std::atomic<bool> m_run_marker;
-
-  // Stats
-  stats::counter_t m_packets_processed_total{ 0 };
-  stats::counter_t m_packets_processed_since_last_info{ 0 };
-  std::chrono::steady_clock::time_point m_time_point_last_info;
+  std::unique_ptr<RecorderConcept> recorder;
 };
 } // namespace readout
 } // namespace dunedaq

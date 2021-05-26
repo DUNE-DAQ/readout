@@ -76,19 +76,19 @@ public:
     for (const auto& qi : m_queue_config.qinfos) {
       try {
         if (qi.name == "raw_input") {
-          TLOG() << "Setup queue " << qi.name;
+          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
           m_raw_data_source.reset(new raw_source_qt(qi.inst));
         } else if (qi.name == "requests") {
-          TLOG() << "Setup queue " << qi.name;
+          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
           m_request_source.reset(new request_source_qt(qi.inst));
         } else if (qi.name == "timesync") {
-          TLOG() << "Setup queue " << qi.name;
+          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
           m_timesync_sink.reset(new timesync_sink_qt(qi.inst));
         } else if (qi.name == "fragments") {
-          TLOG() << "Setup queue " << qi.name;
+          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
           m_fragment_sink.reset(new fragment_sink_qt(qi.inst));
         } else if (qi.name == "raw_recording") {
-          TLOG() << "Setup queue " << qi.name;
+          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
           m_snb_sink.reset(new snb_sink_qt(qi.inst));
         } else {
           // throw error
@@ -236,7 +236,7 @@ private:
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
             dr.trigger_timestamp = timesyncmsg.daq_time > 500 * time::us ? timesyncmsg.daq_time - 500 * time::us : 0;
-            auto width = 1000;
+            auto width = 10000;
             uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;

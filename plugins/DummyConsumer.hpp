@@ -38,6 +38,9 @@ public:
   void init(const nlohmann::json& obj) override;
   void get_info(opmonlib::InfoCollector& ci, int level) override;
 
+protected:
+  virtual void packet_callback(T& /*packet*/) {}
+
 private:
   // Commands
   void do_start(const nlohmann::json& obj);

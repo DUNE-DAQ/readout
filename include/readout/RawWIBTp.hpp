@@ -287,10 +287,10 @@ public:
   }                                                                                            // NOLINT(build/unsigned)
   void set_sum_adc(TpData& tp, const uint16_t new_sum_adc) { tp.m_sum_adc = new_sum_adc; }     // NOLINT(build/unsigned)
   void set_tp_flags(TpData& tp, const uint16_t new_tp_flags) { tp.m_tp_flags = new_tp_flags; } // NOLINT(build/unsigned)
-  void set_hit_continue(TpData& tp, const uint8_t new_hit_continue)                            // NOLINT(build/unsigned)
+  void set_hit_continue(TpData& tp, const uint8_t new_hit_continue)
   {
     tp.m_hit_continue = new_hit_continue;
-  }
+  } // NOLINT(build/unsigned)
   // Pedinfo accessors
   uint16_t get_accumulator() const { return m_pedinfo.m_accumulator; } // NOLINT(build/unsigned)
   uint16_t get_median() const { return m_pedinfo.m_median; }           // NOLINT(build/unsigned)
