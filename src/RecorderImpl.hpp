@@ -17,6 +17,8 @@
 #include "readout/ReadoutTypes.hpp"
 #include "readout/ReusableThread.hpp"
 #include "readout/datarecorder/Structs.hpp"
+#include "readout/datarecorder/Nljs.hpp"
+#include "readout/datarecorderinfo/Structs.hpp"
 
 #include <atomic>
 #include <fstream>
