@@ -254,7 +254,6 @@ protected:
 
     // Create fragment from pieces
     while (!frag_deq.empty()){
-      TLOG() << "BOOM BOOM";
       frag_pieces.emplace_back(std::move(frag_deq.front()));
       frag_deq.pop_front();
     }
