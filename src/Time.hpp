@@ -1,15 +1,15 @@
 /**
-* @file Time.hpp Common Time related constants in UDAQ
-*
-* This is part of the DUNE DAQ , copyright 2020.
-* Licensing/copyright details are in the COPYING file that you should have
-* received with this code.
-*/
+ * @file Time.hpp Common Time related constants in UDAQ
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ */
 #ifndef READOUT_SRC_TIME_HPP_
 #define READOUT_SRC_TIME_HPP_
 
-#include <cstdint> // uint64_t
 #include <chrono>
+#include <cstdint> // uint64_t
 
 namespace dunedaq {
 namespace readout {
@@ -23,7 +23,9 @@ inline constexpr timestamp_t ms = 1000 * us;
 inline constexpr timestamp_t s = 1000 * ms;
 
 template<typename ChronoType>
-inline int64_t now_as() { // NOLINT
+inline int64_t
+now_as()
+{ // NOLINT
   auto now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
   return std::chrono::duration_cast<ChronoType>(duration).count();
