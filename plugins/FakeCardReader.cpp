@@ -4,44 +4,44 @@
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
-*/
+ */
+#include "readout/ReadoutLogging.hpp"
 #include "readout/fakecardreader/Nljs.hpp"
 #include "readout/fakecardreaderinfo/Nljs.hpp"
-#include "readout/ReadoutLogging.hpp"
 
-#include "FakeCardReader.hpp"
-#include "ReadoutIssues.hpp"
-#include "ReadoutConstants.hpp"
-#include "SourceEmulatorModel.hpp"
 #include "CreateSourceEmulator.hpp"
+#include "FakeCardReader.hpp"
+#include "ReadoutConstants.hpp"
+#include "ReadoutIssues.hpp"
+#include "SourceEmulatorModel.hpp"
 
-#include "logging/Logging.hpp"
-#include "dataformats/wib/WIBFrame.hpp"
-#include "readout/RawWIBTp.hpp"                   // FIXME now using local copy
 #include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
+#include "dataformats/wib/WIBFrame.hpp"
+#include "logging/Logging.hpp"
+#include "readout/RawWIBTp.hpp" // FIXME now using local copy
 
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <limits>
 #include <memory>
 #include <sstream>
 #include <string>
-#include <vector>
-#include <chrono>
 #include <utility>
+#include <vector>
 
 using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
-namespace readout { 
+namespace readout {
 
 FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , m_configured(false)
-  , m_run_marker{false}
-  , m_packet_count{0}
-  , m_packet_count_tot{0}
+  , m_run_marker{ false }
+  , m_packet_count{ 0 }
+  , m_packet_count_tot{ 0 }
 {
   register_command("conf", &FakeCardReader::do_conf);
   register_command("scrap", &FakeCardReader::do_scrap);
@@ -71,8 +71,7 @@ FakeCardReader::init(const data_t& args)
       }
       m_source_emus[qi.name]->init(args);
       m_source_emus[qi.name]->set_sink(qi.inst);
-    }
-    catch (const ers::Issue& excpt) {
+    } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, get_name(), qi.name, excpt);
     }
   }
@@ -81,7 +80,8 @@ FakeCardReader::init(const data_t& args)
 }
 
 void
-FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/) {
+FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/)
+{
   fakecardreaderinfo::Info fcr;
 
   fcr.packets = m_packet_count_tot.load();
@@ -94,7 +94,7 @@ FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/) {
   ci.add(fcr);
 }
 
-void 
+void
 FakeCardReader::do_conf(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_conf() method";
@@ -124,9 +124,8 @@ FakeCardReader::do_conf(const data_t& args)
 
     // Mark configured
     m_configured = true;
-
   }
- 
+
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_conf() method";
 }
 
@@ -143,7 +142,7 @@ FakeCardReader::do_scrap(const data_t& args)
 
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_scrap() method";
 }
-void 
+void
 FakeCardReader::do_start(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
@@ -159,7 +158,7 @@ FakeCardReader::do_start(const data_t& args)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_start() method";
 }
 
-void 
+void
 FakeCardReader::do_stop(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_stop() method";
@@ -170,7 +169,7 @@ FakeCardReader::do_stop(const data_t& args)
     emu->stop(args);
   }
 
-  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_stop() method"; 
+  TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_stop() method";
 }
 
 } // namespace readout
