@@ -10,7 +10,7 @@
 #include "readout/ReadoutTypes.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
-#include "readout/datarecorderinfo/Nljs.hpp"
+#include "readout/datarecorderinfo/InfoNljs.hpp"
 
 #include "DataRecorder.hpp"
 #include "appfwk/DAQModuleHelper.hpp"

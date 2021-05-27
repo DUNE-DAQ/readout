@@ -10,7 +10,7 @@
 #define READOUT_SRC_SOURCEEMULATORCONCEPT_HPP_
 
 #include "opmonlib/InfoCollector.hpp"
-#include "readout/fakecardreaderinfo/Nljs.hpp"
+#include "readout/fakecardreaderinfo/InfoNljs.hpp"
 
 #include "RandomEngine.hpp"
 #include "RateLimiter.hpp"

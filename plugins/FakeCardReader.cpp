@@ -7,7 +7,7 @@
  */
 #include "readout/ReadoutLogging.hpp"
 #include "readout/fakecardreader/Nljs.hpp"
-#include "readout/fakecardreaderinfo/Nljs.hpp"
+#include "readout/fakecardreaderinfo/InfoNljs.hpp"
 
 #include "CreateSourceEmulator.hpp"
 #include "FakeCardReader.hpp"

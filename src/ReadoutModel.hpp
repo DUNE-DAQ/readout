@@ -28,7 +28,7 @@
 
 #include "readout/ReadoutLogging.hpp"
 #include "readout/datalinkhandler/Structs.hpp"
-#include "readout/datalinkhandlerinfo/Nljs.hpp"
+#include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
 #include "LatencyBufferConcept.hpp"
 #include "RawDataProcessorConcept.hpp"
