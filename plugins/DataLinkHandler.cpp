@@ -4,30 +4,30 @@
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
-*/
-#include "readout/datalinkhandler/Nljs.hpp"
+ */
 #include "readout/ReadoutLogging.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 
 #include "DataLinkHandler.hpp"
 
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
 
-#include <sstream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
 using namespace dunedaq::readout::logging;
 
 namespace dunedaq {
-namespace readout { 
+namespace readout {
 
 DataLinkHandler::DataLinkHandler(const std::string& name)
   : DAQModule(name)
   , m_configured(false)
   , m_readout_impl(nullptr)
-  , m_run_marker{false}
+  , m_run_marker{ false }
 {
   register_command("conf", &DataLinkHandler::do_conf);
   register_command("scrap", &DataLinkHandler::do_scrap);
@@ -49,7 +49,9 @@ DataLinkHandler::init(const data_t& args)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting init() method";
 }
 
-void DataLinkHandler::get_info(opmonlib::InfoCollector& ci, int level) {
+void
+DataLinkHandler::get_info(opmonlib::InfoCollector& ci, int level)
+{
   m_readout_impl->get_info(ci, level);
 }
 
@@ -69,7 +71,7 @@ DataLinkHandler::do_scrap(const data_t& /*args*/)
   m_configured = false;
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_scrap() method";
 }
-void 
+void
 DataLinkHandler::do_start(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
@@ -78,7 +80,7 @@ DataLinkHandler::do_start(const data_t& args)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_start() method";
 }
 
-void 
+void
 DataLinkHandler::do_stop(const data_t& args)
 {
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_stop() method";
