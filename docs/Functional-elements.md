@@ -16,3 +16,6 @@ Individual domains represent a substantially different path of the raw data, inc
 
 ## Definitions
 1. Latency Buffer: A container that temporarily stores the raw data, and has certain attributes that ensures search-ability based on a lookup criteria. A notable example for this, is the lookup based on the timestamp, where the timestamp can be converted to an exact position in the buffer if the "timestamp continuity" attribute is ensured in the buffer.
+
+## Class diagram
+![class-diagram](https://cernbox.cern.ch/index.php/s/yCzzMYonKCNnfDw/download)
