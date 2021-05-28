@@ -40,11 +40,14 @@ class PDSListRequestHandler
       SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>
 {
 public:
-  using inherited = DefaultRequestHandlerModel<
-    types::PDS_SUPERCHUNK_STRUCT,
-    SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>;
-  using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
-  using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
+  using SkipListType = SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>;
+  using inherited = DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SkipListType>;
+
+  using SkipListAcc = SkipListType::ParanoidSkipListAcc;
+  using SkipListSkip = SkipListType::ParanoidSkipListSkip;
+
+  //typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
+  //using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
 
   PDSListRequestHandler(
     std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>&

@@ -16,11 +16,55 @@
 #include "ReadoutIssues.hpp"
 
 #include "folly/ConcurrentSkipList.h"
+#include "folly/memory/Arena.h"
 
 #include <memory>
 #include <utility>
+#include <functional>
+#include <assert.h>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
+
+/*
+namespace dunedaq {
+namespace readout {
+
+template <typename ParentAlloc>
+struct ParanoidArenaAlloc {
+  explicit ParanoidArenaAlloc(ParentAlloc& arena) : arena_(arena) {}
+  ParanoidArenaAlloc(ParanoidArenaAlloc const&) = delete;
+  ParanoidArenaAlloc(ParanoidArenaAlloc&&) = delete;
+  ParanoidArenaAlloc& operator=(ParanoidArenaAlloc const&) = delete;
+  ParanoidArenaAlloc& operator=(ParanoidArenaAlloc&&) = delete;
+
+  void* allocate(size_t size) {
+    void* result = arena_.get().allocate(size);
+    allocated_.insert(result);
+    return result;
+  }
+
+  void deallocate(char* ptr, size_t n) {
+    assert(1 == allocated_.erase(ptr));
+    arena_.get().deallocate(ptr, n);
+  }
+
+  bool isEmpty() const { return allocated_.empty(); }
+
+  std::reference_wrapper<ParentAlloc> arena_;
+  std::set<void*> allocated_;
+};
+
+} // namespace readout
+} // namespace dunedaq
+*/
+
+/*
+namespace folly {
+template <typename ParentAlloc>
+struct AllocatorHasTrivialDeallocate<dunedaq::readout::ParanoidArenaAlloc<ParentAlloc>>
+  : AllocatorHasTrivialDeallocate<ParentAlloc> {};
+} // namespace folly
+*/
 
 namespace dunedaq {
 namespace readout {
@@ -28,15 +72,52 @@ namespace readout {
 template<class RawType, class KeyType, class KeyGetter>
 class SkipListLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
 {
-
 public:
+
+  // Paranoid Arena Allocator for RawType
+  template <typename ParentAlloc>
+  struct ParanoidArenaAlloc {
+    explicit ParanoidArenaAlloc(ParentAlloc& arena) : arena_(arena) {}
+    ParanoidArenaAlloc(ParanoidArenaAlloc const&) = delete;
+    ParanoidArenaAlloc(ParanoidArenaAlloc&&) = delete;
+    ParanoidArenaAlloc& operator=(ParanoidArenaAlloc const&) = delete;
+    ParanoidArenaAlloc& operator=(ParanoidArenaAlloc&&) = delete;
+  
+    void* allocate(size_t size) {
+      void* result = arena_.get().allocate(size);
+      allocated_.insert(result);
+      return result;
+    }
+  
+    void deallocate(RawType* ptr, size_t n) {
+      assert(1 == allocated_.erase(ptr));
+      arena_.get().deallocate(ptr, n);
+    }
+  
+    bool isEmpty() const { return allocated_.empty(); }
+  
+    std::reference_wrapper<ParentAlloc> arena_;
+    std::set<void*> allocated_;
+  };
+
   // Folly typenames
   using SkipListT = typename folly::ConcurrentSkipList<RawType>;
   using SkipListTAcc = typename folly::ConcurrentSkipList<RawType>::Accessor; // SKL Accessor
   using SkipListTSkip = typename folly::ConcurrentSkipList<RawType>::Skipper; // Skipper accessor
 
+  // Custom allocator
+  using Allocator = typename folly::SysArenaAllocator<RawType>;
+  using ParanoidAlloc = ParanoidArenaAlloc<Allocator>;
+  using CxxAlloc = folly::CxxAllocatorAdaptor<RawType, ParanoidAlloc>;
+  using ParanoidSkipList = typename folly::ConcurrentSkipList<RawType, std::less<RawType>, CxxAlloc>;
+  using ParanoidSkipListAcc = typename ParanoidSkipList::Accessor; // SKL Accessor
+  using ParanoidSkipListSkip = typename ParanoidSkipList::Skipper; // Skipper accessor
+
   SkipListLatencyBufferModel()
-    : m_skip_list(folly::ConcurrentSkipList<RawType>::createInstance(unconfigured_head_height))
+    : m_parent_allocator(m_arena)
+    , m_paranoid_allocator(m_parent_allocator)
+    , m_cxx_alloc(m_paranoid_allocator)
+    , m_skip_list(ParanoidSkipList::createInstance(unconfigured_head_height, m_cxx_alloc))
   {
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
@@ -47,13 +128,13 @@ public:
     // m_queue.reset(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(params.latency_buffer_size));
   }
 
-  std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
+  std::shared_ptr<ParanoidSkipList>& get_skip_list() { return std::ref(m_skip_list); }
 
   size_t occupancy() override
   {
     auto occupancy = 0;
     {
-      SkipListTAcc acc(m_skip_list);
+      ParanoidSkipListAcc acc(m_skip_list);
       occupancy = acc.size();
     }
     return occupancy;
@@ -74,7 +155,7 @@ public:
   {
     bool success = false;
     {
-      SkipListTAcc acc(m_skip_list);
+      ParanoidSkipListAcc acc(m_skip_list);
       auto ret = acc.insert(std::move(new_element)); // ret T = std::pair<iterator, bool>
       success = ret.second;
     }
@@ -86,7 +167,7 @@ public:
   {
     bool found = false;
     {
-      SkipListTAcc acc(m_skip_list);
+      ParanoidSkipListAcc acc(m_skip_list);
       auto lb_node = acc.lower_bound(element);
       found = (lb_node == acc.end()) ? false : true;
       if (found) {
@@ -103,7 +184,7 @@ public:
   {
     bool found = false;
     {
-      SkipListTAcc acc(m_skip_list);
+      ParanoidSkipListAcc acc(m_skip_list);
       auto node = acc.find(element);
       found = (node == acc.end()) ? false : true;
       if (found) {
@@ -116,7 +197,7 @@ public:
   void pop(unsigned num = 1) override // NOLINT
   {
     {
-      SkipListTAcc acc(m_skip_list);
+      ParanoidSkipListAcc acc(m_skip_list);
       for (unsigned i = 0; i < num; ++i) {
         acc.pop_back();
       }
@@ -142,8 +223,20 @@ public:
   }
 
 private:
+  // Arena
+  folly::SysArena m_arena;
+
+  // Arena allocator
+  Allocator m_parent_allocator;
+
+  // Paranoid allocator
+  ParanoidAlloc m_paranoid_allocator;
+
+  // Cxx Alloc
+  CxxAlloc m_cxx_alloc;
+
   // Concurrent SkipList
-  std::shared_ptr<SkipListT> m_skip_list;
+  std::shared_ptr<ParanoidSkipList> m_skip_list;
 
   // Conf
   static constexpr uint32_t unconfigured_head_height = 2; // NOLINT
