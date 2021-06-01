@@ -17,14 +17,14 @@
 
 #include "readout/fakecardreader/Structs.hpp"
 
-#include "FileSourceBuffer.hpp"
-#include "RandomEngine.hpp"
-#include "RateLimiter.hpp"
+#include "utils/FileSourceBuffer.hpp"
+#include "utils/RandomEngine.hpp"
+#include "utils/RateLimiter.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutStatistics.hpp"
 #include "SourceEmulatorConcept.hpp"
 
-#include "readout/ReusableThread.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
 #include <memory>

@@ -6,7 +6,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "RandomEngine.hpp"
+#include "readout/utils/RandomEngine.hpp"
 
 #include "logging/Logging.hpp"
 

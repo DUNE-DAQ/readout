@@ -30,13 +30,13 @@
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
-#include "LatencyBufferConcept.hpp"
-#include "RawDataProcessorConcept.hpp"
-#include "RequestHandlerConcept.hpp"
+#include "readout/LatencyBufferConcept.hpp"
+#include "readout/RawDataProcessorConcept.hpp"
+#include "readout/RequestHandlerConcept.hpp"
 
-#include "ReadoutIssues.hpp"
-#include "ReadoutStatistics.hpp"
-#include "readout/ReusableThread.hpp"
+#include "readout/ReadoutIssues.hpp"
+#include "readout/ReadoutStatistics.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
 #include <memory>

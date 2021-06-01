@@ -14,21 +14,21 @@
 #include "appfwk/cmd/Structs.hpp"
 
 #include "readout/ReadoutLogging.hpp"
-#include "readout/ReadoutTypes.hpp"
+#include "readout/types/ReadoutTypes.hpp"
 
-#include "ReadoutConcept.hpp"
-#include "ReadoutIssues.hpp"
-#include "ReadoutModel.hpp"
+#include "../include/readout/ReadoutConcept.hpp"
+#include "../include/readout/ReadoutIssues.hpp"
+#include "../include/readout/ReadoutModel.hpp"
 
-#include "ContinousLatencyBufferModel.hpp"
-#include "PDSFrameProcessor.hpp"
-#include "PDSListRequestHandler.hpp"
-#include "PDSQueueRequestHandler.hpp"
-#include "SkipListLatencyBufferModel.hpp"
-#include "WIB2FrameProcessor.hpp"
-#include "WIB2RequestHandler.hpp"
-#include "WIBFrameProcessor.hpp"
-#include "WIBRequestHandler.hpp"
+#include "../include/readout/ContinousLatencyBufferModel.hpp"
+#include "pds/PDSFrameProcessor.hpp"
+#include "pds/PDSListRequestHandler.hpp"
+#include "pds/PDSQueueRequestHandler.hpp"
+#include "../include/readout/SkipListLatencyBufferModel.hpp"
+#include "wib2/WIB2FrameProcessor.hpp"
+#include "wib2/WIB2RequestHandler.hpp"
+#include "wib/WIBFrameProcessor.hpp"
+#include "wib/WIBRequestHandler.hpp"
 
 #include <memory>
 #include <string>

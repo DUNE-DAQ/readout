@@ -9,7 +9,7 @@
 #ifndef READOUT_SRC_BUFFEREDFILEREADER_HPP_
 #define READOUT_SRC_BUFFEREDFILEREADER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "../ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"

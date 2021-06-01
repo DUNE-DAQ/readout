@@ -5,9 +5,9 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "RecorderImpl.hpp"
+#include "readout/RecorderImpl.hpp"
 #include "readout/ReadoutLogging.hpp"
-#include "readout/ReadoutTypes.hpp"
+#include "readout/types/ReadoutTypes.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/InfoNljs.hpp"
@@ -15,7 +15,7 @@
 #include "DataRecorder.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
 #include <string>

@@ -12,8 +12,8 @@
 #include "opmonlib/InfoCollector.hpp"
 #include "readout/fakecardreaderinfo/InfoNljs.hpp"
 
-#include "RandomEngine.hpp"
-#include "RateLimiter.hpp"
+#include "utils/RandomEngine.hpp"
+#include "utils/RateLimiter.hpp"
 
 #include <map>
 #include <string>

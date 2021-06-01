@@ -8,10 +8,10 @@
 #ifndef READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
 
-#include "ReadoutIssues.hpp"
-#include "ReadoutStatistics.hpp"
-#include "TaskRawDataProcessorModel.hpp"
-#include "Time.hpp"
+#include "../../include/readout/ReadoutIssues.hpp"
+#include "../../include/readout/ReadoutStatistics.hpp"
+#include "../../include/readout/TaskRawDataProcessorModel.hpp"
+#include "../../include/readout/Time.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"

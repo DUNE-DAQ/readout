@@ -8,13 +8,13 @@
 #ifndef READOUT_SRC_RECORDERCONCEPT_HPP_
 #define READOUT_SRC_RECORDERCONCEPT_HPP_
 
-#include "BufferedFileWriter.hpp"
-#include "ReadoutStatistics.hpp"
+#include "utils/BufferedFileWriter.hpp"
+#include "readout/ReadoutStatistics.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
 #include "opmonlib/InfoCollector.hpp"
-#include "readout/ReadoutTypes.hpp"
-#include "readout/ReusableThread.hpp"
+#include "readout/types/ReadoutTypes.hpp"
+#include "readout/utils/ReusableThread.hpp"
 #include "readout/datarecorder/Structs.hpp"
 
 #include <atomic>

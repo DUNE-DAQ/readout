@@ -9,9 +9,9 @@
 #ifndef READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
 #define READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
 
-#include "ReadoutIssues.hpp"
-#include "RequestHandlerConcept.hpp"
-#include "readout/ReusableThread.hpp"
+#include "readout/ReadoutIssues.hpp"
+#include "readout/RequestHandlerConcept.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
 

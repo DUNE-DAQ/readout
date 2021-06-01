@@ -8,15 +8,15 @@
 #ifndef READOUT_SRC_PDSQUEUEREQUESTHANDLER_HPP_
 #define READOUT_SRC_PDSQUEUEREQUESTHANDLER_HPP_
 
-#include "DefaultRequestHandlerModel.hpp"
-#include "ReadoutIssues.hpp"
-#include "ReadoutStatistics.hpp"
-#include "SearchableLatencyBufferModel.hpp"
+#include "../../include/readout/DefaultRequestHandlerModel.hpp"
+#include "../../include/readout/ReadoutIssues.hpp"
+#include "../../include/readout/ReadoutStatistics.hpp"
+#include "../../include/readout/SearchableLatencyBufferModel.hpp"
 
 #include "dataformats/pds/PDSFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
-#include "readout/ReadoutTypes.hpp"
+#include "readout/types/ReadoutTypes.hpp"
 
 #include <atomic>
 #include <functional>

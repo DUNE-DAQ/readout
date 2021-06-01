@@ -8,14 +8,14 @@
 #ifndef READOUT_SRC_RECORDERIMPL_HPP_
 #define READOUT_SRC_RECORDERIMPL_HPP_
 
-#include "BufferedFileWriter.hpp"
+#include "utils/BufferedFileWriter.hpp"
 #include "ReadoutStatistics.hpp"
 #include "RecorderConcept.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
-#include "readout/ReadoutTypes.hpp"
-#include "readout/ReusableThread.hpp"
+#include "readout/types/ReadoutTypes.hpp"
+#include "readout/utils/ReusableThread.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/InfoStructs.hpp"

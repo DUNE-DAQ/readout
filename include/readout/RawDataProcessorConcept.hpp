@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_RAWDATAPROCESSORCONCEPT_HPP_
 #define READOUT_SRC_RAWDATAPROCESSORCONCEPT_HPP_
 
-#include "Time.hpp"
+#include "readout/Time.hpp"
 
 #include <string>
 

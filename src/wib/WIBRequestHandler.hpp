@@ -1,19 +1,19 @@
 /**
- * @file WIB2RequestHandler.hpp Trigger matching mechanism for WIB frames.
+ * @file WIBRequestHandler.hpp Trigger matching mechanism for WIB frames.
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_WIB2REQUESTHANDLER_HPP_
-#define READOUT_SRC_WIB2REQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#define READOUT_SRC_WIBREQUESTHANDLER_HPP_
 
-#include "DefaultRequestHandlerModel.hpp"
-#include "ReadoutIssues.hpp"
-#include "ReadoutStatistics.hpp"
+#include "../../include/readout/DefaultRequestHandlerModel.hpp"
+#include "../../include/readout/ReadoutIssues.hpp"
+#include "../../include/readout/ReadoutStatistics.hpp"
 
-#include "ContinousLatencyBufferModel.hpp"
-#include "dataformats/wib2/WIB2Frame.hpp"
+#include "../../include/readout/ContinousLatencyBufferModel.hpp"
+#include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
@@ -28,32 +28,33 @@
 #include <utility>
 #include <vector>
 
+using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
+
 namespace dunedaq {
 namespace readout {
 
-using logging::TLVL_WORK_STEPS;
-
-class WIB2RequestHandler
-  : public DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT,
-                                      ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>
+class WIBRequestHandler
+  : public DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT,
+                                      ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>
 {
 public:
-  WIB2RequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>& latency_buffer,
-                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                     std::unique_ptr<appfwk::DAQSink<types::WIB2_SUPERCHUNK_STRUCT>>& snb_sink)
-    : DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT,
-                                 ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>(latency_buffer,
-                                                                                             fragment_sink,
-                                                                                             snb_sink)
+  WIBRequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer,
+                    std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                    std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
+    : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT,
+                                 ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>(latency_buffer,
+                                                                                            fragment_sink,
+                                                                                            snb_sink)
   {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "WIB2RequestHandler created...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "WIBRequestHandler created...";
   }
 
   void conf(const nlohmann::json& args) override
   {
     // Call up to the base class, whose conf function does useful things
-    DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT,
-                               ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>>::conf(args);
+    DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT,
+                               ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
@@ -108,11 +109,12 @@ protected:
 
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
-    auto front_frame = *(reinterpret_cast<const dataformats::WIB2Frame*>(m_latency_buffer->get_ptr(0))); // NOLINT
-    uint64_t last_ts = front_frame.get_timestamp(); // NOLINT(build/unsigned)
-    uint64_t start_win_ts = dr.window_begin;        // NOLINT(build/unsigned)
-    uint64_t end_win_ts = dr.window_end;            // NOLINT(build/unsigned)
-    uint64_t newest_ts =                            // NOLINT(build/unsigned)
+    dataformats::WIBHeader front_wh =
+      *(reinterpret_cast<const dataformats::WIBHeader*>(m_latency_buffer->get_ptr(0))); // NOLINT
+    uint64_t start_win_ts = dr.window_begin;                                            // NOLINT(build/unsigned)
+    uint64_t end_win_ts = dr.window_end;                                                // NOLINT(build/unsigned)
+    uint64_t last_ts = front_wh.get_timestamp();                                        // NOLINT(build/unsigned)
+    uint64_t newest_ts =                                                                // NOLINT(build/unsigned)
       last_ts + (occupancy_guess - m_safe_num_elements_margin) * m_tick_dist * m_frames_per_element;
     int64_t time_tick_diff = (start_win_ts - last_ts) / m_tick_dist;
     int32_t num_element_offset = time_tick_diff / m_frames_per_element;
@@ -212,6 +214,9 @@ protected:
     frag->set_header_fields(frag_header);
     // Push to Fragment queue
     try {
+      TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number " << frag->get_trigger_number()
+                                  << ", run number " << frag->get_run_number() << ", and GeoID "
+                                  << frag->get_element_id();
       m_fragment_sink->push(std::move(frag));
     } catch (const ers::Issue& excpt) {
       std::ostringstream oss;
@@ -225,8 +230,8 @@ protected:
 
 private:
   // Constants
-  static const constexpr uint64_t m_tick_dist = 32; // NOLINT(build/unsigned)
-  static const constexpr size_t m_wib_frame_size = 468;
+  static const constexpr uint64_t m_tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr size_t m_wib_frame_size = 464;
   static const constexpr uint8_t m_frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
   static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT(build/unsigned)
@@ -244,4 +249,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_WIB2REQUESTHANDLER_HPP_
+#endif // READOUT_SRC_WIBREQUESTHANDLER_HPP_
