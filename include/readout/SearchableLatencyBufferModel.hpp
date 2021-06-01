@@ -12,7 +12,7 @@
 #ifndef READOUT_SRC_SEARCHABLELATENCYBUFFERMODEL_HPP_
 #define READOUT_SRC_SEARCHABLELATENCYBUFFERMODEL_HPP_
 
-#include "LatencyBufferConcept.hpp"
+#include "types/LatencyBufferConcept.hpp"
 #include "ReadoutIssues.hpp"
 
 #include "SearchableProducerConsumerQueue.hpp"

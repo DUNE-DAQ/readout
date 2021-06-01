@@ -22,7 +22,7 @@
 #include "utils/RateLimiter.hpp"
 #include "ReadoutIssues.hpp"
 #include "ReadoutStatistics.hpp"
-#include "SourceEmulatorConcept.hpp"
+#include "types/SourceEmulatorConcept.hpp"
 
 #include "readout/utils/ReusableThread.hpp"
 

@@ -12,7 +12,7 @@
 #ifndef READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
 #define READOUT_SRC_CONTINOUSLATENCYBUFFERMODEL_HPP_
 
-#include "LatencyBufferConcept.hpp"
+#include "types/LatencyBufferConcept.hpp"
 #include "ReadoutIssues.hpp"
 
 //#include <folly/ProducerConsumerQueue.h>

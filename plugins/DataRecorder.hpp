@@ -11,7 +11,7 @@
 
 #include "readout/utils/BufferedFileWriter.hpp"
 #include "readout/ReadoutStatistics.hpp"
-#include "readout/RecorderConcept.hpp"
+#include "readout/types/RecorderConcept.hpp"
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"

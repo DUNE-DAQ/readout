@@ -9,7 +9,7 @@
 #ifndef READOUT_SRC_TASKRAWDATAPROCESSORMODEL_HPP_
 #define READOUT_SRC_TASKRAWDATAPROCESSORMODEL_HPP_
 
-#include "RawDataProcessorConcept.hpp"
+#include "types/RawDataProcessorConcept.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 

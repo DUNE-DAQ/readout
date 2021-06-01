@@ -10,7 +10,7 @@
 #define READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
 
 #include "readout/ReadoutIssues.hpp"
-#include "readout/RequestHandlerConcept.hpp"
+#include "readout/types/RequestHandlerConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"

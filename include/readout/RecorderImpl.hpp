@@ -10,7 +10,7 @@
 
 #include "utils/BufferedFileWriter.hpp"
 #include "ReadoutStatistics.hpp"
-#include "RecorderConcept.hpp"
+#include "types/RecorderConcept.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"

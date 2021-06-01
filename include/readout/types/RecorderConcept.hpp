@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_RECORDERCONCEPT_HPP_
 #define READOUT_SRC_RECORDERCONCEPT_HPP_
 
-#include "utils/BufferedFileWriter.hpp"
+#include "../utils/BufferedFileWriter.hpp"
 #include "readout/ReadoutStatistics.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
