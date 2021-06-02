@@ -15,6 +15,7 @@
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "ReadoutIssues.hpp"
 
+#include "readout/utils/AccessableProducerConsumerQueue.hpp"
 #include "readout/utils/SearchableProducerConsumerQueue.hpp"
 
 #include <memory>
@@ -26,7 +27,7 @@ namespace dunedaq {
 namespace readout {
 
 template<class RawType, class KeyType, class KeyGetter>
-class SearchableLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
+class SearchableLatencyBufferModel : public LatencyBufferConcept<RawType>
 {
 
   static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT(build/unsigned)
@@ -54,19 +55,9 @@ public:
 
   bool read(RawType& element) override { return m_queue->read(element); }
 
-  bool place(RawType&& /*new_element*/, KeyType& /*key*/) override
+  bool place(RawType&& /*new_element*/) override
   {
     TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SearchableLatencyBufferModel!";
-    return false;
-  }
-
-  bool find(RawType& element, KeyType& key) override
-  {
-    auto elptr = m_queue->find_element(key);
-    if (elptr != nullptr) {
-      element = *elptr;
-      return true;
-    }
     return false;
   }
 
@@ -77,22 +68,21 @@ public:
     }
   }
 
-  RawType* get_ptr(unsigned idx) override // NOLINT(build/unsigned)
-  {
-    if (idx == 0) {
-      return m_queue->frontPtr();
-    } else {
-      return m_queue->readPtr(idx); // Only with accessable SPSC
-    }
+  virtual RawType* front() override {
+    return m_queue->readPtr(0);
   }
 
-  RawType* find_ptr(KeyType& key) override { return m_queue->find_element(key); }
+  virtual RawType* back() override {
+    return m_queue->readPtr(m_queue->sizeGuess());
+  }
 
-  int find_index(KeyType& key) override { return m_queue->find_index(key); }
+  typename AccessableProducerConsumerQueue<RawType>::Iterator lower_bound(RawType& element) {
+    return m_queue->lower_bound(element);
+  }
 
-  RawType* at(int index) { return m_queue->at(index); }
-
-  int next_index(int index) { return m_queue->next_index(index); }
+  typename AccessableProducerConsumerQueue<RawType>::Iterator end() {
+    return m_queue->end();
+  }
 
 private:
   std::unique_ptr<SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>> m_queue;

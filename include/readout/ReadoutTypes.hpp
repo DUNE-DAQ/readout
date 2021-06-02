@@ -16,6 +16,8 @@
 #include "dataformats/pds/PDSFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
+#include "dataformats/GeoID.hpp"
+#include "dataformats/FragmentHeader.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
@@ -80,6 +82,14 @@ struct WIB_SUPERCHUNK_STRUCT
       ts_next += offset;
     }
   }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 464;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
+
 };
 
 /**
@@ -121,6 +131,13 @@ struct WIB2_SUPERCHUNK_STRUCT
       ts_next += offset;
     }
   }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t tick_dist = 32; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 468;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
 /**
@@ -162,6 +179,14 @@ struct PDS_SUPERCHUNK_STRUCT
       ts_next += offset;
     }
   }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
+  static const constexpr uint64_t tick_dist = 16; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 584;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
+
 };
 
 /**
@@ -173,6 +198,18 @@ struct PDSTimestampGetter
   {
     auto pdsfptr = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&pdss); // NOLINT
     return pdsfptr->get_timestamp();
+  }
+};
+
+struct WIBTimestampGetter {
+  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) {
+    return chunk.get_timestamp();
+  }
+};
+
+struct WIB2TimestampGetter {
+  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) {
+    return chunk.get_timestamp();
   }
 };
 

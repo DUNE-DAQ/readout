@@ -65,37 +65,8 @@ protected:
     return tpc_data_request(dr, delay_us);
   }
 
-  inline dataformats::FragmentHeader create_fragment_header(const dfmessages::DataRequest& dr)
-  {
-    dataformats::FragmentHeader fh;
-    fh.size = sizeof(fh);
-    fh.trigger_number = dr.trigger_number;
-    fh.trigger_timestamp = dr.trigger_timestamp;
-    fh.window_begin = dr.window_begin;
-    fh.window_end = dr.window_end;
-    fh.run_number = dr.run_number;
-    fh.element_id = { dataformats::GeoID::SystemType::kTPC, m_apa_number, m_link_number };
-    fh.fragment_type = static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData);
-    return std::move(fh);
-  }
 
-  inline void dump_to_buffer(const void* data,
-                             std::size_t size,
-                             void* buffer,
-                             uint32_t buffer_pos, // NOLINT(build/unsigned)
-                             const std::size_t& buffer_size)
-  {
-    auto bytes_to_copy = size;
-    while (bytes_to_copy > 0) {
-      auto n = std::min(bytes_to_copy, buffer_size - buffer_pos);
-      std::memcpy(static_cast<char*>(buffer) + buffer_pos, static_cast<const char*>(data), n);
-      buffer_pos += n;
-      bytes_to_copy -= n;
-      if (buffer_pos == buffer_size) {
-        buffer_pos = 0;
-      }
-    }
-  }
+
 
   RequestResult tpc_data_request(dfmessages::DataRequest dr, unsigned delay_us)
   {

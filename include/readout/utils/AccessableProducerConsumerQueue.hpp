@@ -250,11 +250,59 @@ struct AccessableProducerConsumerQueue
     return static_cast<size_t>(ret);
   }
 
+  T* atMemoryLocation(size_t index) {
+    return &records_[index];
+  }
+
   // maximum number of items in the queue.
   size_t capacity() const { return size_ - 1; }
 
   void lock() { m_mutex.lock(); }
   void unlock() { m_mutex.unlock(); }
+
+  struct Iterator
+  {
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = T;
+    using pointer           = T*;
+    using reference         = T&;
+
+    Iterator(AccessableProducerConsumerQueue<T>& queue, uint32_t index) : m_queue(queue), m_index(index) {}
+
+    reference operator*() const {
+      return m_queue.records_[m_index];
+    }
+    pointer operator->() {
+      return &m_queue.records_[m_index];
+    }
+    Iterator& operator++() {
+      m_index++;
+      if (m_index == m_queue.size_) {
+        m_index = 0;
+      }
+      return *this;
+    }
+    Iterator operator++(int) {
+      Iterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+    friend bool operator==(const Iterator& a, const Iterator& b) {
+      return a.m_index == b.m_index;
+    };
+    friend bool operator!=(const Iterator& a, const Iterator& b) {
+      return a.m_index != b.m_index;
+    };
+
+  private:
+    AccessableProducerConsumerQueue<T>& m_queue;
+    uint32_t m_index;
+  };
+
+  Iterator get_iterator(uint32_t index) {
+    return Iterator(index);
+  }
 
 protected: // hardware_destructive_interference_size is set to 128.
            // (Assuming cache line size of 64, so we use a cache line pair size of 128 )

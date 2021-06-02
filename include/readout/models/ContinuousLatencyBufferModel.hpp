@@ -26,8 +26,8 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class KeyType = int>
-class ContinuousLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
+template<class RawType>
+class ContinuousLatencyBufferModel : public LatencyBufferConcept<RawType>
 {
 
   static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT(build/unsigned)
@@ -55,34 +55,7 @@ public:
 
   bool read(RawType& element) override { return m_queue->read(element); }
 
-  bool place(RawType&& /*new_element*/, KeyType& /*key*/) override
-  {
-    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
-    return false;
-  }
-
-  bool find(RawType& /*element*/, KeyType& /*key*/) override
-  {
-    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
-    return false;
-  }
-
-  RawType* get_ptr(unsigned idx) override // NOLINT(build/unsigned)
-  {
-    if (idx == 0) {
-      return m_queue->frontPtr();
-    } else {
-      return m_queue->readPtr(idx); // Only with accessable SPSC
-    }
-  }
-
-  RawType* find_ptr(KeyType& /*key*/) override
-  {
-    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
-    return nullptr;
-  }
-
-  int find_index(KeyType&) override
+  bool place(RawType&& /*new_element*/) override
   {
     TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
     return false;
@@ -93,6 +66,10 @@ public:
     for (unsigned i = 0; i < num; ++i) { // NOLINT(build/unsigned)
       m_queue->popFront();
     }
+  }
+
+  virtual RawType* front() override {
+    return m_queue->readPtr(0);
   }
 
 private:

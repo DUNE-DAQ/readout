@@ -17,7 +17,7 @@ namespace readout {
  * @tparam RawType the type of contained elements
  * @tparam KeyType the type of key for searchability
  */
-template<class RawType, class KeyType>
+template<class RawType>
 class LatencyBufferConcept
 {
 
@@ -41,19 +41,11 @@ public:
   virtual bool read(RawType&) = 0;
 
   //! Place object into LB with key (if LB is searchable)
-  virtual bool place(RawType&&, KeyType&) = 0;
+  virtual bool place(RawType&&) = 0;
 
-  //! Find object in LB by key (if LB is searchable)
-  virtual bool find(RawType&, KeyType&) = 0;
+  virtual RawType* front() = 0;
 
-  //! Get Xth raw pointer to element in LB (if LB is indexable)
-  virtual RawType* get_ptr(unsigned) = 0;
-
-  //! Find raw pointer to element in LB based on key (if LB is searchable)
-  virtual RawType* find_ptr(KeyType&) = 0;
-
-  //! Find index of object in LB by key (if LB is searchable & indexable)
-  virtual int find_index(KeyType&) = 0;
+  virtual RawType* back() = 0;
 
   //! Pop N amount of elements from LB
   virtual void pop(unsigned) = 0;
