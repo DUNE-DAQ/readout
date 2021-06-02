@@ -11,9 +11,8 @@
 
 #include "CreateSourceEmulator.hpp"
 #include "FakeCardReader.hpp"
-#include "readout/types/ReadoutConstants.hpp"
-#include "readout/ReadoutIssues.hpp"
-#include "readout/SourceEmulatorModel.hpp"
+#include "ReadoutIssues.hpp"
+#include "readout/models/SourceEmulatorModel.hpp"
 
 #include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"

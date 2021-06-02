@@ -5,15 +5,14 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_RECORDERCONCEPT_HPP_
-#define READOUT_SRC_RECORDERCONCEPT_HPP_
+#ifndef READOUT_INCLUDE_READOUT_CONCEPTS_RECORDERCONCEPT_HPP_
+#define READOUT_INCLUDE_READOUT_CONCEPTS_RECORDERCONCEPT_HPP_
 
-#include "../utils/BufferedFileWriter.hpp"
-#include "readout/ReadoutStatistics.hpp"
+#include "readout/utils/BufferedFileWriter.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
 #include "opmonlib/InfoCollector.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "readout/utils/ReusableThread.hpp"
 #include "readout/datarecorder/Structs.hpp"
 
@@ -47,4 +46,4 @@ public:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_RECORDERCONCEPT_HPP_
+#endif // READOUT_INCLUDE_READOUT_CONCEPTS_RECORDERCONCEPT_HPP_

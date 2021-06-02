@@ -5,8 +5,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
-#define READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
+#ifndef READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
+#define READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
 
 #include "dataformats/Fragment.hpp"
 #include "dfmessages/DataRequest.hpp"
@@ -85,4 +85,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_REQUESTHANDLERCONCEPT_HPP_
+#endif // READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_

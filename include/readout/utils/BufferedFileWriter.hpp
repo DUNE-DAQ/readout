@@ -8,10 +8,10 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_BUFFEREDFILEWRITER_HPP_
-#define READOUT_SRC_BUFFEREDFILEWRITER_HPP_
+#ifndef READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_
+#define READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_
 
-#include "../ReadoutIssues.hpp"
+#include "ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"
@@ -193,4 +193,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_BUFFEREDFILEWRITER_HPP_
+#endif // READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_

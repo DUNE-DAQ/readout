@@ -5,14 +5,13 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_RATELIMITER_HPP_
-#define READOUT_SRC_RATELIMITER_HPP_
-
-#include "../Time.hpp"
+#ifndef READOUT_INCLUDE_READOUT_UTILS_RATELIMITER_HPP_
+#define READOUT_INCLUDE_READOUT_UTILS_RATELIMITER_HPP_
 
 #include <atomic>
 #include <ctime>
 #include <unistd.h>
+#include <chrono>
 
 namespace dunedaq {
 namespace readout {
@@ -29,8 +28,14 @@ namespace readout {
 class RateLimiter
 {
 public:
+  using timestamp_t = std::uint64_t;
+  static inline constexpr timestamp_t ns = 1;
+  static inline constexpr timestamp_t us = 1000 * ns;
+  static inline constexpr timestamp_t ms = 1000 * us;
+  static inline constexpr timestamp_t s = 1000 * ms;
+
   explicit RateLimiter(double kilohertz)
-    : m_max_overshoot(10 * time::ms)
+    : m_max_overshoot(10 * ms)
   {
     adjust(kilohertz);
     init();
@@ -56,7 +61,7 @@ public:
   void adjust(double kilohertz)
   {
     m_kilohertz.store(kilohertz);
-    m_period.store(static_cast<time::timestamp_t>((1000.f / m_kilohertz) * static_cast<double>(time::us)));
+    m_period.store(static_cast<timestamp_t>((1000.f / m_kilohertz) * static_cast<double>(us)));
   }
 
   void limit()
@@ -72,22 +77,22 @@ public:
   }
 
 protected:
-  time::timestamp_t gettime()
+  timestamp_t gettime()
   {
     ::timespec ts;
     ::clock_gettime(CLOCK_MONOTONIC, &ts);
-    return time::timestamp_t(ts.tv_sec) * time::s + time::timestamp_t(ts.tv_nsec) * time::ns;
+    return timestamp_t(ts.tv_sec) * s + timestamp_t(ts.tv_nsec) * ns;
   }
 
 private:
   std::atomic<double> m_kilohertz;
-  time::timestamp_t m_max_overshoot;
-  std::atomic<time::timestamp_t> m_period;
-  time::timestamp_t m_now;
-  time::timestamp_t m_deadline;
+  timestamp_t m_max_overshoot;
+  std::atomic<timestamp_t> m_period;
+  timestamp_t m_now;
+  timestamp_t m_deadline;
 };
 
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_RATELIMITER_HPP_
+#endif // READOUT_INCLUDE_READOUT_UTILS_RATELIMITER_HPP_

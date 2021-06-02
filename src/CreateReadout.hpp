@@ -14,17 +14,17 @@
 #include "appfwk/cmd/Structs.hpp"
 
 #include "readout/ReadoutLogging.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 
-#include "../include/readout/types/ReadoutConcept.hpp"
-#include "../include/readout/ReadoutIssues.hpp"
-#include "../include/readout/ReadoutModel.hpp"
+#include "readout/concepts/ReadoutConcept.hpp"
+#include "ReadoutIssues.hpp"
+#include "readout/models/ReadoutModel.hpp"
 
-#include "../include/readout/ContinousLatencyBufferModel.hpp"
-#include "pds/PDSFrameProcessor.hpp"
-#include "pds/PDSListRequestHandler.hpp"
-#include "pds/PDSQueueRequestHandler.hpp"
-#include "../include/readout/SkipListLatencyBufferModel.hpp"
+#include "readout/models/ContinuousLatencyBufferModel.hpp"
+#include "daphne/DaphneFrameProcessor.hpp"
+#include "daphne/DaphneListRequestHandler.hpp"
+#include "daphne/DaphneQueueRequestHandler.hpp"
+#include "readout/models/SkipListLatencyBufferModel.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
 #include "wib2/WIB2RequestHandler.hpp"
 #include "wib/WIBFrameProcessor.hpp"
@@ -54,7 +54,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT,
                                                            WIBRequestHandler,
-                                                           ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>,
+                                                           ContinuousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>,
                                                            WIBFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
@@ -66,7 +66,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         raw_type_name = "wib2";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB2_SUPERCHUNK_STRUCT,
                                                            WIB2RequestHandler,
-                                                           ContinousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>,
+                                                           ContinuousLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT>,
                                                            WIB2FrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
@@ -78,11 +78,11 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         raw_type_name = "pds";
         auto readout_model =
           std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-                                        PDSQueueRequestHandler,
+                                        DaphneQueueRequestHandler,
                                         SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
                                                                      uint64_t, // NOLINT(build/unsigned)
                                                                      types::PDSTimestampGetter>,
-                                        PDSFrameProcessor>>(run_marker);
+                                        DaphneFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }
@@ -93,11 +93,11 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         raw_type_name = "pds";
         auto readout_model =
           std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-                                        PDSListRequestHandler,
+                                        DaphneListRequestHandler,
                                         SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
                                                                    uint64_t, // NOLINT(build/unsigned)
                                                                    types::PDSTimestampGetter>,
-                                        PDSFrameProcessor>>(run_marker);
+                                        DaphneFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

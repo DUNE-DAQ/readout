@@ -8,7 +8,7 @@
 #ifndef READOUT_INCLUDE_READOUT_READOUTTYPES_HPP_
 #define READOUT_INCLUDE_READOUT_READOUTTYPES_HPP_
 
-#include "../RawWIBTp.hpp"
+#include "RawWIBTp.hpp"
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"

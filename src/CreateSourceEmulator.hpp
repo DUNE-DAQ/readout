@@ -13,9 +13,9 @@
 #include "appfwk/cmd/Structs.hpp"
 
 #include "readout/ReadoutLogging.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 
-#include "../include/readout/SourceEmulatorModel.hpp"
+#include "readout/models/SourceEmulatorModel.hpp"
 
 #include <memory>
 #include <string>

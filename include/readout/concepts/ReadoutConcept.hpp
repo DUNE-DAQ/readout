@@ -6,8 +6,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_READOUTCONCEPT_HPP_
-#define READOUT_SRC_READOUTCONCEPT_HPP_
+#ifndef READOUT_INCLUDE_READOUT_CONCEPTS_READOUTCONCEPT_HPP_
+#define READOUT_INCLUDE_READOUT_CONCEPTS_READOUTCONCEPT_HPP_
 
 #include "opmonlib/InfoCollector.hpp"
 
@@ -41,4 +41,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_READOUTCONCEPT_HPP_
+#endif // READOUT_INCLUDE_READOUT_CONCEPTS_READOUTCONCEPT_HPP_

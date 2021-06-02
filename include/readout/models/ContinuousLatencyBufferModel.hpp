@@ -1,5 +1,5 @@
 /**
- * @file SearchableLatencyBufferModel.hpp Buffers objects for some time
+ * @file ContinuousLatencyBufferModel.hpp Buffers objects for some time
  * Software defined latency buffer to temporarily store objects from the
  * frontend apparatus. It wraps a bounded SPSC queue from Folly for
  * aligned memory access, and convenient frontPtr loads.
@@ -9,13 +9,14 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_SEARCHABLELATENCYBUFFERMODEL_HPP_
-#define READOUT_SRC_SEARCHABLELATENCYBUFFERMODEL_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_CONTINUOUSLATENCYBUFFERMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_CONTINUOUSLATENCYBUFFERMODEL_HPP_
 
-#include "types/LatencyBufferConcept.hpp"
+#include "readout/concepts/LatencyBufferConcept.hpp"
 #include "ReadoutIssues.hpp"
 
-#include "SearchableProducerConsumerQueue.hpp"
+//#include <folly/ProducerConsumerQueue.h>
+#include "readout/utils/AccessableProducerConsumerQueue.hpp"
 
 #include <memory>
 #include <utility>
@@ -25,14 +26,14 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class KeyType, class KeyGetter>
-class SearchableLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
+template<class RawType, class KeyType = int>
+class ContinuousLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
 {
 
   static constexpr uint32_t unconfigured_buffer_size = 2; // NOLINT(build/unsigned)
 public:
-  SearchableLatencyBufferModel()
-    : m_queue(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(unconfigured_buffer_size))
+  ContinuousLatencyBufferModel()
+    : m_queue(new AccessableProducerConsumerQueue<RawType>(unconfigured_buffer_size))
   {
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
@@ -40,7 +41,7 @@ public:
   void conf(const nlohmann::json& cfg) override
   {
     auto params = cfg.get<datalinkhandler::Conf>();
-    m_queue.reset(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(params.latency_buffer_size));
+    m_queue.reset(new AccessableProducerConsumerQueue<RawType>(params.latency_buffer_size));
   }
 
   size_t occupancy() override { return m_queue->sizeGuess(); }
@@ -56,25 +57,14 @@ public:
 
   bool place(RawType&& /*new_element*/, KeyType& /*key*/) override
   {
-    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SearchableLatencyBufferModel!";
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
     return false;
   }
 
-  bool find(RawType& element, KeyType& key) override
+  bool find(RawType& /*element*/, KeyType& /*key*/) override
   {
-    auto elptr = m_queue->find_element(key);
-    if (elptr != nullptr) {
-      element = *elptr;
-      return true;
-    }
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
     return false;
-  }
-
-  void pop(unsigned num = 1) override // NOLINT(build/unsigned)
-  {
-    for (unsigned i = 0; i < num; ++i) { // NOLINT(build/unsigned)
-      m_queue->popFront();
-    }
   }
 
   RawType* get_ptr(unsigned idx) override // NOLINT(build/unsigned)
@@ -86,19 +76,30 @@ public:
     }
   }
 
-  RawType* find_ptr(KeyType& key) override { return m_queue->find_element(key); }
+  RawType* find_ptr(KeyType& /*key*/) override
+  {
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
+    return nullptr;
+  }
 
-  int find_index(KeyType& key) override { return m_queue->find_index(key); }
+  int find_index(KeyType&) override
+  {
+    TLOG(TLVL_WORK_STEPS) << "ContinousLatencyBufferModel is not searchable!";
+    return false;
+  }
 
-  RawType* at(int index) { return m_queue->at(index); }
-
-  int next_index(int index) { return m_queue->next_index(index); }
+  void pop(unsigned num = 1) override // NOLINT(build/unsigned)
+  {
+    for (unsigned i = 0; i < num; ++i) { // NOLINT(build/unsigned)
+      m_queue->popFront();
+    }
+  }
 
 private:
-  std::unique_ptr<SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>> m_queue;
+  std::unique_ptr<AccessableProducerConsumerQueue<RawType>> m_queue;
 };
 
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_SEARCHABLELATENCYBUFFERMODEL_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_CONTINUOUSLATENCYBUFFERMODEL_HPP_

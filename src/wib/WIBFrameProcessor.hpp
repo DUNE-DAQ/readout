@@ -5,13 +5,11 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
-#define READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#ifndef READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
+#define READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 
-#include "../../include/readout/ReadoutIssues.hpp"
-#include "../../include/readout/ReadoutStatistics.hpp"
-#include "../../include/readout/TaskRawDataProcessorModel.hpp"
-#include "../../include/readout/Time.hpp"
+#include "ReadoutIssues.hpp"
+#include "readout/models/TaskRawDataProcessorModel.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
@@ -33,6 +31,7 @@ public:
   using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
+  using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   WIBFrameProcessor()
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>()
@@ -43,11 +42,11 @@ public:
 
 protected:
   // Internals
-  time::timestamp_t m_previous_ts = 0;
-  time::timestamp_t m_current_ts = 0;
+  timestamp_t m_previous_ts = 0;
+  timestamp_t m_current_ts = 0;
   bool m_first_ts_missmatch = true;
   bool m_problem_reported = false;
-  stats::counter_t m_ts_error_ctr{ 0 };
+  std::atomic<int> m_ts_error_ctr{ 0 };
 
   /**
    * Pipeline Stage 1.: Check proper timestamp increments in WIB frame
@@ -105,4 +104,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_WIBFRAMEPROCESSOR_HPP_
+#endif // READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_

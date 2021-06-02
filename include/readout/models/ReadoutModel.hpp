@@ -6,8 +6,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_READOUTMODEL_HPP_
-#define READOUT_SRC_READOUTMODEL_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_READOUTMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_READOUTMODEL_HPP_
 
 #include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
@@ -30,12 +30,11 @@
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
-#include "readout/types/LatencyBufferConcept.hpp"
-#include "readout/types/RawDataProcessorConcept.hpp"
-#include "readout/types/RequestHandlerConcept.hpp"
+#include "readout/concepts/LatencyBufferConcept.hpp"
+#include "readout/concepts/RawDataProcessorConcept.hpp"
+#include "readout/concepts/RequestHandlerConcept.hpp"
 
-#include "readout/ReadoutIssues.hpp"
-#include "readout/ReadoutStatistics.hpp"
+#include "ReadoutIssues.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -54,6 +53,13 @@ template<class RawType, class RequestHandlerType, class LatencyBufferType, class
 class ReadoutModel : public ReadoutConcept
 {
 public:
+  using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
+
+  static inline constexpr timestamp_t ns = 1;
+  static inline constexpr timestamp_t us = 1000 * ns;
+  static inline constexpr timestamp_t ms = 1000 * us;
+  static inline constexpr timestamp_t s = 1000 * ms;
+
   explicit ReadoutModel(std::atomic<bool>& run_marker)
     : m_run_marker(run_marker)
     , m_fake_trigger(false)
@@ -235,7 +241,7 @@ private:
 
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
-            dr.trigger_timestamp = timesyncmsg.daq_time > 500 * time::us ? timesyncmsg.daq_time - 500 * time::us : 0;
+            dr.trigger_timestamp = timesyncmsg.daq_time > 500 * us ? timesyncmsg.daq_time - 500 * us : 0;
             auto width = 10000;
             uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
@@ -319,12 +325,12 @@ private:
   uint32_t m_this_link_number; // NOLINT(build/unsigned)
 
   // STATS
-  stats::counter_t m_packet_count{ 0 };
-  stats::counter_t m_packet_count_tot{ 0 };
-  stats::counter_t m_request_count{ 0 };
-  stats::counter_t m_request_count_tot{ 0 };
-  stats::counter_t m_rawq_timeout_count{ 0 };
-  stats::counter_t m_stats_packet_count{ 0 };
+  std::atomic<int> m_packet_count{ 0 };
+  std::atomic<int> m_packet_count_tot{ 0 };
+  std::atomic<int> m_request_count{ 0 };
+  std::atomic<int> m_request_count_tot{ 0 };
+  std::atomic<int> m_rawq_timeout_count{ 0 };
+  std::atomic<int> m_stats_packet_count{ 0 };
   ReusableThread m_stats_thread;
 
   // CONSUMER
@@ -371,4 +377,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_READOUTMODEL_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_READOUTMODEL_HPP_

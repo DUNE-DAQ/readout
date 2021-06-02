@@ -16,7 +16,7 @@
 #include "readout/utils/BufferedFileReader.hpp"
 #include "readout/utils/BufferedFileWriter.hpp"
 #include "logging/Logging.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 
 #include <cstdio>
 #include <string>

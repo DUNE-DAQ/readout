@@ -5,18 +5,16 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_PDSFRAMEPROCESSOR_HPP_
-#define READOUT_SRC_PDSFRAMEPROCESSOR_HPP_
+#ifndef READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
+#define READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
 
-#include "../../include/readout/ReadoutIssues.hpp"
-#include "../../include/readout/ReadoutStatistics.hpp"
-#include "../../include/readout/TaskRawDataProcessorModel.hpp"
-#include "../../include/readout/Time.hpp"
+#include "ReadoutIssues.hpp"
+#include "readout/models/TaskRawDataProcessorModel.hpp"
 
 #include "dataformats/pds/PDSFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 
 #include <atomic>
 #include <functional>
@@ -27,29 +25,30 @@ using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 namespace dunedaq {
 namespace readout {
 
-class PDSFrameProcessor : public TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>
+class DaphneFrameProcessor : public TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>
 {
 
 public:
   using inherited = TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>;
   using frameptr = types::PDS_SUPERCHUNK_STRUCT*;
   using pdsframeptr = dunedaq::dataformats::PDSFrame*;
+  using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  PDSFrameProcessor()
+  DaphneFrameProcessor()
     : TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>()
   {
-    m_tasklist.push_back(std::bind(&PDSFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    m_tasklist.push_back(std::bind(&DaphneFrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&PDSFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 
 protected:
   // Internals
-  time::timestamp_t m_previous_ts = 0;
-  time::timestamp_t m_current_ts = 0;
+  timestamp_t m_previous_ts = 0;
+  timestamp_t m_current_ts = 0;
   bool m_first_ts_fake = true;
   bool m_first_ts_missmatch = true;
   bool m_problem_reported = false;
-  stats::counter_t m_ts_error_ctr{ 0 };
+  std::atomic<int> m_ts_error_ctr{ 0 };
 
   /**
    * Pipeline Stage 1.: Check proper timestamp increments in PDS frame
@@ -102,4 +101,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_PDSFRAMEPROCESSOR_HPP_
+#endif // READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_

@@ -6,11 +6,11 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
-#define READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_
 
-#include "readout/ReadoutIssues.hpp"
-#include "readout/types/RequestHandlerConcept.hpp"
+#include "ReadoutIssues.hpp"
+#include "readout/concepts/RequestHandlerConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
@@ -271,9 +271,9 @@ protected:
   std::atomic<bool> m_run_marker = false;
 
   // Stats
-  stats::counter_t m_pop_reqs;
-  stats::counter_t m_pops_count;
-  stats::counter_t m_occupancy;
+  std::atomic<int> m_pop_reqs;
+  std::atomic<int> m_pops_count;
+  std::atomic<int> m_occupancy;
   std::thread m_stats_thread;
 
   std::atomic<bool> m_cleanup_requested = false;
@@ -291,11 +291,11 @@ private:
   float m_pop_limit_pct;     // buffer occupancy percentage to issue a pop request
   float m_pop_size_pct;      // buffer percentage to pop
   unsigned m_pop_limit_size; // pop_limit_pct * buffer_capacity
-  stats::counter_t m_pop_counter;
+  std::atomic<int> m_pop_counter;
   size_t m_buffer_capacity;
 };
 
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_DEFAULTREQUESTHANDLERMODEL_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_

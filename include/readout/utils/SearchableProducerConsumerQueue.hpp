@@ -5,8 +5,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_SEARCHABLEPRODUCERCONSUMERQUEUE_HPP_
-#define READOUT_SRC_SEARCHABLEPRODUCERCONSUMERQUEUE_HPP_
+#ifndef READOUT_INCLUDE_READOUT_UTILS_SEARCHABLEPRODUCERCONSUMERQUEUE_HPP_
+#define READOUT_INCLUDE_READOUT_UTILS_SEARCHABLEPRODUCERCONSUMERQUEUE_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -125,4 +125,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_SEARCHABLEPRODUCERCONSUMERQUEUE_HPP_
+#endif // READOUT_INCLUDE_READOUT_UTILS_SEARCHABLEPRODUCERCONSUMERQUEUE_HPP_

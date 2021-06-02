@@ -5,18 +5,17 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_PDSLISTREQUESTHANDLER_HPP_
-#define READOUT_SRC_PDSLISTREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
+#define READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 
-#include "../../include/readout/DefaultRequestHandlerModel.hpp"
-#include "../../include/readout/ReadoutIssues.hpp"
-#include "../../include/readout/ReadoutStatistics.hpp"
-#include "../../include/readout/SkipListLatencyBufferModel.hpp"
+#include "readout/models/DefaultRequestHandlerModel.hpp"
+#include "ReadoutIssues.hpp"
+#include "readout/models/SkipListLatencyBufferModel.hpp"
 
 #include "dataformats/pds/PDSFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 
 #include <atomic>
 #include <deque>
@@ -34,7 +33,7 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-class PDSListRequestHandler
+class DaphneListRequestHandler
   : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
                                       SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
                                                                  uint64_t, // NOLINT(build/unsigned)
@@ -48,7 +47,7 @@ public:
   using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
   using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
 
-  PDSListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
+  DaphneListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
                                                                    uint64_t, // NOLINT(build/unsigned)
                                                                    types::PDSTimestampGetter>>& latency_buffer,
                         std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
@@ -293,8 +292,8 @@ private:
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
 
   // Stats
-  stats::counter_t m_found_requested_count{ 0 };
-  stats::counter_t m_bad_requested_count{ 0 };
+  std::atomic<int> m_found_requested_count{ 0 };
+  std::atomic<int> m_bad_requested_count{ 0 };
 
   uint16_t m_apa_number;  // NOLINT(build/unsigned)
   uint32_t m_link_number; // NOLINT(build/unsigned)
@@ -303,4 +302,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_PDSLISTREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_

@@ -5,16 +5,15 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_RECORDERIMPL_HPP_
-#define READOUT_SRC_RECORDERIMPL_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_RECORDERMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_RECORDERMODEL_HPP_
 
-#include "utils/BufferedFileWriter.hpp"
-#include "ReadoutStatistics.hpp"
-#include "types/RecorderConcept.hpp"
+#include "readout/utils/BufferedFileWriter.hpp"
+#include "readout/concepts/RecorderConcept.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "readout/utils/ReusableThread.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
@@ -122,8 +121,8 @@ private:
   std::atomic<bool> m_run_marker;
 
   // Stats
-  stats::counter_t m_packets_processed_total{ 0 };
-  stats::counter_t m_packets_processed_since_last_info{ 0 };
+  std::atomic<int> m_packets_processed_total{ 0 };
+  std::atomic<int> m_packets_processed_since_last_info{ 0 };
   std::chrono::steady_clock::time_point m_time_point_last_info;
 
   std::string m_name;
@@ -131,4 +130,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_RECORDERIMPL_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_RECORDERMODEL_HPP_

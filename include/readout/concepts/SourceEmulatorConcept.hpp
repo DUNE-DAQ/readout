@@ -6,14 +6,13 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_SOURCEEMULATORCONCEPT_HPP_
-#define READOUT_SRC_SOURCEEMULATORCONCEPT_HPP_
+#ifndef READOUT_INCLUDE_READOUT_CONCEPTS_SOURCEEMULATORCONCEPT_HPP_
+#define READOUT_INCLUDE_READOUT_CONCEPTS_SOURCEEMULATORCONCEPT_HPP_
 
 #include "opmonlib/InfoCollector.hpp"
 #include "readout/fakecardreaderinfo/InfoNljs.hpp"
 
-#include "../utils/RandomEngine.hpp"
-#include "../utils/RateLimiter.hpp"
+#include "readout/utils/RateLimiter.hpp"
 
 #include <map>
 #include <string>
@@ -49,4 +48,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_SOURCEEMULATORCONCEPT_HPP_
+#endif // READOUT_INCLUDE_READOUT_CONCEPTS_SOURCEEMULATORCONCEPT_HPP_

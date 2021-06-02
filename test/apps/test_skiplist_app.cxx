@@ -6,12 +6,11 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "readout/utils/RandomEngine.hpp"
 #include "readout/utils/RateLimiter.hpp"
 
 #include "logging/Logging.hpp"
 
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 
 #include "folly/ConcurrentSkipList.h"
 
@@ -21,6 +20,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <random>
 
 using namespace dunedaq::readout;
 using namespace folly;
@@ -48,11 +48,17 @@ main(int /*argc*/, char** /*argv[]*/)
   TLOG() << "Creating ratelimiter with 10 KHz...";
   RateLimiter rl(10);
 
+  std::random_device rd;
+  std::mt19937 mt(rd());
+
   // RateLimiter adjuster
   auto adjuster = std::thread([&]() {
     TLOG() << "Spawned adjuster thread...";
-    RandomEngine re;
-    auto rand_rates = re.get_random_population(runsecs, 10.0, 100.0);
+    std::uniform_real_distribution<> dist(10.0, 100.0);
+    std::vector<float> rand_rates;
+    for (int i = 0; i < runsecs; ++i) {
+      rand_rates.push_back(dist(mt));
+    }
     int idx = 0;
     while (marker) {
       TLOG() << "Adjusting rate to: " << rand_rates[idx] << " [kHz]";

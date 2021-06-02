@@ -10,12 +10,11 @@
 #define READOUT_PLUGINS_DATARECORDER_HPP_
 
 #include "readout/utils/BufferedFileWriter.hpp"
-#include "readout/ReadoutStatistics.hpp"
-#include "readout/types/RecorderConcept.hpp"
+#include "readout/concepts/RecorderConcept.hpp"
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
-#include "readout/types/ReadoutTypes.hpp"
+#include "readout/ReadoutTypes.hpp"
 #include "readout/utils/ReusableThread.hpp"
 #include "readout/datarecorder/Structs.hpp"
 

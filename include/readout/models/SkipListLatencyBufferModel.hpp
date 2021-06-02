@@ -9,10 +9,10 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_SKIPLISTLATENCYBUFFERMODEL_HPP_
-#define READOUT_SRC_SKIPLISTLATENCYBUFFERMODEL_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 
-#include "types/LatencyBufferConcept.hpp"
+#include "readout/concepts/LatencyBufferConcept.hpp"
 #include "ReadoutIssues.hpp"
 
 #include "folly/ConcurrentSkipList.h"
@@ -152,4 +152,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_SKIPLISTLATENCYBUFFERMODEL_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_

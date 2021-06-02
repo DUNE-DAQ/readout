@@ -5,14 +5,13 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_WIBREQUESTHANDLER_HPP_
-#define READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#ifndef READOUT_SRC_WIB_WIBREQUESTHANDLER_HPP_
+#define READOUT_SRC_WIB_WIBREQUESTHANDLER_HPP_
 
-#include "../../include/readout/DefaultRequestHandlerModel.hpp"
-#include "../../include/readout/ReadoutIssues.hpp"
-#include "../../include/readout/ReadoutStatistics.hpp"
+#include "readout/models/DefaultRequestHandlerModel.hpp"
+#include "ReadoutIssues.hpp"
 
-#include "../../include/readout/ContinousLatencyBufferModel.hpp"
+#include "readout/models/ContinuousLatencyBufferModel.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -36,14 +35,14 @@ namespace readout {
 
 class WIBRequestHandler
   : public DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT,
-                                      ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>
+                                      ContinuousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>
 {
 public:
-  WIBRequestHandler(std::unique_ptr<ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer,
+  WIBRequestHandler(std::unique_ptr<ContinuousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>& latency_buffer,
                     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
                     std::unique_ptr<appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>>& snb_sink)
     : DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT,
-                                 ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>(latency_buffer,
+                                 ContinuousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>(latency_buffer,
                                                                                             fragment_sink,
                                                                                             snb_sink)
   {
@@ -54,7 +53,7 @@ public:
   {
     // Call up to the base class, whose conf function does useful things
     DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT,
-                               ContinousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>::conf(args);
+                               ContinuousLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT>>::conf(args);
     auto config = args.get<datalinkhandler::Conf>();
     m_apa_number = config.apa_number;
     m_link_number = config.link_number;
@@ -239,8 +238,8 @@ private:
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
 
   // Stats
-  stats::counter_t m_found_requested_count{ 0 };
-  stats::counter_t m_bad_requested_count{ 0 };
+  std::atomic<int> m_found_requested_count{ 0 };
+  std::atomic<int> m_bad_requested_count{ 0 };
 
   uint16_t m_apa_number;  // NOLINT(build/unsigned)
   uint32_t m_link_number; // NOLINT(build/unsigned)
@@ -249,4 +248,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_WIBREQUESTHANDLER_HPP_
+#endif // READOUT_SRC_WIB_WIBREQUESTHANDLER_HPP_

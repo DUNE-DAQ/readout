@@ -5,8 +5,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_SOURCEEMULATORMODEL_HPP_
-#define READOUT_SRC_SOURCEEMULATORMODEL_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_SOURCEEMULATORMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_SOURCEEMULATORMODEL_HPP_
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
@@ -17,12 +17,10 @@
 
 #include "readout/fakecardreader/Structs.hpp"
 
-#include "utils/FileSourceBuffer.hpp"
-#include "utils/RandomEngine.hpp"
-#include "utils/RateLimiter.hpp"
+#include "readout/utils/FileSourceBuffer.hpp"
+#include "readout/utils/RateLimiter.hpp"
 #include "ReadoutIssues.hpp"
-#include "ReadoutStatistics.hpp"
-#include "types/SourceEmulatorConcept.hpp"
+#include "readout/concepts/SourceEmulatorConcept.hpp"
 
 #include "readout/utils/ReusableThread.hpp"
 
@@ -194,8 +192,8 @@ private:
   double m_dropout_rate;
 
   // STATS
-  stats::counter_t m_packet_count{ 0 };
-  stats::counter_t m_packet_count_tot{ 0 };
+  std::atomic<int> m_packet_count{ 0 };
+  std::atomic<int> m_packet_count_tot{ 0 };
 
   fakecardreader::Conf m_cfg;
 
@@ -223,4 +221,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_SOURCEEMULATORMODEL_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_SOURCEEMULATORMODEL_HPP_
