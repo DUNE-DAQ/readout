@@ -22,6 +22,10 @@ template<class T, class Key, class KeyGetter>
 class SearchableProducerConsumerQueue : public AccessableProducerConsumerQueue<T>
 {
 public:
+  SearchableProducerConsumerQueue() : AccessableProducerConsumerQueue<T>() {
+
+  }
+
   explicit SearchableProducerConsumerQueue(uint32_t size) // NOLINT(build/unsigned)
     : AccessableProducerConsumerQueue<T>(size)
   {}
@@ -36,7 +40,7 @@ public:
 
     if (start_index == end_index) {
       TLOG() << "Queue is empty" << std::endl;
-      return end();
+      return AccessableProducerConsumerQueue<T>::end();
     }
     end_index = end_index == 0 ? AccessableProducerConsumerQueue<T>::size_ - 1 : end_index - 1;
 
@@ -44,7 +48,7 @@ public:
 
     if (key > right_key) {
       TLOG() << "Could not find element" << std::endl;
-      return end();
+      return AccessableProducerConsumerQueue<T>::end();
     }
 
     while (true) {
@@ -67,10 +71,6 @@ public:
         return typename AccessableProducerConsumerQueue<T>::Iterator(*this, middle_index);
       }
     }
-  }
-
-  typename AccessableProducerConsumerQueue<T>::Iterator end() {
-    return typename AccessableProducerConsumerQueue<T>::Iterator(*this, -1);
   }
 
 private:

@@ -128,7 +128,7 @@ public:
     // m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
     try {
-      m_latency_buffer_impl->conf(args);
+      m_latency_buffer_impl->resize(m_latency_buffer_size);
     } catch (const std::bad_alloc& be) {
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
     }

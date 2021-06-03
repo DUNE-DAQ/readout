@@ -32,6 +32,7 @@
 
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SearchableLatencyBufferModel.hpp"
+#include "readout/utils/FixedRateLookupQueue.hpp"
 
 #include <memory>
 #include <string>
@@ -56,8 +57,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib";
         raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB_SUPERCHUNK_STRUCT,
-                                                           DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, SearchableLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT, uint64_t, types::WIBTimestampGetter>>,
-                                                           SearchableLatencyBufferModel<types::WIB_SUPERCHUNK_STRUCT, uint64_t, types::WIBTimestampGetter>,
+                                                           DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, FixedRateLookupQueue<types::WIB_SUPERCHUNK_STRUCT>>,
+                                                               FixedRateLookupQueue<types::WIB_SUPERCHUNK_STRUCT>,
                                                            WIBFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
@@ -68,8 +69,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2";
         raw_type_name = "wib2";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB2_SUPERCHUNK_STRUCT,
-            DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, SearchableLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT, uint64_t, types::WIB2TimestampGetter>>,
-            SearchableLatencyBufferModel<types::WIB2_SUPERCHUNK_STRUCT, uint64_t, types::WIB2TimestampGetter>,
+            DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, SearchableProducerConsumerQueue<types::WIB2_SUPERCHUNK_STRUCT, uint64_t, types::WIB2TimestampGetter>>,
+                SearchableProducerConsumerQueue<types::WIB2_SUPERCHUNK_STRUCT, uint64_t, types::WIB2TimestampGetter>,
             WIB2FrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
@@ -80,8 +81,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
         raw_type_name = "pds";
         auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-        DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>,
-            SearchableLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
+        DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SearchableProducerConsumerQueue<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>,
+            SearchableProducerConsumerQueue<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
             DaphneFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);

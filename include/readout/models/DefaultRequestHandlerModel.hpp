@@ -300,9 +300,9 @@ protected:
 
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
-    auto front_frame = *(reinterpret_cast<const RawType*>(m_latency_buffer->front())); // NOLINT
+    auto front_frame = *(reinterpret_cast<const RawType*>(&(*m_latency_buffer->front()))); // NOLINT
     auto last_frame =
-        *(reinterpret_cast<const RawType*>(m_latency_buffer->back())); // NOLINT
+        *(reinterpret_cast<const RawType*>(&(*m_latency_buffer->back()))); // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
     uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
 

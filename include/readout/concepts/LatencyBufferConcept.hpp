@@ -29,10 +29,10 @@ public:
   LatencyBufferConcept(LatencyBufferConcept&&) = delete;            ///< LatencyBufferConcept is not move-constructible
   LatencyBufferConcept& operator=(LatencyBufferConcept&&) = delete; ///< LatencyBufferConcept is not move-assignable
 
-  virtual void conf(const nlohmann::json& cfg) = 0;
+  virtual void resize(uint32_t) = 0;
 
   //! Occupancy of LB
-  virtual size_t occupancy() = 0;
+  virtual size_t occupancy() const = 0;
 
   //! Move referenced object into LB
   virtual bool write(RawType&&) = 0;
@@ -40,12 +40,7 @@ public:
   //! Move object from LB to referenced
   virtual bool read(RawType&) = 0;
 
-  //! Place object into LB with key (if LB is searchable)
-  virtual bool place(RawType&&) = 0;
-
-  virtual RawType* front() = 0;
-
-  virtual RawType* back() = 0;
+  virtual bool put(RawType&) = 0;
 
   //! Pop N amount of elements from LB
   virtual void pop(unsigned) = 0;
