@@ -20,7 +20,6 @@
 #include "ReadoutIssues.hpp"
 #include "readout/models/ReadoutModel.hpp"
 
-#include "readout/models/ContinuousLatencyBufferModel.hpp"
 #include "daphne/DaphneFrameProcessor.hpp"
 //#include "daphne/DaphneListRequestHandler.hpp"
 //#include "daphne/DaphneQueueRequestHandler.hpp"
