@@ -21,7 +21,7 @@
 #include "readout/models/ReadoutModel.hpp"
 
 #include "daphne/DaphneFrameProcessor.hpp"
-//#include "daphne/DaphneListRequestHandler.hpp"
+#include "daphne/DaphneListRequestHandler.hpp"
 //#include "daphne/DaphneQueueRequestHandler.hpp"
 //#include "readout/models/SkipListLatencyBufferModel.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
@@ -30,7 +30,7 @@
 //#include "wib/WIBRequestHandler.hpp"
 
 #include "readout/models/DefaultRequestHandlerModel.hpp"
-#include "readout/models/SearchableLatencyBufferModel.hpp"
+#include "readout/utils/SearchableProducerConsumerQueue.hpp"
 #include "readout/utils/FixedRateLookupQueue.hpp"
 
 #include <memory>
@@ -87,7 +87,6 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
-      /*
       // IF PDS skiplist
       if (inst.find("pds_list") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using SkipList LB";
@@ -95,13 +94,11 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         auto readout_model =
           std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
                                         DaphneListRequestHandler,
-                                        SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT,
-                                                                   uint64_t, // NOLINT(build/unsigned)
-                                                                   types::PDSTimestampGetter>,
+                                        SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>,
                                         DaphneFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
-      }*/
+      }
 
       // IF variadic
       if (inst.find("varsize") != std::string::npos) {

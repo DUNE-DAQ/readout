@@ -262,12 +262,18 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
       return a.m_index != b.m_index;
     };
 
+    bool good() {
+      auto const currentRead = m_queue.readIndex_.load(std::memory_order_relaxed);
+      auto const currentWrite = m_queue.writeIndex_.load(std::memory_order_relaxed);
+      return (*this != m_queue.end()) || (m_index >= currentRead && m_index < currentWrite) || (m_index >= currentRead && currentWrite < currentRead) || (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite);
+    }
+
   private:
     AccessableProducerConsumerQueue<T>& m_queue;
     uint32_t m_index;
   };
 
-  Iterator front() {
+  Iterator begin() {
       auto const currentRead = readIndex_.load(std::memory_order_relaxed);
       if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
       // queue is empty
@@ -276,8 +282,18 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
     return Iterator(*this, currentRead);
   };
 
-  Iterator back() {
-      return Iterator(*this, writeIndex_.load(std::memory_order_relaxed));
+  const T* front() override {
+    auto const currentRead = readIndex_.load(std::memory_order_relaxed);
+    return &records_[currentRead];
+  }
+
+  const T* back() override {
+    auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+    auto currentLast = currentWrite + 1;
+    if (currentLast == size_) {
+      currentLast = 0;
+    }
+    return &records_[currentLast];
   };
 
   Iterator end() {

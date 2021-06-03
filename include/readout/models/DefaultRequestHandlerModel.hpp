@@ -300,9 +300,8 @@ protected:
 
     // Data availability is calculated here
     size_t occupancy_guess = m_latency_buffer->occupancy();
-    auto front_frame = *(reinterpret_cast<const RawType*>(&(*m_latency_buffer->front()))); // NOLINT
-    auto last_frame =
-        *(reinterpret_cast<const RawType*>(&(*m_latency_buffer->back()))); // NOLINT
+    auto front_frame = *m_latency_buffer->front(); // NOLINT
+    auto last_frame = *m_latency_buffer->back() ; // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
     uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
 
@@ -388,23 +387,18 @@ protected:
 
       auto elements_handled = 0;
 
-      auto last_chunk =
-          end_iter->get_timestamp() == end_win_ts ? ++end_iter : end_iter;
-      last_chunk++;
-      for (auto iter = start_iter; iter != last_chunk; ++iter) {
-        void* element = static_cast<void*>(&(*iter));
-
-        if (element != nullptr) {
-          frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*iter)),
-                                                                 std::size_t(RawType::element_size)));
-          elements_handled++;
-          // TLOG() << "Elements handled: " << elements_handled;
-        } else {
-          TLOG() << "NULLPTR NOHANDLE";
-          break;
-        }
+      auto iter = start_iter;
+      RawType* element = &(*iter);
+      while (iter.good() && element->get_timestamp() <= end_win_ts) {
+        frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*iter)),
+                                                               std::size_t(RawType::element_size)));
+        elements_handled++;
+        ++iter;
+        element = &(*iter);
       }
+
     }
+
     // Create fragment from pieces
     auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
 

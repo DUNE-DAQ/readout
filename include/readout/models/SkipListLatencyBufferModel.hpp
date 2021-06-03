@@ -25,13 +25,14 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class KeyType, class KeyGetter>
-class SkipListLatencyBufferModel : public LatencyBufferConcept<RawType, KeyType>
+template<class RawType>
+class SkipListLatencyBufferModel : public LatencyBufferConcept<RawType>
 {
 
 public:
   // Folly typenames
   using SkipListT = typename folly::ConcurrentSkipList<RawType>;
+  using SkipListTIter = typename SkipListT::iterator;
   using SkipListTAcc = typename folly::ConcurrentSkipList<RawType>::Accessor; // SKL Accessor
   using SkipListTSkip = typename folly::ConcurrentSkipList<RawType>::Skipper; // Skipper accessor
 
@@ -41,16 +42,11 @@ public:
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
 
-  void conf(const nlohmann::json& /*cfg*/) override
-  {
-    // auto params = cfg.get<datalinkhandler::Conf>();
-    // m_queue.reset(new SearchableProducerConsumerQueue<RawType, KeyType, KeyGetter>(params.latency_buffer_size));
+  void resize(uint32_t /*new_size*/) override {
+
   }
 
-  std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
-
-  size_t occupancy() override
-  {
+  size_t occupancy() const override {
     auto occupancy = 0;
     {
       SkipListTAcc acc(m_skip_list);
@@ -58,6 +54,9 @@ public:
     }
     return occupancy;
   }
+
+  std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
+
 
   void lock() override
   {
@@ -81,13 +80,22 @@ public:
     return success;
   }
 
-  // Reads closest match.
+  bool put(RawType& new_element) override {
+    bool success = false;
+    {
+      SkipListTAcc acc(m_skip_list);
+      auto ret = acc.insert(new_element); // ret T = std::pair<iterator, bool>
+      success = ret.second;
+    }
+    return success;
+  }
+
   bool read(RawType& element) override
   {
     bool found = false;
     {
       SkipListTAcc acc(m_skip_list);
-      auto lb_node = acc.lower_bound(element);
+      auto lb_node = acc.begin();
       found = (lb_node == acc.end()) ? false : true;
       if (found) {
         element = *lb_node;
@@ -96,21 +104,29 @@ public:
     return found;
   }
 
-  bool place(RawType&& new_element, KeyType& /*key*/) override { return write(std::move(new_element)); }
+  SkipListTIter begin() {
+    SkipListTAcc acc(m_skip_list);
+    return acc.begin();
+  }
 
-  // Finds exact match, contrary to read().
-  bool find(RawType& element, KeyType& /*key*/) override
-  {
-    bool found = false;
-    {
-      SkipListTAcc acc(m_skip_list);
-      auto node = acc.find(element);
-      found = (node == acc.end()) ? false : true;
-      if (found) {
-        element = *node;
-      }
-    }
-    return found;
+  SkipListTIter end() {
+    SkipListTAcc acc(m_skip_list);
+    return acc.end();
+  }
+
+  SkipListTIter lower_bound(RawType& element) {
+    SkipListTAcc acc(m_skip_list);
+    return acc.lower_bound(element);
+  }
+
+  const RawType* front() override {
+    SkipListTAcc acc(m_skip_list);
+    return acc.first();
+  }
+
+  const RawType* back() override {
+    SkipListTAcc acc(m_skip_list);
+    return acc.last();
   }
 
   void pop(unsigned num = 1) override // NOLINT(build/unsigned)
@@ -123,23 +139,6 @@ public:
     }
   }
 
-  RawType* get_ptr(unsigned /*idx*/) override // NOLINT(build/unsigned)
-  {
-    TLOG(TLVL_WORK_STEPS) << "Undefined behavior for SkipListLatencyBufferModel!";
-    return nullptr;
-  }
-
-  RawType* find_ptr(KeyType& /*key*/) override
-  {
-    return nullptr;
-    // return m_queue->find_element(key);
-  }
-
-  int find_index(KeyType& /*key*/) override
-  {
-    return -1;
-    // return m_queue->find_index(key);
-  }
 
 private:
   // Concurrent SkipList
