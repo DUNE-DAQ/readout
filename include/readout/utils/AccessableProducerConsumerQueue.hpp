@@ -114,7 +114,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
   }
 
   bool write(T&& record) override {
-    return write_(record);
+    return write_(std::move(record));
   }
 
   template<class... Args>
