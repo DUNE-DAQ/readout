@@ -57,9 +57,9 @@ struct WIB_SUPERCHUNK_STRUCT
   // comparable based on first timestamp
   bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
-    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
+    //auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
+    //auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
+    return this->get_timestamp() < other.get_timestamp();
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)

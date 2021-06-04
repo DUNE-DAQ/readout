@@ -42,6 +42,51 @@ public:
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
 
+  struct Iterator
+  {
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = RawType;
+    using pointer           = RawType*;
+    using reference         = RawType&;
+
+    Iterator(std::unique_ptr<SkipListTAcc>&& acc, SkipListTIter iter) : m_acc(std::move(acc)), m_iter(iter) {
+
+    }
+
+    reference operator*() const {
+      return *m_iter;
+    }
+    pointer operator->() {
+      return &(*m_iter);
+    }
+    Iterator& operator++() {
+      m_iter++;
+      return *this;
+    }
+    /*
+    Iterator operator++(int) {
+      Iterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+     */
+    friend bool operator==(const Iterator& a, const Iterator& b) {
+      return a.m_iter == b.m_iter;
+    };
+    friend bool operator!=(const Iterator& a, const Iterator& b) {
+      return a.m_iter != b.m_iter;
+    };
+
+    bool good() {
+      return m_iter.good();
+    }
+
+  private:
+    std::unique_ptr<SkipListTAcc> m_acc;
+    SkipListTIter m_iter;
+  };
+
   void resize(uint32_t /*new_size*/) override {
 
   }
@@ -104,19 +149,22 @@ public:
     return found;
   }
 
-  SkipListTIter begin() {
-    SkipListTAcc acc(m_skip_list);
-    return acc.begin();
+  Iterator begin() {
+    std::unique_ptr<SkipListTAcc> acc = std::make_unique<SkipListTAcc>(m_skip_list);
+    SkipListTIter iter = acc->begin();
+    return std::move(Iterator(std::move(acc), iter));
   }
 
-  SkipListTIter end() {
-    SkipListTAcc acc(m_skip_list);
-    return acc.end();
+  Iterator end() {
+    std::unique_ptr<SkipListTAcc> acc = std::make_unique<SkipListTAcc>(m_skip_list);
+    SkipListTIter iter = acc->end();
+    return std::move(Iterator(std::move(acc), iter));
   }
 
-  SkipListTIter lower_bound(RawType& element) {
-    SkipListTAcc acc(m_skip_list);
-    return acc.lower_bound(element);
+  Iterator lower_bound(RawType& element) {
+    std::unique_ptr<SkipListTAcc> acc = std::make_unique<SkipListTAcc>(m_skip_list);
+    SkipListTIter iter = acc->lower_bound(element);
+    return std::move(Iterator(std::move(acc), iter));
   }
 
   const RawType* front() override {

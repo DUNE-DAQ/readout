@@ -219,7 +219,7 @@ protected:
           }
         }
       } else {
-        m_latency_buffer->pop(to_pop);
+       m_latency_buffer->pop(to_pop);
       }
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
@@ -384,17 +384,15 @@ protected:
     if (rres.result_code != ResultCode::kFound) {
       ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
     } else {
-
       auto elements_handled = 0;
 
-      auto iter = start_iter;
-      RawType* element = &(*iter);
-      while (iter.good() && element->get_timestamp() <= end_win_ts) {
-        frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*iter)),
+      RawType* element = &(*start_iter);
+      while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
+        frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)),
                                                                std::size_t(RawType::element_size)));
         elements_handled++;
-        ++iter;
-        element = &(*iter);
+        ++start_iter;
+        element = &(*start_iter);
       }
 
     }

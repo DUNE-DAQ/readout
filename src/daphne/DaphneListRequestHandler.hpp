@@ -53,16 +53,7 @@ public:
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSListRequestHandler created...";
   }
-
-  void conf(const nlohmann::json& args) override
-  {
-    // Call up to the base class, whose conf function does useful things
-    DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
-                               SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>::conf(args);
-    auto config = args.get<datalinkhandler::Conf>();
-    m_apa_number = config.apa_number;
-    m_link_number = config.link_number;
-  }
+  
 
 protected:
   RequestResult cleanup_request(dfmessages::DataRequest dr,
@@ -119,20 +110,9 @@ private:
   // Constants
   static const constexpr uint64_t m_max_ts_diff = 10000000; // NOLINT(build/unsigned)
 
-  static const constexpr uint64_t m_tick_dist = 16; // NOLINT(build/unsigned)
-  static const constexpr size_t m_wib_frame_size = 468;
-  static const constexpr uint8_t m_frames_per_element = 12; // NOLINT(build/unsigned)
-  static const constexpr size_t m_element_size = m_wib_frame_size * m_frames_per_element;
-  static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT(build/unsigned)
-
-  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
-
   // Stats
   std::atomic<int> m_found_requested_count{ 0 };
   std::atomic<int> m_bad_requested_count{ 0 };
-
-  uint16_t m_apa_number;  // NOLINT(build/unsigned)
-  uint32_t m_link_number; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

@@ -68,8 +68,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2";
         raw_type_name = "wib2";
         auto readout_model = std::make_unique<ReadoutModel<types::WIB2_SUPERCHUNK_STRUCT,
-            DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, SearchableProducerConsumerQueue<types::WIB2_SUPERCHUNK_STRUCT, uint64_t, types::WIB2TimestampGetter>>,
-                SearchableProducerConsumerQueue<types::WIB2_SUPERCHUNK_STRUCT, uint64_t, types::WIB2TimestampGetter>,
+            DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, FixedRateLookupQueue<types::WIB2_SUPERCHUNK_STRUCT>>,
+                FixedRateLookupQueue<types::WIB2_SUPERCHUNK_STRUCT>,
             WIB2FrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
