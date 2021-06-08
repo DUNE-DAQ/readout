@@ -162,6 +162,11 @@ public:
     m_completion_queue.enqueue(std::move(reqfut));
   }
 
+  void get_info(datalinkhandlerinfo::Info& info) override {
+    info.found_requested = m_found_requested_count;
+    info.bad_requested = m_bad_requested_count;
+  }
+
 protected:
   inline dataformats::FragmentHeader create_fragment_header(const dfmessages::DataRequest& dr)
   {
@@ -299,7 +304,6 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
 
     // Data availability is calculated here
-    size_t occupancy_guess = m_latency_buffer->occupancy();
     auto front_frame = *m_latency_buffer->front(); // NOLINT
     auto last_frame = *m_latency_buffer->back() ; // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)

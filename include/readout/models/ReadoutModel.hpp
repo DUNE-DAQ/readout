@@ -188,6 +188,8 @@ public:
     dli.requests = m_request_count_tot.load();
     dli.new_requests = m_request_count.exchange(0);
 
+    m_request_handler_impl->get_info(dli);
+
     ci.add(dli);
   }
 

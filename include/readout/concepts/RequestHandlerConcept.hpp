@@ -33,6 +33,7 @@ public:
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
   virtual void record(const nlohmann::json& args) = 0;
+  virtual void get_info(datalinkhandlerinfo::Info&) = 0;
 
   // requests
   virtual void auto_cleanup_check() = 0;

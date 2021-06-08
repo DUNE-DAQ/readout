@@ -13,7 +13,9 @@ local info = {
        s.field("packets", self.uint8, 0, doc="Application name"), 
        s.field("new_packets", self.uint8, 0, doc="State"), 
        s.field("requests", self.uint8, 0, doc="Busy flag"), 
-       s.field("new_requests", self.uint8, 0, doc="Error flag")
+       s.field("new_requests", self.uint8, 0, doc="Error flag"),
+       s.field("found_requested", self.uint8, 0, doc="Found requested"),
+       s.field("bad_requested", self.uint8, 0, doc="Did not find requested")
    ], doc="Data link handler information information")
 };
 

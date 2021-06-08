@@ -35,8 +35,6 @@ namespace dunedaq {
         uint64_t timestamp = element.get_timestamp();
         unsigned int start_index =
             AccessableProducerConsumerQueue<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
-        unsigned int end_index =
-            AccessableProducerConsumerQueue<T>::writeIndex_.load(std::memory_order_acquire); // NOLINT(build/unsigned)
         size_t occupancy_guess = AccessableProducerConsumerQueue<T>::occupancy();
         uint64_t last_ts = AccessableProducerConsumerQueue<T>::records_[start_index].get_timestamp();
         uint64_t newest_ts = last_ts + (occupancy_guess - m_safe_num_elements_margin) * T::tick_dist * T::frames_per_element;
@@ -46,8 +44,8 @@ namespace dunedaq {
         }
 
         int64_t time_tick_diff = (timestamp - last_ts) / T::tick_dist;
-        int32_t num_element_offset = time_tick_diff / T::frames_per_element;
-        int32_t target_index = start_index + num_element_offset;
+        uint32_t num_element_offset = time_tick_diff / T::frames_per_element;
+        uint32_t target_index = start_index + num_element_offset;
         if (target_index >= AccessableProducerConsumerQueue<T>::size_) {
           target_index -= AccessableProducerConsumerQueue<T>::size_;
         }
