@@ -314,8 +314,6 @@ protected:
     RawType request_element;
     request_element.set_timestamp(start_win_ts);
     auto start_iter = m_latency_buffer->lower_bound(request_element);
-    request_element.set_timestamp(end_win_ts);
-    auto end_iter = m_latency_buffer->lower_bound(request_element);
     // std::cout << start_idx << ", " << end_idx << std::endl;
     // std::cout << "Timestamps: " << start_win_ts << ", " << end_win_ts << std::endl;
     // std::cout << "Found timestamps: " << m_latency_buffer->at(start_idx)->get_timestamp() << ", " <<
@@ -332,15 +330,10 @@ protected:
     auto frag_header = create_fragment_header(dr);
 
     // List of safe-extraction conditions
-
-    if (start_iter != m_latency_buffer->end() && end_iter == m_latency_buffer->end()) { // data is not fully in buffer yet
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
-      rres.result_code = ResultCode::kPass;
-      ++m_bad_requested_count;
-    } else if (start_iter != m_latency_buffer->end() && end_iter != m_latency_buffer->end()) { // data is there
+    if (last_ts <= start_win_ts && end_win_ts <= newest_ts && start_iter != m_latency_buffer->end()) { // data is there
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count;
-    } else if (start_iter == m_latency_buffer->end() && end_iter != m_latency_buffer->end()) { // data is partially gone.
+    } else if (last_ts > start_win_ts) { // data is gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_bad_requested_count;

@@ -43,7 +43,7 @@ public:
       int num_superchunks = num_frames / 12;
       auto window_begin = fragment.get_header().window_begin;
       auto window_end = fragment.get_header().window_end;
-
+      
       types::WIB_SUPERCHUNK_STRUCT* first_superchunk = static_cast<types::WIB_SUPERCHUNK_STRUCT*>(fragment.get_data());
       types::WIB_SUPERCHUNK_STRUCT* last_superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + ((num_superchunks-1) * types::WIB_SUPERCHUNK_SIZE));
 
@@ -52,7 +52,7 @@ public:
       if (!((first_superchunk->get_timestamp() > window_begin - 25) && (first_superchunk->get_timestamp() <= window_begin))) {
         TLOG() << "First fragment not correctly aligned";
       }
-      if (!((last_superchunk->get_timestamp() < window_end) && (last_superchunk->get_timestamp() >= window_end - 25))) {
+      if (!((last_superchunk->get_timestamp() < window_end) && (last_superchunk->get_timestamp() >= window_end - 300))) {
         TLOG() << "Last fragment not correctly aligned";
       }
 

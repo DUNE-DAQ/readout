@@ -289,9 +289,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   const T* back() override {
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
-    auto currentLast = currentWrite + 1;
-    if (currentLast == size_) {
-      currentLast = 0;
+    auto currentLast = currentWrite - 1;
+    if (currentLast == -1) {
+      currentLast = size_;
     }
     return &records_[currentLast];
   };
