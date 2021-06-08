@@ -87,7 +87,7 @@ public:
     SkipListTIter m_iter;
   };
 
-  void resize(uint32_t /*new_size*/) override {
+  void resize(size_t /*new_size*/) override {
 
   }
 
@@ -177,7 +177,7 @@ public:
     return acc.last();
   }
 
-  void pop(unsigned num = 1) override // NOLINT(build/unsigned)
+  void pop(size_t num = 1) override // NOLINT(build/unsigned)
   {
     {
       SkipListTAcc acc(m_skip_list);

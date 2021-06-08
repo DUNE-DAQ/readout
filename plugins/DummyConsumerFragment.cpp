@@ -52,7 +52,7 @@ public:
       if (!((first_superchunk->get_timestamp() > window_begin - 25) && (first_superchunk->get_timestamp() <= window_begin))) {
         TLOG() << "First fragment not correctly aligned";
       }
-      if (!((last_superchunk->get_timestamp() < window_end) && (last_superchunk->get_timestamp() >= window_end - 464))) {
+      if (!((last_superchunk->get_timestamp() < window_end) && (last_superchunk->get_timestamp() >= window_end - 25))) {
         TLOG() << "Last fragment not correctly aligned";
       }
 

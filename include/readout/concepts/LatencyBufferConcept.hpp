@@ -29,7 +29,7 @@ public:
   LatencyBufferConcept(LatencyBufferConcept&&) = delete;            ///< LatencyBufferConcept is not move-constructible
   LatencyBufferConcept& operator=(LatencyBufferConcept&&) = delete; ///< LatencyBufferConcept is not move-assignable
 
-  virtual void resize(uint32_t) = 0;
+  virtual void resize(size_t) = 0;
 
   //! Occupancy of LB
   virtual size_t occupancy() const = 0;
@@ -47,7 +47,7 @@ public:
   virtual const RawType* back() = 0;
 
   //! Pop N amount of elements from LB
-  virtual void pop(unsigned) = 0;
+  virtual void pop(size_t) = 0;
 
   //! Lock LB
   virtual void lock() = 0;

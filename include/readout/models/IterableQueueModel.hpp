@@ -1,4 +1,4 @@
-/** @file AccessableProducerConsumerQueue.hpp
+/** @file IterableQueueModel.hpp
  *
  * Copyright 2012-present Facebook, Inc.
  *
@@ -20,8 +20,8 @@
 
 // Modification by Roland Sipos for DUNE-DAQ software framework
 
-#ifndef READOUT_INCLUDE_READOUT_UTILS_ACCESSABLEPRODUCERCONSUMERQUEUE_HPP_
-#define READOUT_INCLUDE_READOUT_UTILS_ACCESSABLEPRODUCERCONSUMERQUEUE_HPP_
+#ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
+#define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
 #include <folly/lang/Align.h>
 
@@ -42,19 +42,19 @@ namespace dunedaq {
 namespace readout {
 
 /**
- * AccessableProducerConsumerQueue is a one producer and one consumer queue without locks.
+ * IterableQueueModel is a one producer and one consumer queue without locks.
  * Modified version of the folly::ProducerConsumerQueue via adding a readPtr function.
  * Requires  well defined and followed constraints on the consumer side.
  */
 template<class T>
-struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
+struct IterableQueueModel : public LatencyBufferConcept<T>
 {
   typedef T value_type;
 
-  AccessableProducerConsumerQueue(const AccessableProducerConsumerQueue&) = delete;
-  AccessableProducerConsumerQueue& operator=(const AccessableProducerConsumerQueue&) = delete;
+  IterableQueueModel(const IterableQueueModel&) = delete;
+  IterableQueueModel& operator=(const IterableQueueModel&) = delete;
 
-  AccessableProducerConsumerQueue() : LatencyBufferConcept<T>()
+  IterableQueueModel() : LatencyBufferConcept<T>()
       , size_(2)
       , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
       , readIndex_(0)
@@ -67,7 +67,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit AccessableProducerConsumerQueue(uint32_t size) : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
+  explicit IterableQueueModel(size_t size) : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
     , size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -91,7 +91,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
 #endif
   }
 
-  ~AccessableProducerConsumerQueue()
+  ~IterableQueueModel()
   {
     // We need to destruct anything that may still exist in our queue.
     // (No real synchronization needed at destructor time: only one
@@ -181,7 +181,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
   }
 
   // RS: Will this work?
-  void pop(unsigned x)
+  void pop(size_t x)
   {
     for (size_t i = 0; i < x; i++) {
       popFront();
@@ -235,7 +235,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
     using pointer           = T*;
     using reference         = T&;
 
-    Iterator(AccessableProducerConsumerQueue<T>& queue, uint32_t index) : m_queue(queue), m_index(index) {}
+    Iterator(IterableQueueModel<T>& queue, uint32_t index) : m_queue(queue), m_index(index) {}
 
     reference operator*() const {
       return m_queue.records_[m_index];
@@ -269,7 +269,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
     }
 
   private:
-    AccessableProducerConsumerQueue<T>& m_queue;
+    IterableQueueModel<T>& m_queue;
     uint32_t m_index;
   };
 
@@ -300,7 +300,7 @@ struct AccessableProducerConsumerQueue : public LatencyBufferConcept<T>
     return Iterator(*this, -1);
   }
 
-  void resize(uint32_t new_size) override {
+  void resize(size_t new_size) override {
     assert(new_size >= 2);
     if (!std::is_trivially_destructible<T>::value) {
       size_t readIndex = readIndex_;
@@ -347,4 +347,4 @@ protected:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_INCLUDE_READOUT_UTILS_ACCESSABLEPRODUCERCONSUMERQUEUE_HPP_
+#endif // READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
