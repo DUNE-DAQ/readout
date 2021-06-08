@@ -337,12 +337,6 @@ protected:
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kInvalidWindow));
       rres.result_code = ResultCode::kPass;
       ++m_bad_requested_count;
-    } else if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
-      if (start_iter != m_latency_buffer->end() && end_iter != m_latency_buffer->end()) {                          // data is there (double check)
-        rres.result_code = ResultCode::kFound;
-        ++m_found_requested_count;
-      } else {
-      }
     } else if (start_iter != m_latency_buffer->end() && end_iter != m_latency_buffer->end()) { // data is there
       rres.result_code = ResultCode::kFound;
       ++m_found_requested_count;
