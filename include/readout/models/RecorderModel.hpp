@@ -99,7 +99,8 @@ private:
         m_packets_processed_total++;
         m_packets_processed_since_last_info++;
         if (!m_buffered_writer.write(element)) {
-          throw CannotWriteToFile(ERS_HERE, m_conf.output_file);
+          ers::warning(CannotWriteToFile(ERS_HERE, m_conf.output_file));
+          break;
         }
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         continue;
