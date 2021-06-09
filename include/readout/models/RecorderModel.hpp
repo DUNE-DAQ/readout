@@ -69,7 +69,7 @@ public:
       TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run" << std::endl;
     }
 
-    m_buffered_writer.open(m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm);
+    m_buffered_writer.open(m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm, m_conf.use_o_direct);
     m_work_thread.set_name(m_name, 0);
   }
 
