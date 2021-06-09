@@ -37,7 +37,7 @@ namespace dunedaq {
             IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
         size_t occupancy_guess = IterableQueueModel<T>::occupancy();
         uint64_t last_ts = IterableQueueModel<T>::records_[start_index].get_timestamp();
-        uint64_t newest_ts = last_ts + (occupancy_guess - m_safe_num_elements_margin) * T::tick_dist * T::frames_per_element;
+        uint64_t newest_ts = last_ts + occupancy_guess * T::tick_dist * T::frames_per_element;
 
         if (last_ts > timestamp || timestamp > newest_ts) {
           return IterableQueueModel<T>::end();
@@ -51,9 +51,6 @@ namespace dunedaq {
         }
         return typename IterableQueueModel<T>::Iterator(*this, target_index);
       }
-
-    private:
-      static const constexpr uint64_t m_safe_num_elements_margin = 10; // NOLINT(build/unsigned)
 
     };
 
