@@ -165,6 +165,9 @@ public:
   void get_info(datalinkhandlerinfo::Info& info) override {
     info.found_requested = m_found_requested_count;
     info.bad_requested = m_bad_requested_count;
+    info.request_window_too_old = m_request_gone;
+    info.retry_request = m_retry_request;
+    info.uncategorized_request = m_uncategorized_request;
   }
 
 protected:
@@ -336,13 +339,16 @@ protected:
     } else if (last_ts > start_win_ts) { // data is gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
+      ++m_request_gone;
       ++m_bad_requested_count;
     } else if (newest_ts < end_win_ts) {
+      ++m_retry_request;
       rres.result_code = ResultCode::kNotYet; // give it another chance
     } else {
       TLOG() << "Don't know how to categorise this request";
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
+      ++m_uncategorized_request;
       ++m_bad_requested_count;
     }
 
@@ -453,6 +459,9 @@ private:
   // Stats
   std::atomic<int> m_found_requested_count{ 0 };
   std::atomic<int> m_bad_requested_count{ 0 };
+  std::atomic<int> m_request_gone{ 0 };
+  std::atomic<int> m_retry_request{ 0 };
+  std::atomic<int> m_uncategorized_request{ 0 };
 };
 
 } // namespace readout

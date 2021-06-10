@@ -15,7 +15,10 @@ local info = {
        s.field("requests", self.uint8, 0, doc="Busy flag"), 
        s.field("new_requests", self.uint8, 0, doc="Error flag"),
        s.field("found_requested", self.uint8, 0, doc="Found requested"),
-       s.field("bad_requested", self.uint8, 0, doc="Did not find requested")
+       s.field("bad_requested", self.uint8, 0, doc="Did not find requested"),
+       s.field("request_window_too_old", self.uint8, 0, doc="Request data is already gone"),
+       s.field("retry_request", self.uint8, 0, doc="Data is not completely there yet and request can be retried"),
+       s.field("uncategorized_request", self.uint8, 0, doc="Request is uncategorized")
    ], doc="Data link handler information information")
 };
 
