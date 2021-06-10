@@ -28,6 +28,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <random>
 
 using dunedaq::readout::logging::TLVL_QUEUE_POP;
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;
@@ -79,12 +80,23 @@ public:
       m_link_conf = link_conf.get<link_conf_t>();
       m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
+      std::mt19937 mt(rand()); // NOLINT(runtime/threadsafe_fn)
+
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(RawType));
       try {
         m_file_source->read(m_link_conf.data_filename);
       } catch (const ers::Issue& ex) {
         ers::fatal(ex);
         throw ConfigurationError(ERS_HERE, "", ex);
+      }
+
+      if (m_dropout_rate == 0.0) {
+        m_dropouts = std::vector<bool>(1);
+      } else {
+        m_dropouts = std::vector<bool>(m_dropouts_length);
+      }
+      for (size_t i = 0; i < m_dropouts.size(); ++i) {
+        m_dropouts[i] = static_cast<double>(mt()) / static_cast<double>(RAND_MAX) >= m_dropout_rate;
       }
 
       m_is_configured = true;
@@ -141,6 +153,7 @@ protected:
     uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT(build/unsigned)
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
     uint64_t timestamp = ts_0; // NOLINT(build/unsigned)
+    int dropout_index = 0;
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
@@ -148,8 +161,8 @@ protected:
         offset = 0;
       }
 
-      bool create_frame =
-        static_cast<double>(rand()) / static_cast<double>(RAND_MAX) >= m_dropout_rate; // NOLINT(runtime/threadsafe_fn)
+      bool create_frame = m_dropouts[dropout_index]; // NOLINT(runtime/threadsafe_fn)
+      dropout_index = (dropout_index + 1) % m_dropouts.size();
       if (create_frame) {
         RawType payload;
         // Memcpy from file buffer to flat char array
@@ -216,6 +229,10 @@ private:
   std::string m_name;
   bool m_is_configured = false;
   double m_rate_khz;
+
+  std::vector<bool> m_dropouts; // Random population
+
+  static constexpr int m_dropouts_length = 10000; // Random population size
 };
 
 } // namespace readout
