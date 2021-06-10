@@ -333,7 +333,7 @@ protected:
     auto frag_header = create_fragment_header(dr);
 
     // List of safe-extraction conditions
-    if (last_ts <= start_win_ts && end_win_ts <= newest_ts && start_iter != m_latency_buffer->end()) { // data is there
+    if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
       if (start_iter == m_latency_buffer->end()) {
         // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
         ++m_retry_request;
