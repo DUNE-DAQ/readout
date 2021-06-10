@@ -334,8 +334,14 @@ protected:
 
     // List of safe-extraction conditions
     if (last_ts <= start_win_ts && end_win_ts <= newest_ts && start_iter != m_latency_buffer->end()) { // data is there
-      rres.result_code = ResultCode::kFound;
-      ++m_found_requested_count;
+      if (start_iter == m_latency_buffer->end()) {
+        // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
+        ++m_retry_request;
+        rres.result_code = ResultCode::kNotYet; // give it another chance
+      } else {
+        rres.result_code = ResultCode::kFound;
+        ++m_found_requested_count;
+      }
     } else if (last_ts > start_win_ts) { // data is gone.
       frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;

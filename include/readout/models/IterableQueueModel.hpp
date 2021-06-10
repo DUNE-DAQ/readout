@@ -290,7 +290,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   const T* back() override {
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
     int currentLast = currentWrite;
-    if (currentLast == -1) {
+    if (currentLast == 0) {
       currentLast = size_;
     } else {
       currentLast--;
