@@ -81,6 +81,7 @@ public:
       m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
       std::mt19937 mt(rand()); // NOLINT(runtime/threadsafe_fn)
+      std::uniform_real_distribution<double> dis(0.0, 1.0);
 
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(RawType));
       try {
@@ -96,7 +97,7 @@ public:
         m_dropouts = std::vector<bool>(m_dropouts_length);
       }
       for (size_t i = 0; i < m_dropouts.size(); ++i) {
-        m_dropouts[i] = static_cast<double>(mt()) / static_cast<double>(RAND_MAX) >= m_dropout_rate;
+        m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
       m_is_configured = true;
