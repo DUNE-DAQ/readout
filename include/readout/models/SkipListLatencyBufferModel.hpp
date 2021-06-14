@@ -169,11 +169,17 @@ public:
 
   const RawType* front() override {
     SkipListTAcc acc(m_skip_list);
+    if (acc.size() == 0) {
+      return nullptr;
+    }
     return acc.first();
   }
 
   const RawType* back() override {
     SkipListTAcc acc(m_skip_list);
+    if (acc.size() == 0) {
+      return nullptr;
+    }
     return acc.last();
   }
 

@@ -49,6 +49,8 @@ public:
     : m_latency_buffer(latency_buffer)
     , m_fragment_sink(fragment_sink)
     , m_snb_sink(snb_sink)
+    , m_waiting_requests()
+    , m_waiting_requests_lock()
     , m_pop_reqs(0)
     , m_pops_count(0)
     , m_occupancy(0)
@@ -96,6 +98,7 @@ public:
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
     m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
+    m_waiting_queue_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -106,6 +109,7 @@ public:
       m_future_recording_stopper.wait();
     m_executor.join();
     m_stats_thread.join();
+    m_waiting_queue_thread.join();
   }
 
   void record(const nlohmann::json& args) override
@@ -237,6 +241,25 @@ protected:
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
+  void check_waiting_requests()
+  {
+    while (m_run_marker.load()) {
+      {
+        std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
+        auto last_frame = m_latency_buffer->back() ; // NOLINT
+        if (last_frame != nullptr) {
+          uint64_t newest_ts = last_frame->get_timestamp();
+          while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
+            dfmessages::DataRequest request = m_waiting_requests.top();
+            issue_request(request, 0);
+            m_waiting_requests.pop();
+          }
+        }
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  }
+
   void executor()
   {
     std::future<RequestResult> fut;
@@ -265,9 +288,8 @@ protected:
           // least they are not missing.
           if (reqres.result_code == ResultCode::kNotYet) { // && m_run_marker.load()) { // give it another chance
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
-                                        << "With timestamp=" << reqres.data_request.trigger_timestamp << "delay [us] "
-                                        << reqres.request_delay_us;
-            issue_request(reqres.data_request, 0);
+                                        << "With timestamp=" << reqres.data_request.trigger_timestamp;
+            m_waiting_requests.push(reqres.data_request);
           }
         }
       }
@@ -432,6 +454,16 @@ protected:
   using completion_queue_t = folly::UMPSCQueue<std::future<RequestResult>, true>;
   completion_queue_t m_completion_queue;
 
+  // Priority queue for waiting requests
+  class Comparator {
+  public:
+    bool operator()(dfmessages::DataRequest& left, dfmessages::DataRequest& right) {
+      return left.window_end > right.window_end;
+    }
+  };
+  std::priority_queue<dfmessages::DataRequest, std::vector<dfmessages::DataRequest>, Comparator> m_waiting_requests;
+  std::mutex m_waiting_requests_lock;
+
   // The run marker
   std::atomic<bool> m_run_marker = false;
 
@@ -440,6 +472,7 @@ protected:
   std::atomic<int> m_pops_count;
   std::atomic<int> m_occupancy;
   std::thread m_stats_thread;
+  std::thread m_waiting_queue_thread;
 
   std::atomic<bool> m_cleanup_requested = false;
 
