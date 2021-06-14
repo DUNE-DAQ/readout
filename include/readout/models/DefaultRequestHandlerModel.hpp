@@ -292,6 +292,7 @@ protected:
           if (reqres.result_code == ResultCode::kNotYet) { // && m_run_marker.load()) { // give it another chance
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
                                         << "With timestamp=" << reqres.data_request.trigger_timestamp;
+            std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
             m_waiting_requests.push(reqres.data_request);
           }
         }
