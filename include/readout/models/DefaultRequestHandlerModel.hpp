@@ -478,6 +478,7 @@ protected:
   std::thread m_waiting_queue_thread;
 
   std::atomic<bool> m_cleanup_requested = false;
+  std::atomic<int> m_cleanups{0};
 
 private:
   // For recording
@@ -503,7 +504,6 @@ private:
   std::atomic<int> m_request_gone{ 0 };
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
-  std::atomic<int> m_cleanups{0};
 };
 
 } // namespace readout
