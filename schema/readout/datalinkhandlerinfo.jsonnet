@@ -18,7 +18,8 @@ local info = {
        s.field("bad_requested", self.uint8, 0, doc="Did not find requested"),
        s.field("request_window_too_old", self.uint8, 0, doc="Request data is already gone"),
        s.field("retry_request", self.uint8, 0, doc="Data is not completely there yet and request can be retried"),
-       s.field("uncategorized_request", self.uint8, 0, doc="Request is uncategorized")
+       s.field("uncategorized_request", self.uint8, 0, doc="Request is uncategorized"),
+       s.field("cleanups", self.uint8, 0, doc="Cleanups issued on the latency buffer")
    ], doc="Data link handler information information")
 };
 

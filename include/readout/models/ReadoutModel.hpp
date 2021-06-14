@@ -212,7 +212,6 @@ private:
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
         }
-        m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;

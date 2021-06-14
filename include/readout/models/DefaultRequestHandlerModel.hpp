@@ -172,6 +172,7 @@ public:
     info.request_window_too_old = m_request_gone;
     info.retry_request = m_retry_request;
     info.uncategorized_request = m_uncategorized_request;
+    info.cleanups = m_cleanups;
   }
 
 protected:
@@ -238,6 +239,7 @@ protected:
       m_pops_count.store(m_pops_count.load() + to_pop);
     }
     m_cleanup_requested.store(false);
+    m_cleanups++;
     return RequestResult(ResultCode::kCleanup, dr);
   }
 
@@ -256,6 +258,7 @@ protected:
           }
         }
       }
+      auto_cleanup_check();
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
@@ -500,6 +503,7 @@ private:
   std::atomic<int> m_request_gone{ 0 };
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
+  std::atomic<int> m_cleanups{0};
 };
 
 } // namespace readout
