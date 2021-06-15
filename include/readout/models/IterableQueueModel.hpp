@@ -282,26 +282,20 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return Iterator(*this, currentRead);
   };
 
-  const T* front() override {
+  T front() override {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
-    if (currentRead == writeIndex_.load(std::memory_order_relaxed)) {
-      return nullptr;
-    }
-    return &records_[currentRead];
+    return records_[currentRead];
   }
 
-  const T* back() override {
+  T back() override {
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
-    if (currentWrite == readIndex_.load(std::memory_order_relaxed)) {
-      return nullptr;
-    }
     int currentLast = currentWrite;
     if (currentLast == 0) {
       currentLast = size_;
     } else {
       currentLast--;
     }
-    return &records_[currentLast];
+    return records_[currentLast];
   };
 
   Iterator end() {

@@ -187,6 +187,7 @@ public:
     dli.new_packets = m_packet_count.exchange(0);
     dli.requests = m_request_count_tot.load();
     dli.new_requests = m_request_count.exchange(0);
+    dli.overwritten_packet_count = m_overwritten_packet_count.load();
 
     m_request_handler_impl->get_info(dli);
 
@@ -211,6 +212,7 @@ private:
         m_raw_processor_impl->process_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
+          m_overwritten_packet_count++;
         }
         ++m_packet_count;
         ++m_packet_count_tot;
@@ -332,6 +334,7 @@ private:
   std::atomic<int> m_request_count_tot{ 0 };
   std::atomic<int> m_rawq_timeout_count{ 0 };
   std::atomic<int> m_stats_packet_count{ 0 };
+  std::atomic<int> m_overwritten_packet_count{0};
   ReusableThread m_stats_thread;
 
   // CONSUMER

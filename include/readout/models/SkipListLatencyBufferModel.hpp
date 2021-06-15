@@ -50,7 +50,7 @@ public:
     using pointer           = RawType*;
     using reference         = RawType&;
 
-    Iterator(std::unique_ptr<SkipListTAcc>&& acc, SkipListTIter iter) : m_acc(std::move(acc)), m_iter(iter) {
+    Iterator(SkipListTAcc&& acc, SkipListTIter iter) : m_acc(std::move(acc)), m_iter(iter) {
 
     }
 
@@ -83,7 +83,7 @@ public:
     }
 
   private:
-    std::unique_ptr<SkipListTAcc> m_acc;
+    SkipListTAcc m_acc;
     SkipListTIter m_iter;
   };
 
@@ -150,37 +150,31 @@ public:
   }
 
   Iterator begin() {
-    std::unique_ptr<SkipListTAcc> acc = std::make_unique<SkipListTAcc>(m_skip_list);
-    SkipListTIter iter = acc->begin();
+    SkipListTAcc acc = SkipListTAcc(m_skip_list);
+    SkipListTIter iter = acc.begin();
     return std::move(Iterator(std::move(acc), iter));
   }
 
   Iterator end() {
-    std::unique_ptr<SkipListTAcc> acc = std::make_unique<SkipListTAcc>(m_skip_list);
-    SkipListTIter iter = acc->end();
+    SkipListTAcc acc = SkipListTAcc(m_skip_list);
+    SkipListTIter iter = acc.end();
     return std::move(Iterator(std::move(acc), iter));
   }
 
   Iterator lower_bound(RawType& element) {
-    std::unique_ptr<SkipListTAcc> acc = std::make_unique<SkipListTAcc>(m_skip_list);
-    SkipListTIter iter = acc->lower_bound(element);
+    SkipListTAcc acc = SkipListTAcc(m_skip_list);
+    SkipListTIter iter = acc.lower_bound(element);
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  const RawType* front() override {
+  RawType front() override {
     SkipListTAcc acc(m_skip_list);
-    if (acc.size() == 0) {
-      return nullptr;
-    }
-    return acc.first();
+    return *acc.first();
   }
 
-  const RawType* back() override {
+  RawType back() override {
     SkipListTAcc acc(m_skip_list);
-    if (acc.size() == 0) {
-      return nullptr;
-    }
-    return acc.last();
+    return *acc.last();
   }
 
   void pop(size_t num = 1) override // NOLINT(build/unsigned)

@@ -248,9 +248,9 @@ protected:
     while (m_run_marker.load()) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        auto last_frame = m_latency_buffer->back() ; // NOLINT
-        if (last_frame != nullptr) {
-          uint64_t newest_ts = last_frame->get_timestamp();
+        if (m_latency_buffer->occupancy() != 0) { 
+          auto last_frame = m_latency_buffer->back() ; // NOLINT
+          uint64_t newest_ts = last_frame.get_timestamp();
           while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
             dfmessages::DataRequest request = m_waiting_requests.top();
             issue_request(request, 0);
@@ -333,8 +333,8 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
 
     // Data availability is calculated here
-    auto front_frame = *m_latency_buffer->front(); // NOLINT
-    auto last_frame = *m_latency_buffer->back() ; // NOLINT
+    auto front_frame = m_latency_buffer->front(); // NOLINT
+    auto last_frame = m_latency_buffer->back() ; // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
     uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
 
