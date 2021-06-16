@@ -78,22 +78,22 @@ protected:
         tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();
         headts = (*head).get_timestamp(); // headptr->get_timestamp();
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with "
-                                    << "Oldest stored TS=" << tailts << " "
-                                    << "Newest stored TS=" << headts;
-        if (headts - tailts > m_max_ts_diff) { // ts differnce exceeds maximum
+                                    << "Oldest stored TS=" << headts << " "
+                                    << "Newest stored TS=" << tailts;
+        if (tailts - headts > m_max_ts_diff) { // ts differnce exceeds maximum
           ++(inherited::m_pop_reqs);
           uint64_t timediff = m_max_ts_diff; // NOLINT(build/unsigned)
           while (timediff >= m_max_ts_diff) {
-            bool removed = acc.remove(*tail);
+            bool removed = acc.remove(*head);
             if (!removed) {
               TLOG_DEBUG(TLVL_WORK_STEPS) << "Unsuccesfull remove from SKL during cleanup: " << removed;
             } else {
               ++removed_ctr;
             }
-            tail = acc.last();
+            head = acc.first();
             // headptr = reinterpret_cast<const dataformats::PDSFrame*>(head);
-            tailts = (*tail).get_timestamp(); // headptr->get_timestamp();
-            timediff = headts - tailts;
+            headts = (*head).get_timestamp(); // headptr->get_timestamp();
+            timediff = tailts - headts;
           }
           inherited::m_pops_count += removed_ctr;
         }

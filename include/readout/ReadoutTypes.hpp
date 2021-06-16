@@ -154,7 +154,7 @@ struct PDS_SUPERCHUNK_STRUCT
   {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);        // NOLINT
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data); // NOLINT
-    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
