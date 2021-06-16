@@ -337,94 +337,98 @@ protected:
     // Prepare response
     RequestResult rres(ResultCode::kUnknown, dr);
 
-    // Data availability is calculated here
-    auto front_frame = m_latency_buffer->front();    // NOLINT
-    auto last_frame = m_latency_buffer->back();      // NOLINT
-    uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
-    uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
-
-    uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
-    uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
-    // std::cout << start_idx << ", " << end_idx << std::endl;
-    // std::cout << "Timestamps: " << start_win_ts << ", " << end_win_ts << std::endl;
-    // std::cout << "Found timestamps: " << m_latency_buffer->at(start_idx)->get_timestamp() << ", " <<
-    // m_latency_buffer->at(end_idx)->get_timestamp() << std::endl;
-
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Data request for "
-                                << "Trigger TS=" << dr.trigger_timestamp << " "
-                                << "Oldest stored TS=" << last_ts << " "
-                                << "Newest stored TS=" << newest_ts << " "
-                                << "Start of window TS=" << start_win_ts << " "
-                                << "End of window TS=" << end_win_ts;
-
     // Prepare FragmentHeader and empty Fragment pieces list
     auto frag_header = create_fragment_header(dr);
     std::vector<std::pair<void*, size_t>> frag_pieces;
     std::ostringstream oss;
 
-    // List of safe-extraction conditions
-    if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
-      RawType request_element;
-      request_element.set_timestamp(start_win_ts);
-      auto start_iter = m_latency_buffer->lower_bound(request_element);
-      if (start_iter == m_latency_buffer->end()) {
-        // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
+    if (m_latency_buffer->occupancy() != 0) {
+      // Data availability is calculated here
+      auto front_frame = m_latency_buffer->front();    // NOLINT
+      auto last_frame = m_latency_buffer->back();      // NOLINT
+      uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
+      uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
+
+      uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
+      uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
+      // std::cout << start_idx << ", " << end_idx << std::endl;
+      // std::cout << "Timestamps: " << start_win_ts << ", " << end_win_ts << std::endl;
+      // std::cout << "Found timestamps: " << m_latency_buffer->at(start_idx)->get_timestamp() << ", " <<
+      // m_latency_buffer->at(end_idx)->get_timestamp() << std::endl;
+
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Data request for "
+                                  << "Trigger TS=" << dr.trigger_timestamp << " "
+                                  << "Oldest stored TS=" << last_ts << " "
+                                  << "Newest stored TS=" << newest_ts << " "
+                                  << "Start of window TS=" << start_win_ts << " "
+                                  << "End of window TS=" << end_win_ts;
+
+      // List of safe-extraction conditions
+      if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
+        RawType request_element;
+        request_element.set_timestamp(start_win_ts);
+        auto start_iter = m_latency_buffer->lower_bound(request_element);
+        if (start_iter == m_latency_buffer->end()) {
+          // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
+          ++m_retry_request;
+          rres.result_code = ResultCode::kNotYet; // give it another chance
+        } else {
+          rres.result_code = ResultCode::kFound;
+          ++m_found_requested_count;
+
+          auto elements_handled = 0;
+
+          RawType* element = &(*start_iter);
+          while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
+            frag_pieces.emplace_back(
+              std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(RawType::element_size)));
+            elements_handled++;
+            ++start_iter;
+            element = &(*start_iter);
+          }
+        }
+      } else if (last_ts > start_win_ts) { // data is gone.
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+        rres.result_code = ResultCode::kNotFound;
+        ++m_request_gone;
+        ++m_bad_requested_count;
+      } else if (newest_ts < end_win_ts) {
         ++m_retry_request;
         rres.result_code = ResultCode::kNotYet; // give it another chance
       } else {
-        rres.result_code = ResultCode::kFound;
-        ++m_found_requested_count;
-
-        auto elements_handled = 0;
-
-        RawType* element = &(*start_iter);
-        while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
-          frag_pieces.emplace_back(
-            std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(RawType::element_size)));
-          elements_handled++;
-          ++start_iter;
-          element = &(*start_iter);
-        }
-      }
-    } else if (last_ts > start_win_ts) { // data is gone.
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-      rres.result_code = ResultCode::kNotFound;
-      ++m_request_gone;
-      ++m_bad_requested_count;
-    } else if (newest_ts < end_win_ts) {
-      ++m_retry_request;
-      rres.result_code = ResultCode::kNotYet; // give it another chance
-    } else {
-      TLOG() << "Don't know how to categorise this request";
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-      rres.result_code = ResultCode::kNotFound;
-      ++m_uncategorized_request;
-      ++m_bad_requested_count;
-    }
-
-    // Requeue if needed
-    if (rres.result_code == ResultCode::kNotYet) {
-      if (m_run_marker.load()) {
-        // rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
-        if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
-          rres.request_delay_us = m_min_delay_us;
-        }
-        return rres; // If kNotYet, return immediately, don't check for fragment pieces.
-      } else {
+        TLOG() << "Don't know how to categorise this request";
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
+        ++m_uncategorized_request;
         ++m_bad_requested_count;
       }
-    }
 
-    // Build fragment
-    oss << "TS match result on link " << m_geoid.element_id << ": " << ' ' << "Trigger number=" << dr.trigger_number
-        << " "
-        << "Oldest stored TS=" << last_ts << " "
-        << "Start of window TS=" << start_win_ts << " "
-        << "End of window TS=" << end_win_ts << " "
-        << "Estimated newest stored TS=" << newest_ts;
-    TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+      // Requeue if needed
+      if (rres.result_code == ResultCode::kNotYet) {
+        if (m_run_marker.load()) {
+          // rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
+          if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
+            rres.request_delay_us = m_min_delay_us;
+          }
+          return rres; // If kNotYet, return immediately, don't check for fragment pieces.
+        } else {
+          frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+          rres.result_code = ResultCode::kNotFound;
+          ++m_bad_requested_count;
+        }
+      }
+
+      // Build fragment
+      oss << "TS match result on link " << m_geoid.element_id << ": " << ' ' << "Trigger number=" << dr.trigger_number
+          << " "
+          << "Oldest stored TS=" << last_ts << " "
+          << "Start of window TS=" << start_win_ts << " "
+          << "End of window TS=" << end_win_ts << " "
+          << "Estimated newest stored TS=" << newest_ts;
+      TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+    } else {
+      ++m_bad_requested_count;
+    }
 
     if (rres.result_code != ResultCode::kFound) {
       ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
