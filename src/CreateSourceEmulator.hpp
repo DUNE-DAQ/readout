@@ -51,7 +51,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
   if (inst.find("pds") != std::string::npos) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake pds link";
     auto source_emu_model =
-      std::make_unique<SourceEmulatorModel<types::PDS_SUPERCHUNK_STRUCT>>(qi.name, run_marker, 16, 0.9, 200.0);
+      std::make_unique<SourceEmulatorModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(qi.name, run_marker, 16, 0.9, 200.0);
     return std::move(source_emu_model);
   }
 

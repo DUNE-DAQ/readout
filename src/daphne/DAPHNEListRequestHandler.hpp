@@ -1,5 +1,5 @@
 /**
- * @file PDSListRequestHandler.hpp Trigger matching mechanism for WIB frames.
+ * @file DAPHNEListRequestHandler.hpp Trigger matching mechanism for WIB frames.
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -12,7 +12,7 @@
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 
-#include "dataformats/pds/PDSFrame.hpp"
+#include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
@@ -33,35 +33,35 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-class DaphneListRequestHandler
-  : public DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
-                                      SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>
+class DAPHNEListRequestHandler
+  : public DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                      SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>
 {
 public:
   using inherited =
-    DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>;
-  using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
-  using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
+    DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT, SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>;
+  using SkipListAcc = typename folly::ConcurrentSkipList<types::DAPHNE_SUPERCHUNK_STRUCT>::Accessor;
+  using SkipListSkip = typename folly::ConcurrentSkipList<types::DAPHNE_SUPERCHUNK_STRUCT>::Skipper;
 
-  DaphneListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>& latency_buffer,
+  DAPHNEListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>& latency_buffer,
                            std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                           std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
-    : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
-                                 SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>(latency_buffer,
+                           std::unique_ptr<appfwk::DAQSink<types::DAPHNE_SUPERCHUNK_STRUCT>>& snb_sink)
+    : DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                 SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(latency_buffer,
                                                                                            fragment_sink,
                                                                                            snb_sink)
   {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSListRequestHandler created...";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "DAPHNEListRequestHandler created...";
   }
 
 protected:
   RequestResult cleanup_request(dfmessages::DataRequest dr,
                                 unsigned /** delay_us */ = 0) override // NOLINT(build/unsigned)
   {
-    return pds_cleanup_request(dr);
+    return daphne_cleanup_request(dr);
   }
 
-  RequestResult pds_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0)
+  RequestResult daphne_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0)
   {
     // size_t occupancy_guess = m_latency_buffer->occupancy();
     size_t removed_ctr = 0;
@@ -72,8 +72,8 @@ protected:
       auto tail = acc.last();
       auto head = acc.first();
       if (tail && head) {
-        // auto tailptr = reinterpret_cast<const dataformats::PDSFrame*>(tail); // NOLINT
-        // auto headptr = reinterpret_cast<const dataformats::PDSFrame*>(head); // NOLINT
+        // auto tailptr = reinterpret_cast<const dataformats::DAPHNEFrame*>(tail); // NOLINT
+        // auto headptr = reinterpret_cast<const dataformats::DAPHNEFrame*>(head); // NOLINT
         tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();
         headts = (*head).get_timestamp(); // headptr->get_timestamp();
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with "
@@ -90,7 +90,7 @@ protected:
               ++removed_ctr;
             }
             head = acc.first();
-            // headptr = reinterpret_cast<const dataformats::PDSFrame*>(head);
+            // headptr = reinterpret_cast<const dataformats::DAPHNEFrame*>(head);
             headts = (*head).get_timestamp(); // headptr->get_timestamp();
             timediff = tailts - headts;
           }

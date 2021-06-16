@@ -15,7 +15,7 @@
 
 #include "dataformats/FragmentHeader.hpp"
 #include "dataformats/GeoID.hpp"
-#include "dataformats/pds/PDSFrame.hpp"
+#include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
 
@@ -140,30 +140,30 @@ struct WIB2_SUPERCHUNK_STRUCT
 };
 
 /**
- * @brief For PDS the numbers are different.
- * 12[PDS frames] x 584[Bytes] = 7008[Bytes]
+ * @brief For DAPHNE the numbers are different.
+ * 12[DAPHNE frames] x 584[Bytes] = 7008[Bytes]
  * */
-const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
-struct PDS_SUPERCHUNK_STRUCT
+const constexpr std::size_t DAPHNE_SUPERCHUNK_SIZE = 7008; // for 12: 7008
+struct DAPHNE_SUPERCHUNK_STRUCT
 {
   // data
-  char data[PDS_SUPERCHUNK_SIZE];
+  char data[DAPHNE_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
-  bool operator<(const PDS_SUPERCHUNK_STRUCT& other) const
+  bool operator<(const DAPHNE_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data)->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data)->get_timestamp(); // NOLINT
   }
 
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    auto frame = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&data); // NOLINT
+    auto frame = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&data); // NOLINT
     frame->header.timestamp_wf_1 = ts;
     frame->header.timestamp_wf_2 = ts >> 32;
   }
@@ -172,9 +172,9 @@ struct PDS_SUPERCHUNK_STRUCT
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto pdsf = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
-      pdsf->header.timestamp_wf_1 = ts_next;
-      pdsf->header.timestamp_wf_2 = ts_next >> 32;
+      auto df = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
+      df->header.timestamp_wf_1 = ts_next;
+      df->header.timestamp_wf_2 = ts_next >> 32;
       ts_next += offset;
     }
   }
@@ -190,12 +190,12 @@ struct PDS_SUPERCHUNK_STRUCT
 /**
  * Key finder for LBs.
  * */
-struct PDSTimestampGetter
+struct DAPHNETimestampGetter
 {
-  uint64_t operator()(PDS_SUPERCHUNK_STRUCT& pdss) // NOLINT(build/unsigned)
+  uint64_t operator()(DAPHNE_SUPERCHUNK_STRUCT& ds) // NOLINT(build/unsigned)
   {
-    auto pdsfptr = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&pdss); // NOLINT
-    return pdsfptr->get_timestamp();
+    auto dsptr = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&ds); // NOLINT
+    return dsptr->get_timestamp();
   }
 };
 

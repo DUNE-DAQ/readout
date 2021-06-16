@@ -59,7 +59,7 @@ DataRecorder::init(const data_t& args)
     // IF PDS
     if (inst.find("pds") != std::string::npos) {
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for pds";
-      recorder.reset(new RecorderImpl<types::PDS_SUPERCHUNK_STRUCT>(get_name()));
+      recorder.reset(new RecorderImpl<types::DAPHNE_SUPERCHUNK_STRUCT>(get_name()));
       recorder->init(args);
       return;
     }

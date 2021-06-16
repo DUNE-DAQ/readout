@@ -80,8 +80,8 @@ public:
       // first_superchunk->get_timestamp() << ", last: " << last_superchunk->get_timestamp();
 
       for (int i = 0; i < num_superchunks; ++i) {
-        types::PDS_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::PDS_SUPERCHUNK_STRUCT*>( // NOLINT
-          static_cast<char*>(fragment.get_data()) + (i * types::PDS_SUPERCHUNK_SIZE));
+        types::DAPHNE_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::DAPHNE_SUPERCHUNK_STRUCT*>( // NOLINT
+          static_cast<char*>(fragment.get_data()) + (i * types::DAPHNE_SUPERCHUNK_SIZE));
         if (superchunk->get_timestamp() < fragment.get_header().window_begin ||
             superchunk->get_timestamp() >= fragment.get_header().window_end) {
           TLOG() << "Fragment validation encountered fragment not fitting the requested window";

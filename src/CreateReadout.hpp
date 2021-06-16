@@ -20,14 +20,10 @@
 #include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/models/ReadoutModel.hpp"
 
-#include "daphne/DaphneFrameProcessor.hpp"
-#include "daphne/DaphneListRequestHandler.hpp"
-//#include "daphne/DaphneQueueRequestHandler.hpp"
-//#include "readout/models/SkipListLatencyBufferModel.hpp"
+#include "daphne/DAPHNEFrameProcessor.hpp"
+#include "daphne/DAPHNEListRequestHandler.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
-//#include "wib2/WIB2RequestHandler.hpp"
 #include "wib/WIBFrameProcessor.hpp"
-//#include "wib/WIBRequestHandler.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
@@ -45,7 +41,6 @@ namespace readout {
 std::unique_ptr<ReadoutConcept>
 createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 {
-  std::string raw_type_name("");
   auto queues = args.get<appfwk::app::ModInit>().qinfos;
   for (const auto& qi : queues) {
     if (qi.name == "raw_input") {
@@ -54,7 +49,6 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       // IF WIB
       if (inst.find("wib") != std::string::npos && inst.find("wib2") == std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib";
-        raw_type_name = "wib";
         auto readout_model = std::make_unique<ReadoutModel<
           types::WIB_SUPERCHUNK_STRUCT,
           DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>>,
@@ -67,7 +61,6 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       // IF WIB2
       if (inst.find("wib2") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib2";
-        raw_type_name = "wib2";
         auto readout_model = std::make_unique<ReadoutModel<
           types::WIB2_SUPERCHUNK_STRUCT,
           DefaultRequestHandlerModel<types::WIB2_SUPERCHUNK_STRUCT, FixedRateQueueModel<types::WIB2_SUPERCHUNK_STRUCT>>,
@@ -77,20 +70,19 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
-      // IF PDS queue
+      // IF DAPHNE queue
       if (inst.find("pds_queue") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
-        raw_type_name = "pds";
         auto readout_model = std::make_unique<ReadoutModel<
-          types::PDS_SUPERCHUNK_STRUCT,
-          DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
-                                     BinarySearchQueueModel<types::PDS_SUPERCHUNK_STRUCT,
+          types::DAPHNE_SUPERCHUNK_STRUCT,
+          DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                     BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
                                                             uint64_t, // NOLINT(build/unsigned)
-                                                            types::PDSTimestampGetter>>,
-          BinarySearchQueueModel<types::PDS_SUPERCHUNK_STRUCT,
+                                                            types::DAPHNETimestampGetter>>,
+          BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
                                  uint64_t, // NOLINT(build/unsigned)
-                                 types::PDSTimestampGetter>,
-          DaphneFrameProcessor>>(run_marker);
+                                 types::DAPHNETimestampGetter>,
+          DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }
@@ -98,11 +90,10 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       // IF PDS skiplist
       if (inst.find("pds_list") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using SkipList LB";
-        raw_type_name = "pds";
-        auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-                                                           DaphneListRequestHandler,
-                                                           SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>,
-                                                           DaphneFrameProcessor>>(run_marker);
+        auto readout_model = std::make_unique<ReadoutModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                                           DAPHNEListRequestHandler,
+                                                           SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
+                                                           DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }
