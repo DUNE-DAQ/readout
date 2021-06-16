@@ -6,7 +6,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "BufferedFileReader.hpp"
+#include "readout/utils/BufferedFileReader.hpp"
 
 #include "logging/Logging.hpp"
 #include "readout/ReadoutTypes.hpp"

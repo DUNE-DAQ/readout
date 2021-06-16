@@ -15,7 +15,7 @@
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
-#include "SourceEmulatorModel.hpp"
+#include "readout/models/SourceEmulatorModel.hpp"
 
 #include <memory>
 #include <string>

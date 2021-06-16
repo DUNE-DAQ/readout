@@ -9,12 +9,11 @@
 #ifndef READOUT_PLUGINS_DUMMYCONSUMER_HPP_
 #define READOUT_PLUGINS_DUMMYCONSUMER_HPP_
 
-#include "ReadoutStatistics.hpp"
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "dfmessages/TimeSync.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/ReusableThread.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include <atomic>
 #include <fstream>
@@ -56,7 +55,7 @@ private:
   std::atomic<bool> m_run_marker;
 
   // Stats
-  stats::counter_t m_packets_processed{ 0 };
+  std::atomic<int> m_packets_processed{ 0 };
 };
 } // namespace readout
 } // namespace dunedaq

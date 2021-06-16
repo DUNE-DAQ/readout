@@ -13,7 +13,7 @@
 
 #include "boost/test/unit_test.hpp"
 
-#include "SearchableProducerConsumerQueue.hpp"
+#include "readout/utils/SearchableProducerConsumerQueue.hpp"
 #include "readout/ReadoutTypes.hpp"
 
 #include <cstdio>

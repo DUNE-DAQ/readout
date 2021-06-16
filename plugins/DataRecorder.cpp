@@ -5,7 +5,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "RecorderImpl.hpp"
+#include "readout/models/RecorderModel.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "readout/datarecorder/Nljs.hpp"

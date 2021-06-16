@@ -6,8 +6,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "RandomEngine.hpp"
-#include "RateLimiter.hpp"
+#include "readout/utils/RateLimiter.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -15,6 +14,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <random>
 
 using namespace dunedaq::readout;
 
@@ -42,11 +42,17 @@ main(int /*argc*/, char** /*argv[]*/)
     }
   });
 
+  std::random_device rd;
+  std::mt19937 mt(rd());
+
   // Adjuster
   auto adjuster = std::thread([&]() {
     TLOG() << "Spawned adjuster thread...";
-    RandomEngine re;
-    auto rand_rates = re.get_random_population(runsecs, 1, 1000);
+    std::uniform_int_distribution<> dist(1, 1000);
+    std::vector<int> rand_rates;
+    for (int i = 0; i < runsecs; ++i) {
+      rand_rates.push_back(dist(mt));
+    }
     int idx = 0;
     while (marker) {
       TLOG() << "Adjusting rate to: " << rand_rates[idx] << "[kHz]";
