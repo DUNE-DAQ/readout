@@ -39,8 +39,8 @@ daq_add_library(
 daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
-daq_add_plugin(DummyConsumerTimeSync duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(DummyConsumerFragment duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests

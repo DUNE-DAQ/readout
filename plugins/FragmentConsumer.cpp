@@ -1,13 +1,13 @@
 /**
- * @file DummyConsumerFragment.cpp Module that consumes fragments from a queue
+ * @file FragmentConsumer.cpp Module that consumes fragments from a queue
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
 
-#ifndef READOUT_PLUGINS_DUMMYCONSUMERFRAGMENT_HPP_
-#define READOUT_PLUGINS_DUMMYCONSUMERFRAGMENT_HPP_
+#ifndef READOUT_PLUGINS_FRAGMENTCONSUMER_HPP_
+#define READOUT_PLUGINS_FRAGMENTCONSUMER_HPP_
 
 #include "DummyConsumer.cpp"
 #include "DummyConsumer.hpp"
@@ -20,10 +20,10 @@
 
 namespace dunedaq {
 namespace readout {
-class DummyConsumerFragment : public DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>
+class FragmentConsumer : public DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>
 {
 public:
-  explicit DummyConsumerFragment(const std::string name)
+  explicit FragmentConsumer(const std::string name)
     : DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>(name)
   {}
 
@@ -93,6 +93,6 @@ public:
 } // namespace readout
 } // namespace dunedaq
 
-DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::DummyConsumerFragment)
+DEFINE_DUNE_DAQ_MODULE(dunedaq::readout::FragmentConsumer)
 
-#endif // READOUT_PLUGINS_DUMMYCONSUMERFRAGMENT_HPP_
+#endif // READOUT_PLUGINS_FRAGMENTCONSUMER_HPP_
