@@ -248,7 +248,7 @@ protected:
     while (m_run_marker.load()) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        if (m_latency_buffer->occupancy() != 0) { 
+        if (m_latency_buffer->occupancy() != 0) {
           auto last_frame = m_latency_buffer->back() ; // NOLINT
           uint64_t newest_ts = last_frame.get_timestamp();
           while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {

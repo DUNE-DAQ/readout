@@ -169,12 +169,12 @@ public:
 
   RawType front() override {
     SkipListTAcc acc(m_skip_list);
-    return *acc.first();
+    return *acc.last();
   }
 
   RawType back() override {
     SkipListTAcc acc(m_skip_list);
-    return *acc.last();
+    return *acc.first();
   }
 
   void pop(size_t num = 1) override // NOLINT(build/unsigned)
