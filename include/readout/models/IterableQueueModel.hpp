@@ -31,13 +31,13 @@
 #include <cxxabi.h>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <new>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-#include <limits>
 
 namespace dunedaq {
 namespace readout {
@@ -55,20 +55,21 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   IterableQueueModel(const IterableQueueModel&) = delete;
   IterableQueueModel& operator=(const IterableQueueModel&) = delete;
 
-  IterableQueueModel() : LatencyBufferConcept<T>()
-      , size_(2)
-      , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
-      , readIndex_(0)
-      , writeIndex_(0) {
-
-  }
+  IterableQueueModel()
+    : LatencyBufferConcept<T>()
+    , size_(2)
+    , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
+    , readIndex_(0)
+    , writeIndex_(0)
+  {}
 
   // size must be >= 2.
   //
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit IterableQueueModel(size_t size) : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
+  explicit IterableQueueModel(size_t size)
+    : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
     , size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -110,13 +111,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     std::free(records_);
   }
 
-  bool put(T& record) {
-    return write_(record);
-  }
+  bool put(T& record) { return write_(record); }
 
-  bool write(T&& record) override {
-    return write_(std::move(record));
-  }
+  bool write(T&& record) override { return write_(std::move(record)); }
 
   template<class... Args>
   bool write_(Args&&... recordArgs)
@@ -231,42 +228,42 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   struct Iterator
   {
     using iterator_category = std::forward_iterator_tag;
-    using difference_type   = std::ptrdiff_t;
-    using value_type        = T;
-    using pointer           = T*;
-    using reference         = T&;
+    using difference_type = std::ptrdiff_t;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
 
-    Iterator(IterableQueueModel<T>& queue, uint32_t index) : m_queue(queue), m_index(index) {} // NOLINT(build/unsigned)
+    Iterator(IterableQueueModel<T>& queue, uint32_t index) // NOLINT(build/unsigned)
+      : m_queue(queue)
+      , m_index(index)
+    {}
 
-    reference operator*() const {
-      return m_queue.records_[m_index];
-    }
-    pointer operator->() {
-      return &m_queue.records_[m_index];
-    }
-    Iterator& operator++() {
+    reference operator*() const { return m_queue.records_[m_index]; }
+    pointer operator->() { return &m_queue.records_[m_index]; }
+    Iterator& operator++()
+    {
       m_index++;
       if (m_index == m_queue.size_) {
         m_index = 0;
       }
       return *this;
     }
-    Iterator operator++(int) {
+    Iterator operator++(int)
+    {
       Iterator tmp = *this;
       ++(*this);
       return tmp;
     }
-    friend bool operator==(const Iterator& a, const Iterator& b) {
-      return a.m_index == b.m_index;
-    }
-    friend bool operator!=(const Iterator& a, const Iterator& b) {
-      return a.m_index != b.m_index;
-    }
+    friend bool operator==(const Iterator& a, const Iterator& b) { return a.m_index == b.m_index; }
+    friend bool operator!=(const Iterator& a, const Iterator& b) { return a.m_index != b.m_index; }
 
-    bool good() {
+    bool good()
+    {
       auto const currentRead = m_queue.readIndex_.load(std::memory_order_relaxed);
       auto const currentWrite = m_queue.writeIndex_.load(std::memory_order_relaxed);
-      return (*this != m_queue.end()) || (m_index >= currentRead && m_index < currentWrite) || (m_index >= currentRead && currentWrite < currentRead) || (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite);
+      return (*this != m_queue.end()) || (m_index >= currentRead && m_index < currentWrite) ||
+             (m_index >= currentRead && currentWrite < currentRead) ||
+             (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite);
     }
 
   private:
@@ -274,7 +271,8 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     uint32_t m_index; // NOLINT(build/unsigned)
   };
 
-  Iterator begin() {
+  Iterator begin()
+  {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
     if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
       // queue is empty
@@ -283,12 +281,14 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return Iterator(*this, currentRead);
   }
 
-  T front() override {
+  T front() override
+  {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
     return records_[currentRead];
   }
 
-  T back() override {
+  T back() override
+  {
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
     int currentLast = currentWrite;
     if (currentLast == 0) {
@@ -299,11 +299,13 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return records_[currentLast];
   };
 
-  Iterator end() {
+  Iterator end()
+  {
     return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
   }
 
-  void resize(size_t new_size) override {
+  void resize(size_t new_size) override
+  {
     assert(new_size >= 2);
     if (!std::is_trivially_destructible<T>::value) {
       size_t readIndex = readIndex_;
@@ -328,7 +330,6 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   }
 
 protected:
-
   // hardware_destructive_interference_size is set to 128.
   // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
   std::mutex m_mutex;
@@ -337,7 +338,7 @@ protected:
   std::thread ptrlogger;
 
   char pad0_[folly::hardware_destructive_interference_size]; // NOLINT(runtime/arrays)
-  uint32_t size_;                                      // NOLINT(build/unsigned)
+  uint32_t size_;                                            // NOLINT(build/unsigned)
   T* records_;
 
   alignas(folly::hardware_destructive_interference_size) std::atomic<unsigned int> readIndex_; // NOLINT(build/unsigned)

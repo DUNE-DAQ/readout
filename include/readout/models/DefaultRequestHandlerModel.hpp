@@ -23,16 +23,16 @@
 
 #include <folly/concurrency/UnboundedQueue.h>
 
+#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <future>
 #include <iomanip>
 #include <memory>
+#include <queue>
 #include <string>
 #include <thread>
 #include <utility>
-#include <queue>
-#include <algorithm>
 #include <vector>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
@@ -101,7 +101,8 @@ public:
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
     m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
-    m_waiting_queue_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
+    m_waiting_queue_thread =
+      std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -169,7 +170,8 @@ public:
     m_completion_queue.enqueue(std::move(reqfut));
   }
 
-  void get_info(datalinkhandlerinfo::Info& info) override {
+  void get_info(datalinkhandlerinfo::Info& info) override
+  {
     info.found_requested = m_found_requested_count;
     info.bad_requested = m_bad_requested_count;
     info.request_window_too_old = m_request_gone;
@@ -235,7 +237,7 @@ protected:
           }
         }
       } else {
-       m_latency_buffer->pop(to_pop);
+        m_latency_buffer->pop(to_pop);
       }
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
@@ -251,8 +253,8 @@ protected:
     while (m_run_marker.load()) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        if (m_latency_buffer->occupancy() != 0) { 
-          auto last_frame = m_latency_buffer->back() ; // NOLINT
+        if (m_latency_buffer->occupancy() != 0) {
+          auto last_frame = m_latency_buffer->back();      // NOLINT
           uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
           while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
             dfmessages::DataRequest request = m_waiting_requests.top();
@@ -336,8 +338,8 @@ protected:
     RequestResult rres(ResultCode::kUnknown, dr);
 
     // Data availability is calculated here
-    auto front_frame = m_latency_buffer->front(); // NOLINT
-    auto last_frame = m_latency_buffer->back() ; // NOLINT
+    auto front_frame = m_latency_buffer->front();    // NOLINT
+    auto last_frame = m_latency_buffer->back();      // NOLINT
     uint64_t last_ts = front_frame.get_timestamp();  // NOLINT(build/unsigned)
     uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
 
@@ -377,8 +379,8 @@ protected:
 
         RawType* element = &(*start_iter);
         while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
-          frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)),
-                                                                 std::size_t(RawType::element_size)));
+          frag_pieces.emplace_back(
+            std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(RawType::element_size)));
           elements_handled++;
           ++start_iter;
           element = &(*start_iter);
@@ -416,8 +418,8 @@ protected:
     }
 
     // Build fragment
-    oss << "TS match result on link " << m_geoid.element_id << ": " << ' '
-        << "Trigger number=" << dr.trigger_number << " "
+    oss << "TS match result on link " << m_geoid.element_id << ": " << ' ' << "Trigger number=" << dr.trigger_number
+        << " "
         << "Oldest stored TS=" << last_ts << " "
         << "Start of window TS=" << start_win_ts << " "
         << "End of window TS=" << end_win_ts << " "
@@ -462,9 +464,11 @@ protected:
   completion_queue_t m_completion_queue;
 
   // Priority queue for waiting requests
-  class Comparator {
+  class Comparator
+  {
   public:
-    bool operator()(dfmessages::DataRequest& left, dfmessages::DataRequest& right) {
+    bool operator()(dfmessages::DataRequest& left, dfmessages::DataRequest& right)
+    {
       return left.window_end > right.window_end;
     }
   };
@@ -482,7 +486,7 @@ protected:
   std::thread m_waiting_queue_thread;
 
   std::atomic<bool> m_cleanup_requested = false;
-  std::atomic<int> m_cleanups{0};
+  std::atomic<int> m_cleanups{ 0 };
 
 private:
   // For recording

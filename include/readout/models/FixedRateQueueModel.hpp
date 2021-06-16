@@ -16,45 +16,44 @@
 #include "IterableQueueModel.hpp"
 
 namespace dunedaq {
-  namespace readout {
+namespace readout {
 
-    template<class T>
-    class FixedRateQueueModel : public IterableQueueModel<T>
-    {
-    public:
-      FixedRateQueueModel() : IterableQueueModel<T>() {
+template<class T>
+class FixedRateQueueModel : public IterableQueueModel<T>
+{
+public:
+  FixedRateQueueModel()
+    : IterableQueueModel<T>()
+  {}
 
-      }
+  explicit FixedRateQueueModel(uint32_t size) // NOLINT(build/unsigned)
+    : IterableQueueModel<T>(size)
+  {}
 
-      explicit FixedRateQueueModel(uint32_t size) // NOLINT(build/unsigned)
-          : IterableQueueModel<T>(size)
-      {}
+  typename IterableQueueModel<T>::Iterator lower_bound(T& element)
+  {
+    uint64_t timestamp = element.get_timestamp(); // NOLINT(build/unsigned)
+    unsigned int start_index =
+      IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
+    size_t occupancy_guess = IterableQueueModel<T>::occupancy();
+    uint64_t last_ts = IterableQueueModel<T>::records_[start_index].get_timestamp();       // NOLINT(build/unsigned)
+    uint64_t newest_ts = last_ts + occupancy_guess * T::tick_dist * T::frames_per_element; // NOLINT(build/unsigned)
 
-      typename IterableQueueModel<T>::Iterator lower_bound(T& element)
-      {
-        uint64_t timestamp = element.get_timestamp(); // NOLINT(build/unsigned)
-        unsigned int start_index =
-            IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
-        size_t occupancy_guess = IterableQueueModel<T>::occupancy();
-        uint64_t last_ts = IterableQueueModel<T>::records_[start_index].get_timestamp(); // NOLINT(build/unsigned)
-        uint64_t newest_ts = last_ts + occupancy_guess * T::tick_dist * T::frames_per_element; // NOLINT(build/unsigned)
+    if (last_ts > timestamp || timestamp > newest_ts) {
+      return IterableQueueModel<T>::end();
+    }
 
-        if (last_ts > timestamp || timestamp > newest_ts) {
-          return IterableQueueModel<T>::end();
-        }
+    int64_t time_tick_diff = (timestamp - last_ts) / T::tick_dist;
+    uint32_t num_element_offset = time_tick_diff / T::frames_per_element; // NOLINT(build/unsigned)
+    uint32_t target_index = start_index + num_element_offset;             // NOLINT(build/unsigned)
+    if (target_index >= IterableQueueModel<T>::size_) {
+      target_index -= IterableQueueModel<T>::size_;
+    }
+    return typename IterableQueueModel<T>::Iterator(*this, target_index);
+  }
+};
 
-        int64_t time_tick_diff = (timestamp - last_ts) / T::tick_dist;
-        uint32_t num_element_offset = time_tick_diff / T::frames_per_element; // NOLINT(build/unsigned)
-        uint32_t target_index = start_index + num_element_offset; // NOLINT(build/unsigned)
-        if (target_index >= IterableQueueModel<T>::size_) {
-          target_index -= IterableQueueModel<T>::size_;
-        }
-        return typename IterableQueueModel<T>::Iterator(*this, target_index);
-      }
-
-    };
-
-  } // namespace readout
+} // namespace readout
 } // namespace dunedaq
 
 #endif // READOUT_INCLUDE_READOUT_MODELS_FIXEDRATEQUEUEMODEL_HPP_

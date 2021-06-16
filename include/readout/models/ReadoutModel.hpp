@@ -334,7 +334,7 @@ private:
   std::atomic<int> m_request_count_tot{ 0 };
   std::atomic<int> m_rawq_timeout_count{ 0 };
   std::atomic<int> m_stats_packet_count{ 0 };
-  std::atomic<int> m_overwritten_packet_count{0};
+  std::atomic<int> m_overwritten_packet_count{ 0 };
   ReusableThread m_stats_thread;
 
   // CONSUMER

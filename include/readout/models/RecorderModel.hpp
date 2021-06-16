@@ -8,16 +8,16 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_RECORDERMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_RECORDERMODEL_HPP_
 
-#include "readout/utils/BufferedFileWriter.hpp"
-#include "readout/concepts/RecorderConcept.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSource.hpp"
 #include "appfwk/ThreadHelper.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "readout/concepts/RecorderConcept.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/InfoStructs.hpp"
+#include "readout/utils/BufferedFileWriter.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include <atomic>
 #include <fstream>
@@ -69,7 +69,8 @@ public:
       TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run" << std::endl;
     }
 
-    m_buffered_writer.open(m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm, m_conf.use_o_direct);
+    m_buffered_writer.open(
+      m_conf.output_file, m_conf.stream_buffer_size, m_conf.compression_algorithm, m_conf.use_o_direct);
     m_work_thread.set_name(m_name, 0);
   }
 

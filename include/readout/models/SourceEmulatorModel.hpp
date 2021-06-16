@@ -17,18 +17,18 @@
 
 #include "readout/fakecardreader/Structs.hpp"
 
-#include "readout/utils/FileSourceBuffer.hpp"
-#include "readout/utils/RateLimiter.hpp"
 #include "ReadoutIssues.hpp"
 #include "readout/concepts/SourceEmulatorConcept.hpp"
+#include "readout/utils/FileSourceBuffer.hpp"
+#include "readout/utils/RateLimiter.hpp"
 
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
-#include <random>
 #include <vector>
 
 using dunedaq::readout::logging::TLVL_QUEUE_POP;

@@ -12,8 +12,8 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 
-#include "readout/concepts/LatencyBufferConcept.hpp"
 #include "ReadoutIssues.hpp"
+#include "readout/concepts/LatencyBufferConcept.hpp"
 
 #include "folly/ConcurrentSkipList.h"
 
@@ -45,47 +45,38 @@ public:
   struct Iterator
   {
     using iterator_category = std::forward_iterator_tag;
-    using difference_type   = std::ptrdiff_t;
-    using value_type        = RawType;
-    using pointer           = RawType*;
-    using reference         = RawType&;
+    using difference_type = std::ptrdiff_t;
+    using value_type = RawType;
+    using pointer = RawType*;
+    using reference = RawType&;
 
-    Iterator(SkipListTAcc&& acc, SkipListTIter iter) : m_acc(std::move(acc)), m_iter(iter) {
+    Iterator(SkipListTAcc&& acc, SkipListTIter iter)
+      : m_acc(std::move(acc))
+      , m_iter(iter)
+    {}
 
-    }
-
-    reference operator*() const {
-      return *m_iter;
-    }
-    pointer operator->() {
-      return &(*m_iter);
-    }
-    Iterator& operator++() {
+    reference operator*() const { return *m_iter; }
+    pointer operator->() { return &(*m_iter); }
+    Iterator& operator++()
+    {
       m_iter++;
       return *this;
     }
 
-    friend bool operator==(const Iterator& a, const Iterator& b) {
-      return a.m_iter == b.m_iter;
-    }
-    friend bool operator!=(const Iterator& a, const Iterator& b) {
-      return a.m_iter != b.m_iter;
-    }
+    friend bool operator==(const Iterator& a, const Iterator& b) { return a.m_iter == b.m_iter; }
+    friend bool operator!=(const Iterator& a, const Iterator& b) { return a.m_iter != b.m_iter; }
 
-    bool good() {
-      return m_iter.good();
-    }
+    bool good() { return m_iter.good(); }
 
   private:
     SkipListTAcc m_acc;
     SkipListTIter m_iter;
   };
 
-  void resize(size_t /*new_size*/) override {
+  void resize(size_t /*new_size*/) override {}
 
-  }
-
-  size_t occupancy() const override {
+  size_t occupancy() const override
+  {
     auto occupancy = 0;
     {
       SkipListTAcc acc(m_skip_list);
@@ -95,7 +86,6 @@ public:
   }
 
   std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
-
 
   void lock() override
   {
@@ -119,7 +109,8 @@ public:
     return success;
   }
 
-  bool put(RawType& new_element) override {
+  bool put(RawType& new_element) override
+  {
     bool success = false;
     {
       SkipListTAcc acc(m_skip_list);
@@ -143,30 +134,35 @@ public:
     return found;
   }
 
-  Iterator begin() {
+  Iterator begin()
+  {
     SkipListTAcc acc = SkipListTAcc(m_skip_list);
     SkipListTIter iter = acc.begin();
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  Iterator end() {
+  Iterator end()
+  {
     SkipListTAcc acc = SkipListTAcc(m_skip_list);
     SkipListTIter iter = acc.end();
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  Iterator lower_bound(RawType& element) {
+  Iterator lower_bound(RawType& element)
+  {
     SkipListTAcc acc = SkipListTAcc(m_skip_list);
     SkipListTIter iter = acc.lower_bound(element);
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  RawType front() override {
+  RawType front() override
+  {
     SkipListTAcc acc(m_skip_list);
     return *acc.first();
   }
 
-  RawType back() override {
+  RawType back() override
+  {
     SkipListTAcc acc(m_skip_list);
     return *acc.last();
   }
@@ -180,7 +176,6 @@ public:
       }
     }
   }
-
 
 private:
   // Concurrent SkipList

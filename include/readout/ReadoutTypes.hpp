@@ -13,11 +13,11 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
+#include "dataformats/FragmentHeader.hpp"
+#include "dataformats/GeoID.hpp"
 #include "dataformats/pds/PDSFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
-#include "dataformats/GeoID.hpp"
-#include "dataformats/FragmentHeader.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
@@ -57,8 +57,8 @@ struct WIB_SUPERCHUNK_STRUCT
   // comparable based on first timestamp
   bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const
   {
-    //auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
-    //auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
+    // auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
+    // auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
     return this->get_timestamp() < other.get_timestamp();
   }
 
@@ -89,7 +89,6 @@ struct WIB_SUPERCHUNK_STRUCT
   static const constexpr size_t frame_size = 464;
   static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t element_size = frame_size * frames_per_element;
-
 };
 
 /**
@@ -186,7 +185,6 @@ struct PDS_SUPERCHUNK_STRUCT
   static const constexpr size_t frame_size = 584;
   static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t element_size = frame_size * frames_per_element;
-
 };
 
 /**
@@ -201,14 +199,18 @@ struct PDSTimestampGetter
   }
 };
 
-struct WIBTimestampGetter {
-  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) { // NOLINT(build/unsigned)
+struct WIBTimestampGetter
+{
+  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
+  {
     return chunk.get_timestamp();
   }
 };
 
-struct WIB2TimestampGetter {
-  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) { // NOLINT(build/unsigned)
+struct WIB2TimestampGetter
+{
+  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
+  {
     return chunk.get_timestamp();
   }
 };

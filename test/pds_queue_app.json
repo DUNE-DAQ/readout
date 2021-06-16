@@ -1,375 +1,202 @@
-[
-    {
-        "data": {
-            "modules": [
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "output",
-                                "inst": "pds_queue_fake_link_0",
-                                "name": "output_0"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "pds_queue_fake_link_1",
-                                "name": "output_1"
-                            }
-                        ]
-                    },
-                    "inst": "fake_source",
-                    "plugin": "FakeCardReader"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "pds_queue_fake_link_0",
-                                "name": "raw_input"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "time_sync_q",
-                                "name": "timesync"
-                            },
-                            {
-                                "dir": "input",
-                                "inst": "data_requests_0",
-                                "name": "requests"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "data_fragments_q",
-                                "name": "fragments"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "pds_queue_recording_link_0",
-                                "name": "raw_recording"
-                            }
-                        ]
-                    },
-                    "inst": "datahandler_0",
-                    "plugin": "DataLinkHandler"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "pds_queue_fake_link_1",
-                                "name": "raw_input"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "time_sync_q",
-                                "name": "timesync"
-                            },
-                            {
-                                "dir": "input",
-                                "inst": "data_requests_1",
-                                "name": "requests"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "data_fragments_q",
-                                "name": "fragments"
-                            },
-                            {
-                                "dir": "output",
-                                "inst": "pds_queue_recording_link_1",
-                                "name": "raw_recording"
-                            }
-                        ]
-                    },
-                    "inst": "datahandler_1",
-                    "plugin": "DataLinkHandler"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "pds_queue_recording_link_0",
-                                "name": "raw_recording"
-                            }
-                        ]
-                    },
-                    "inst": "data_recorder_0",
-                    "plugin": "DataRecorder"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "pds_queue_recording_link_1",
-                                "name": "raw_recording"
-                            }
-                        ]
-                    },
-                    "inst": "data_recorder_1",
-                    "plugin": "DataRecorder"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "time_sync_q",
-                                "name": "input_queue"
-                            }
-                        ]
-                    },
-                    "inst": "timesync_consumer",
-                    "plugin": "DummyConsumerTimeSync"
-                },
-                {
-                    "data": {
-                        "qinfos": [
-                            {
-                                "dir": "input",
-                                "inst": "data_fragments_q",
-                                "name": "input_queue"
-                            }
-                        ]
-                    },
-                    "inst": "fragment_consumer",
-                    "plugin": "DummyConsumerFragment"
-                }
-            ],
-            "queues": [
-                {
-                    "capacity": 100,
-                    "inst": "data_fragments_q",
-                    "kind": "FollyMPMCQueue"
-                },
-                {
-                    "capacity": 1000,
-                    "inst": "data_requests_0",
-                    "kind": "FollySPSCQueue"
-                },
-                {
-                    "capacity": 1000,
-                    "inst": "data_requests_1",
-                    "kind": "FollySPSCQueue"
-                },
-                {
-                    "capacity": 100,
-                    "inst": "time_sync_q",
-                    "kind": "FollyMPMCQueue"
-                },
-                {
-                    "capacity": 100000,
-                    "inst": "pds_queue_fake_link_0",
-                    "kind": "FollySPSCQueue"
-                },
-                {
-                    "capacity": 100000,
-                    "inst": "pds_queue_fake_link_1",
-                    "kind": "FollySPSCQueue"
-                },
-                {
-                    "capacity": 100000,
-                    "inst": "pds_queue_recording_link_0",
-                    "kind": "FollySPSCQueue"
-                },
-                {
-                    "capacity": 100000,
-                    "inst": "pds_queue_recording_link_1",
-                    "kind": "FollySPSCQueue"
-                }
-            ]
+[{
+  "data" : {
+    "modules" : [
+      {
+        "data" : {
+          "qinfos" : [
+            { "dir" : "output", "inst" : "pds_queue_fake_link_0", "name" : "output_0" },
+            { "dir" : "output", "inst" : "pds_queue_fake_link_1", "name" : "output_1" }
+          ]
         },
-        "entry_state": "NONE",
-        "exit_state": "INITIAL",
-        "id": "init"
-    },
-    {
-        "data": {
-            "modules": [
-                {
-                    "data": {
-                        "link_confs": [
-                            {
-                                "data_filename": "/tmp/frames.bin",
-                                "geoid": {
-                                    "element": 0,
-                                    "region": 0,
-                                    "system": "PDS"
-                                },
-                                "input_limit": 10485100,
-                                "queue_name": "output_0",
-                                "rate_khz": 166.0,
-                                "raw_type": "pds"
-                            },
-                            {
-                                "data_filename": "/tmp/frames.bin",
-                                "geoid": {
-                                    "element": 1,
-                                    "region": 0,
-                                    "system": "PDS"
-                                },
-                                "input_limit": 10485100,
-                                "queue_name": "output_1",
-                                "rate_khz": 166.0,
-                                "raw_type": "pds"
-                            }
-                        ],
-                        "queue_timeout_ms": 100,
-                        "set_t0_to": 0
-                    },
-                    "match": "fake_source"
-                },
-                {
-                    "data": {
-                        "apa_number": 0,
-                        "emulator_mode": false,
-                        "fake_trigger_flag": 1,
-                        "latency_buffer_size": 500000,
-                        "link_number": 0,
-                        "pop_limit_pct": 0.8,
-                        "pop_size_pct": 0.1,
-                        "raw_type": "pds",
-                        "source_queue_timeout_ms": 100
-                    },
-                    "match": "datahandler_0"
-                },
-                {
-                    "data": {
-                        "apa_number": 0,
-                        "emulator_mode": false,
-                        "fake_trigger_flag": 1,
-                        "latency_buffer_size": 500000,
-                        "link_number": 1,
-                        "pop_limit_pct": 0.8,
-                        "pop_size_pct": 0.1,
-                        "raw_type": "pds",
-                        "source_queue_timeout_ms": 100
-                    },
-                    "match": "datahandler_1"
-                },
-                {
-                    "data": {
-                        "compression_algorithm": "None",
-                        "output_file": "output_0.out",
-                        "stream_buffer_size": 8388608
-                    },
-                    "match": "data_recorder_0"
-                },
-                {
-                    "data": {
-                        "compression_algorithm": "None",
-                        "output_file": "output_1.out",
-                        "stream_buffer_size": 8388608
-                    },
-                    "match": "data_recorder_1"
-                }
-            ]
+        "inst" : "fake_source",
+        "plugin" : "FakeCardReader"
+      },
+      {
+        "data" : {
+          "qinfos" : [
+            { "dir" : "input", "inst" : "pds_queue_fake_link_0", "name" : "raw_input" },
+            { "dir" : "output", "inst" : "time_sync_q", "name" : "timesync" },
+            { "dir" : "input", "inst" : "data_requests_0", "name" : "requests" },
+            { "dir" : "output", "inst" : "data_fragments_q", "name" : "fragments" },
+            { "dir" : "output", "inst" : "pds_queue_recording_link_0", "name" : "raw_recording" }
+          ]
         },
-        "entry_state": "INITIAL",
-        "exit_state": "CONFIGURED",
-        "id": "conf"
-    },
-    {
-        "data": {
-            "modules": [
-                {
-                    "data": {
-                        "disable_data_storage": false,
-                        "run": 333,
-                        "trigger_interval_ticks": 64000000
-                    },
-                    "match": "datahandler_.*"
-                },
-                {
-                    "data": {
-                        "disable_data_storage": false,
-                        "run": 333,
-                        "trigger_interval_ticks": 64000000
-                    },
-                    "match": "fake_source"
-                },
-                {
-                    "data": {
-                        "disable_data_storage": false,
-                        "run": 333,
-                        "trigger_interval_ticks": 64000000
-                    },
-                    "match": "data_recorder_.*"
-                },
-                {
-                    "data": {
-                        "disable_data_storage": false,
-                        "run": 333,
-                        "trigger_interval_ticks": 64000000
-                    },
-                    "match": "timesync_consumer"
-                },
-                {
-                    "data": {
-                        "disable_data_storage": false,
-                        "run": 333,
-                        "trigger_interval_ticks": 64000000
-                    },
-                    "match": "fragment_consumer"
-                }
-            ]
+        "inst" : "datahandler_0",
+        "plugin" : "DataLinkHandler"
+      },
+      {
+        "data" : {
+          "qinfos" : [
+            { "dir" : "input", "inst" : "pds_queue_fake_link_1", "name" : "raw_input" },
+            { "dir" : "output", "inst" : "time_sync_q", "name" : "timesync" },
+            { "dir" : "input", "inst" : "data_requests_1", "name" : "requests" },
+            { "dir" : "output", "inst" : "data_fragments_q", "name" : "fragments" },
+            { "dir" : "output", "inst" : "pds_queue_recording_link_1", "name" : "raw_recording" }
+          ]
         },
-        "entry_state": "CONFIGURED",
-        "exit_state": "RUNNING",
-        "id": "start"
-    },
-    {
-        "data": {
-            "modules": [
-                {
-                    "match": "fake_source"
-                },
-                {
-                    "match": "datahandler_.*"
-                },
-                {
-                    "match": "data_recorder_.*"
-                },
-                {
-                    "match": "timesync_consumer"
-                },
-                {
-                    "match": "fragment_consumer"
-                }
-            ]
-        },
-        "entry_state": "RUNNING",
-        "exit_state": "CONFIGURED",
-        "id": "stop"
-    },
-    {
-        "data": {
-            "modules": [
-                {
-                    "match": ""
-                }
-            ]
-        },
-        "entry_state": "CONFIGURED",
-        "exit_state": "INITIAL",
-        "id": "scrap"
-    },
-    {
-        "data": {
-            "modules": [
-                {
-                    "data": {
-                        "duration": 10
-                    },
-                    "match": "datahandler_.*"
-                }
-            ]
-        },
-        "entry_state": "RUNNING",
-        "exit_state": "RUNNING",
-        "id": "record"
-    }
-]
+        "inst" : "datahandler_1",
+        "plugin" : "DataLinkHandler"
+      },
+      {
+        "data" :
+          { "qinfos" : [ { "dir" : "input", "inst" : "pds_queue_recording_link_0", "name" : "raw_recording" } ] },
+        "inst" : "data_recorder_0",
+        "plugin" : "DataRecorder"
+      },
+      {
+        "data" :
+          { "qinfos" : [ { "dir" : "input", "inst" : "pds_queue_recording_link_1", "name" : "raw_recording" } ] },
+        "inst" : "data_recorder_1",
+        "plugin" : "DataRecorder"
+      },
+      {
+        "data" : { "qinfos" : [ { "dir" : "input", "inst" : "time_sync_q", "name" : "input_queue" } ] },
+        "inst" : "timesync_consumer",
+        "plugin" : "DummyConsumerTimeSync"
+      },
+      {
+        "data" : { "qinfos" : [ { "dir" : "input", "inst" : "data_fragments_q", "name" : "input_queue" } ] },
+        "inst" : "fragment_consumer",
+        "plugin" : "DummyConsumerFragment"
+      }
+    ],
+    "queues" : [
+      { "capacity" : 100, "inst" : "data_fragments_q", "kind" : "FollyMPMCQueue" },
+      { "capacity" : 1000, "inst" : "data_requests_0", "kind" : "FollySPSCQueue" },
+      { "capacity" : 1000, "inst" : "data_requests_1", "kind" : "FollySPSCQueue" },
+      { "capacity" : 100, "inst" : "time_sync_q", "kind" : "FollyMPMCQueue" },
+      { "capacity" : 100000, "inst" : "pds_queue_fake_link_0", "kind" : "FollySPSCQueue" },
+      { "capacity" : 100000, "inst" : "pds_queue_fake_link_1", "kind" : "FollySPSCQueue" },
+      { "capacity" : 100000, "inst" : "pds_queue_recording_link_0", "kind" : "FollySPSCQueue" },
+      { "capacity" : 100000, "inst" : "pds_queue_recording_link_1", "kind" : "FollySPSCQueue" }
+    ]
+  },
+  "entry_state" : "NONE",
+  "exit_state" : "INITIAL",
+  "id" : "init"
+},
+ {
+   "data" : {
+     "modules" : [
+       {
+         "data" : {
+           "link_confs" : [
+             {
+               "data_filename" : "/tmp/frames.bin",
+               "geoid" : { "element" : 0, "region" : 0, "system" : "PDS" },
+               "input_limit" : 10485100,
+               "queue_name" : "output_0",
+               "rate_khz" : 166.0,
+               "raw_type" : "pds"
+             },
+             {
+               "data_filename" : "/tmp/frames.bin",
+               "geoid" : { "element" : 1, "region" : 0, "system" : "PDS" },
+               "input_limit" : 10485100,
+               "queue_name" : "output_1",
+               "rate_khz" : 166.0,
+               "raw_type" : "pds"
+             }
+           ],
+           "queue_timeout_ms" : 100,
+           "set_t0_to" : 0
+         },
+         "match" : "fake_source"
+       },
+       {
+         "data" : {
+           "apa_number" : 0,
+           "emulator_mode" : false,
+           "fake_trigger_flag" : 1,
+           "latency_buffer_size" : 500000,
+           "link_number" : 0,
+           "pop_limit_pct" : 0.8,
+           "pop_size_pct" : 0.1,
+           "raw_type" : "pds",
+           "source_queue_timeout_ms" : 100
+         },
+         "match" : "datahandler_0"
+       },
+       {
+         "data" : {
+           "apa_number" : 0,
+           "emulator_mode" : false,
+           "fake_trigger_flag" : 1,
+           "latency_buffer_size" : 500000,
+           "link_number" : 1,
+           "pop_limit_pct" : 0.8,
+           "pop_size_pct" : 0.1,
+           "raw_type" : "pds",
+           "source_queue_timeout_ms" : 100
+         },
+         "match" : "datahandler_1"
+       },
+       {
+         "data" : { "compression_algorithm" : "None", "output_file" : "output_0.out", "stream_buffer_size" : 8388608 },
+         "match" : "data_recorder_0"
+       },
+       {
+         "data" : { "compression_algorithm" : "None", "output_file" : "output_1.out", "stream_buffer_size" : 8388608 },
+         "match" : "data_recorder_1"
+       }
+     ]
+   },
+   "entry_state" : "INITIAL",
+   "exit_state" : "CONFIGURED",
+   "id" : "conf"
+ },
+ {
+   "data" : {
+     "modules" : [
+       {
+         "data" : { "disable_data_storage" : false, "run" : 333, "trigger_interval_ticks" : 64000000 },
+         "match" : "datahandler_.*"
+       },
+       {
+         "data" : { "disable_data_storage" : false, "run" : 333, "trigger_interval_ticks" : 64000000 },
+         "match" : "fake_source"
+       },
+       {
+         "data" : { "disable_data_storage" : false, "run" : 333, "trigger_interval_ticks" : 64000000 },
+         "match" : "data_recorder_.*"
+       },
+       {
+         "data" : { "disable_data_storage" : false, "run" : 333, "trigger_interval_ticks" : 64000000 },
+         "match" : "timesync_consumer"
+       },
+       {
+         "data" : { "disable_data_storage" : false, "run" : 333, "trigger_interval_ticks" : 64000000 },
+         "match" : "fragment_consumer"
+       }
+     ]
+   },
+   "entry_state" : "CONFIGURED",
+   "exit_state" : "RUNNING",
+   "id" : "start"
+ },
+ {
+   "data" : {
+     "modules" : [
+       { "match" : "fake_source" },
+       { "match" : "datahandler_.*" },
+       { "match" : "data_recorder_.*" },
+       { "match" : "timesync_consumer" },
+       { "match" : "fragment_consumer" }
+     ]
+   },
+   "entry_state" : "RUNNING",
+   "exit_state" : "CONFIGURED",
+   "id" : "stop"
+ },
+ {
+   "data" : { "modules" : [ { "match" : "" } ] },
+   "entry_state" : "CONFIGURED",
+   "exit_state" : "INITIAL",
+   "id" : "scrap"
+ },
+ {
+   "data" : { "modules" : [ { "data" : { "duration" : 10 }, "match" : "datahandler_.*" } ] },
+   "entry_state" : "RUNNING",
+   "exit_state" : "RUNNING",
+   "id" : "record"
+ }]

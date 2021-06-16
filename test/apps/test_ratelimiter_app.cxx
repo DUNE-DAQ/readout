@@ -13,8 +13,8 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
-#include <string>
 #include <random>
+#include <string>
 #include <vector>
 
 using namespace dunedaq::readout;

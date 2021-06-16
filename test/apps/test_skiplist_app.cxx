@@ -17,10 +17,10 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
-#include <random>
 #include <vector>
 
 using namespace dunedaq::readout;

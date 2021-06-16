@@ -9,9 +9,9 @@
 #define READOUT_INCLUDE_READOUT_UTILS_RATELIMITER_HPP_
 
 #include <atomic>
+#include <chrono>
 #include <ctime>
 #include <unistd.h>
-#include <chrono>
 
 namespace dunedaq {
 namespace readout {

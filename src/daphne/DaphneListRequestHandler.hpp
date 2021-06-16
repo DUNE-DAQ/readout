@@ -8,8 +8,8 @@
 #ifndef READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 #define READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 
-#include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "ReadoutIssues.hpp"
+#include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 
 #include "dataformats/pds/PDSFrame.hpp"
@@ -38,22 +38,21 @@ class DaphneListRequestHandler
                                       SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>
 {
 public:
-  using inherited = DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
-                                               SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>;
+  using inherited =
+    DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>;
   using SkipListAcc = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Accessor;
   using SkipListSkip = typename folly::ConcurrentSkipList<types::PDS_SUPERCHUNK_STRUCT>::Skipper;
 
   DaphneListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>& latency_buffer,
-                        std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                        std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
+                           std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
+                           std::unique_ptr<appfwk::DAQSink<types::PDS_SUPERCHUNK_STRUCT>>& snb_sink)
     : DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT,
                                  SkipListLatencyBufferModel<types::PDS_SUPERCHUNK_STRUCT>>(latency_buffer,
-                                                                                        fragment_sink,
-                                                                                        snb_sink)
+                                                                                           fragment_sink,
+                                                                                           snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PDSListRequestHandler created...";
   }
-  
 
 protected:
   RequestResult cleanup_request(dfmessages::DataRequest dr,
@@ -105,7 +104,6 @@ protected:
     inherited::m_cleanup_requested = false;
     return RequestResult(ResultCode::kCleanup, dr);
   }
-
 
 private:
   // Constants

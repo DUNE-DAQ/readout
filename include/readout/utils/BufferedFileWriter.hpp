@@ -96,7 +96,10 @@ public:
    * @throw CannotOpenFile If the file can not be opened.
    * @throw ConfigurationError If the compression algorithm parameter is not recognized.
    */
-  void open(std::string filename, size_t buffer_size, std::string compression_algorithm = "None", bool use_o_direct = true)
+  void open(std::string filename,
+            size_t buffer_size,
+            std::string compression_algorithm = "None",
+            bool use_o_direct = true)
   {
     m_use_o_direct = use_o_direct;
     if (m_is_open) {

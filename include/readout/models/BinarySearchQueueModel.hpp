@@ -22,9 +22,9 @@ template<class T, class Key, class KeyGetter>
 class BinarySearchQueueModel : public IterableQueueModel<T>
 {
 public:
-  BinarySearchQueueModel() : IterableQueueModel<T>() {
-
-  }
+  BinarySearchQueueModel()
+    : IterableQueueModel<T>()
+  {}
 
   explicit BinarySearchQueueModel(uint32_t size) // NOLINT(build/unsigned)
     : IterableQueueModel<T>(size)
@@ -52,9 +52,8 @@ public:
     }
 
     while (true) {
-      unsigned int diff = start_index <= end_index
-                            ? end_index - start_index
-                            : IterableQueueModel<T>::size_ + end_index - start_index;
+      unsigned int diff =
+        start_index <= end_index ? end_index - start_index : IterableQueueModel<T>::size_ + end_index - start_index;
       unsigned int middle_index = start_index + ((diff + 1) / 2);
       if (middle_index >= IterableQueueModel<T>::size_)
         middle_index -= IterableQueueModel<T>::size_;
