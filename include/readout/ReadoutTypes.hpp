@@ -202,13 +202,13 @@ struct PDSTimestampGetter
 };
 
 struct WIBTimestampGetter {
-  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) {
+  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) { // NOLINT(build/unsigned)
     return chunk.get_timestamp();
   }
 };
 
 struct WIB2TimestampGetter {
-  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) {
+  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) { // NOLINT(build/unsigned)
     return chunk.get_timestamp();
   }
 };

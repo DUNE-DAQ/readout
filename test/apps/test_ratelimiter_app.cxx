@@ -15,6 +15,7 @@
 #include <memory>
 #include <string>
 #include <random>
+#include <vector>
 
 using namespace dunedaq::readout;
 

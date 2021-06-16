@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <limits>
 
 namespace dunedaq {
 namespace readout {
@@ -235,7 +236,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     using pointer           = T*;
     using reference         = T&;
 
-    Iterator(IterableQueueModel<T>& queue, uint32_t index) : m_queue(queue), m_index(index) {}
+    Iterator(IterableQueueModel<T>& queue, uint32_t index) : m_queue(queue), m_index(index) {} // NOLINT(build/unsigned)
 
     reference operator*() const {
       return m_queue.records_[m_index];
@@ -257,10 +258,10 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
     friend bool operator==(const Iterator& a, const Iterator& b) {
       return a.m_index == b.m_index;
-    };
+    }
     friend bool operator!=(const Iterator& a, const Iterator& b) {
       return a.m_index != b.m_index;
-    };
+    }
 
     bool good() {
       auto const currentRead = m_queue.readIndex_.load(std::memory_order_relaxed);
@@ -270,7 +271,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   private:
     IterableQueueModel<T>& m_queue;
-    uint32_t m_index;
+    uint32_t m_index; // NOLINT(build/unsigned)
   };
 
   Iterator begin() {
@@ -280,7 +281,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
       return end();
     }
     return Iterator(*this, currentRead);
-  };
+  }
 
   T front() override {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
@@ -299,7 +300,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   };
 
   Iterator end() {
-    return Iterator(*this, std::numeric_limits<uint32_t>::max());
+    return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
   }
 
   void resize(size_t new_size) override {

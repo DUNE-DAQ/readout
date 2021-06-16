@@ -21,6 +21,7 @@
 #include <string>
 #include <utility>
 #include <random>
+#include <vector>
 
 using namespace dunedaq::readout;
 using namespace folly;

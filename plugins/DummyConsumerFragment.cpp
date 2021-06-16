@@ -45,7 +45,7 @@ public:
       auto window_end = fragment.get_header().window_end;
       
       types::WIB_SUPERCHUNK_STRUCT* first_superchunk = static_cast<types::WIB_SUPERCHUNK_STRUCT*>(fragment.get_data());
-      types::WIB_SUPERCHUNK_STRUCT* last_superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + ((num_superchunks-1) * types::WIB_SUPERCHUNK_SIZE));
+      types::WIB_SUPERCHUNK_STRUCT* last_superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + ((num_superchunks-1) * types::WIB_SUPERCHUNK_SIZE)); // NOLINT
 
       //TLOG() << num_superchunks;
       //TLOG() << "window_begin: " << window_begin << ", window_end: " << window_end << ", first: " << first_superchunk->get_timestamp() << ", last: " << last_superchunk->get_timestamp();
@@ -57,7 +57,7 @@ public:
       }
 
       for (int i = 0; i < num_superchunks; ++i) {
-        types::WIB_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + (i * types::WIB_SUPERCHUNK_SIZE));
+        types::WIB_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + (i * types::WIB_SUPERCHUNK_SIZE)); // NOLINT
         if (superchunk->get_timestamp() < fragment.get_header().window_begin || superchunk->get_timestamp() >= fragment.get_header().window_end) {
           TLOG() << "Fragment validation encountered fragment not fitting the requested window";
         }
@@ -70,7 +70,7 @@ public:
       //TLOG() << "window_begin: " << window_begin << ", window_end: " << window_end << ", first: " << first_superchunk->get_timestamp() << ", last: " << last_superchunk->get_timestamp();
 
       for (int i = 0; i < num_superchunks; ++i) {
-        types::PDS_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::PDS_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + (i * types::PDS_SUPERCHUNK_SIZE));
+        types::PDS_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::PDS_SUPERCHUNK_STRUCT*>(static_cast<char*>(fragment.get_data()) + (i * types::PDS_SUPERCHUNK_SIZE)); // NOLINT
         if (superchunk->get_timestamp() < fragment.get_header().window_begin || superchunk->get_timestamp() >= fragment.get_header().window_end) {
           TLOG() << "Fragment validation encountered fragment not fitting the requested window";
         }

@@ -28,7 +28,7 @@ public:
     delete; ///< RawDataProcessorConcept is not move-assignable
 
   virtual void conf(const nlohmann::json& cfg) { set_emulator_mode(cfg.get<datalinkhandler::Conf>().emulator_mode); }
-  std::uint64_t get_last_daq_time() { return m_last_processed_daq_ts.load(); }
+  std::uint64_t get_last_daq_time() { return m_last_processed_daq_ts.load(); } // NOLINT(build/unsigned)
   void reset_last_daq_time() { m_last_processed_daq_ts.store(0); }
   void set_emulator_mode(bool do_emu) { m_emulator_mode = do_emu; }
   bool get_emulator_mode() { return m_emulator_mode; }
@@ -36,7 +36,7 @@ public:
 
 protected:
   bool m_emulator_mode{ false };
-  std::atomic<std::uint64_t> m_last_processed_daq_ts{ 0 };
+  std::atomic<std::uint64_t> m_last_processed_daq_ts{ 0 }; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

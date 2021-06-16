@@ -31,6 +31,9 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <queue>
+#include <algorithm>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
@@ -250,7 +253,7 @@ protected:
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
         if (m_latency_buffer->occupancy() != 0) { 
           auto last_frame = m_latency_buffer->back() ; // NOLINT
-          uint64_t newest_ts = last_frame.get_timestamp();
+          uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
           while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
             dfmessages::DataRequest request = m_waiting_requests.top();
             issue_request(request, 0);

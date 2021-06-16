@@ -28,7 +28,7 @@ namespace readout {
 class RateLimiter
 {
 public:
-  using timestamp_t = std::uint64_t;
+  using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
   static inline constexpr timestamp_t ns = 1;
   static inline constexpr timestamp_t us = 1000 * ns;
   static inline constexpr timestamp_t ms = 1000 * us;

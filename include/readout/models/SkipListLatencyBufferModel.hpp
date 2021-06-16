@@ -64,19 +64,13 @@ public:
       m_iter++;
       return *this;
     }
-    /*
-    Iterator operator++(int) {
-      Iterator tmp = *this;
-      ++(*this);
-      return tmp;
-    }
-     */
+
     friend bool operator==(const Iterator& a, const Iterator& b) {
       return a.m_iter == b.m_iter;
-    };
+    }
     friend bool operator!=(const Iterator& a, const Iterator& b) {
       return a.m_iter != b.m_iter;
-    };
+    }
 
     bool good() {
       return m_iter.good();

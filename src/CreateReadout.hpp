@@ -80,8 +80,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
         raw_type_name = "pds";
         auto readout_model = std::make_unique<ReadoutModel<types::PDS_SUPERCHUNK_STRUCT,
-        DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, BinarySearchQueueModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>,
-            BinarySearchQueueModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>,
+        DefaultRequestHandlerModel<types::PDS_SUPERCHUNK_STRUCT, BinarySearchQueueModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>>, // NOLINT(build/unsigned)
+            BinarySearchQueueModel<types::PDS_SUPERCHUNK_STRUCT, uint64_t, types::PDSTimestampGetter>, // NOLINT(build/unsigned)
             DaphneFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
