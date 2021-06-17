@@ -234,7 +234,7 @@ private:
     while (m_run_marker.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(m_raw_processor_impl->get_last_daq_time());
-        // TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
+        //TLOG() << "New timesync: daq=" << timesyncmsg.daq_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.daq_time != 0) {
           try {
             m_timesync_sink->push(std::move(timesyncmsg));

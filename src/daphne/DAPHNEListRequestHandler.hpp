@@ -55,13 +55,12 @@ public:
   }
 
 protected:
-  RequestResult cleanup_request(dfmessages::DataRequest dr,
-                                unsigned /** delay_us */ = 0) override // NOLINT(build/unsigned)
+  void cleanup() override
   {
-    return daphne_cleanup_request(dr);
+    daphne_cleanup_request();
   }
 
-  RequestResult daphne_cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0)
+  void daphne_cleanup_request()
   {
     // size_t occupancy_guess = m_latency_buffer->occupancy();
     size_t removed_ctr = 0;
@@ -101,8 +100,6 @@ protected:
       }
     }
     m_cleanups++;
-    inherited::m_cleanup_requested = false;
-    return RequestResult(ResultCode::kCleanup, dr);
   }
 
 private:

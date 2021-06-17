@@ -100,7 +100,6 @@ public:
   {
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
-    m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
   }
@@ -111,7 +110,6 @@ public:
     // if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
     if (m_future_recording_stopper.valid())
       m_future_recording_stopper.wait();
-    m_executor.join();
     m_stats_thread.join();
     m_waiting_queue_thread.join();
   }
@@ -138,36 +136,38 @@ public:
       conf.duration);
   }
 
-  void auto_cleanup_check()
+  void cleanup_check() override
   {
-    // TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
-    auto size_guess = m_latency_buffer->occupancy();
-    if (!m_cleanup_requested.load(std::memory_order_acquire) && size_guess > m_pop_limit_size) {
-      dfmessages::DataRequest dr;
-      auto delay_us = 0;
-      // 10-May-2021, KAB: moved the assignment of m_cleanup_requested so that is is *before* the creation of
-      // the future and the addition of the future to the completion queue in order to avoid the race condition
-      // in which the future gets run before we have a chance to set the m_cleanup_requested flag here.
-      m_cleanup_requested.store(true);
-      auto execfut = std::async(std::launch::deferred,
-                                &DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request,
-                                this,
-                                dr,
-                                delay_us);
-      m_completion_queue.enqueue(std::move(execfut));
+    std::unique_lock<std::mutex> lock(m_cv_mutex);
+    if (m_latency_buffer->occupancy() > m_pop_limit_size && !m_cleanup_requested.exchange(true)) {
+      m_cv.wait(lock, [&]{return m_requests_running == 0;});
+      cleanup();
+      m_cleanup_requested = false;
+      m_cv.notify_all();
     }
   }
 
-  // DataRequest struct!?
-  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT(build/unsigned)
+
+  void issue_request(dfmessages::DataRequest datarequest)  override
   {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
-    auto reqfut = std::async(std::launch::async,
-                             &DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request,
-                             this,
-                             datarequest,
-                             delay_us);
-    m_completion_queue.enqueue(std::move(reqfut));
+    std::unique_lock<std::mutex> lock(m_cv_mutex);
+    m_cv.wait(lock, [&]{return !m_cleanup_requested;});
+    m_requests_running++;
+    // Start a new thread for now, use a thread pool in the future
+    std::thread([&, datarequest](){
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      auto result = data_request(datarequest);
+      {
+        std::unique_lock<std::mutex> lock(m_cv_mutex);
+        m_requests_running--;
+      }
+      m_cv.notify_all();
+      if (result.result_code == ResultCode::kNotYet) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
+                                    << "With timestamp=" << result.data_request.trigger_timestamp;
+        issue_request(result.data_request);
+      }
+    }).detach();
   }
 
   void get_info(datalinkhandlerinfo::Info& info) override
@@ -213,7 +213,7 @@ protected:
     }
   }
 
-  RequestResult cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT(build/unsigned)
+  void cleanup()
   {
     // auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = m_latency_buffer->occupancy();
@@ -243,9 +243,7 @@ protected:
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load() + to_pop);
     }
-    m_cleanup_requested.store(false);
     m_cleanups++;
-    return RequestResult(ResultCode::kCleanup, dr);
   }
 
   void check_waiting_requests()
@@ -258,52 +256,16 @@ protected:
           uint64_t newest_ts = last_frame.get_timestamp(); // NOLINT(build/unsigned)
           while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
             dfmessages::DataRequest request = m_waiting_requests.top();
-            issue_request(request, 0);
+            issue_request(request);
             m_waiting_requests.pop();
           }
         }
       }
-      auto_cleanup_check();
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      cleanup_check();
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
 
-  void executor()
-  {
-    std::future<RequestResult> fut;
-    while (m_run_marker.load() || !m_completion_queue.empty()) {
-      if (m_completion_queue.empty()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
-      } else {
-        bool success = m_completion_queue.try_dequeue(fut);
-        if (!success) {
-          ers::error(CannotReadFromQueue(ERS_HERE, "RequestsCompletionQueue."));
-        } else {
-          // m_lock_callback();
-          fut.wait(); // trigger execution
-          // m_unlock_callback();
-          auto reqres = fut.get();
-          // TLOG() << "Request result handled: " << resultCodeAsString(reqres.result_code);
-
-          // 28-Apr-2021, KAB: I believe that a test on m_run_marker when reqres.result_code is kNotYet
-          // leads to missing fragments in TriggerRecords at the end of a run (i.e. at Stop time).
-          // In the case of the WIBRequestHandler::tcp_data_request() method, that method is smart enough to
-          // recognize that a Stop has been requested and create an empty Fragment if the data can not
-          // be found. Checking on the status of the run_marker here prevents that code from doing that
-          // valuable service.  So, in this candidate change, I have commented out the check on the
-          // run_marker here.  With this change, I see fewer (maybe even zero) TriggerRecords with
-          // missing fragments at the end of runs.  Of course, those Fragments may be empty, but at
-          // least they are not missing.
-          if (reqres.result_code == ResultCode::kNotYet) { // && m_run_marker.load()) { // give it another chance
-            TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
-                                        << "With timestamp=" << reqres.data_request.trigger_timestamp;
-            std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-            m_waiting_requests.push(reqres.data_request);
-          }
-        }
-      }
-    }
-  }
 
   void run_stats()
   {
@@ -328,12 +290,8 @@ protected:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread stopped...";
   }
 
-  RequestResult data_request(dfmessages::DataRequest dr, unsigned delay_us = 0) override // NOLINT(build/unsigned)
+  RequestResult data_request(dfmessages::DataRequest dr) override
   {
-    if (delay_us > 0) {
-      std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
-    }
-
     // Prepare response
     RequestResult rres(ResultCode::kUnknown, dr);
 
@@ -463,9 +421,11 @@ protected:
   // Requests
   std::size_t m_max_requested_elements;
 
-  // Completion of requests requests
-  using completion_queue_t = folly::UMPSCQueue<std::future<RequestResult>, true>;
-  completion_queue_t m_completion_queue;
+  std::mutex m_cv_mutex;
+  std::condition_variable m_cv;
+
+  std::atomic<bool> m_cleanup_requested = false;
+  std::atomic<int> m_requests_running = 0;
 
   // Priority queue for waiting requests
   class Comparator
@@ -489,16 +449,12 @@ protected:
   std::thread m_stats_thread;
   std::thread m_waiting_queue_thread;
 
-  std::atomic<bool> m_cleanup_requested = false;
   std::atomic<int> m_cleanups{ 0 };
 
 private:
   // For recording
   std::atomic<bool> m_recording = false;
   std::future<void> m_future_recording_stopper;
-
-  // Executor
-  std::thread m_executor;
 
   // Configuration
   bool m_configured;

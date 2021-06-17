@@ -36,8 +36,8 @@ public:
   virtual void get_info(datalinkhandlerinfo::Info&) = 0;
 
   // requests
-  virtual void auto_cleanup_check() = 0;
-  virtual void issue_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
+  virtual void cleanup_check() = 0;
+  virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:
   // Result code of requests
@@ -76,9 +76,8 @@ protected:
   // Bookkeeping of OOB requests
   std::map<dfmessages::DataRequest, int> m_request_counter;
 
-  virtual RequestResult cleanup_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
-  virtual RequestResult data_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
-  virtual void executor() = 0;
+  virtual void cleanup() = 0;
+  virtual RequestResult data_request(dfmessages::DataRequest /*dr*/) = 0;
 
 private:
 };
