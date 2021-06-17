@@ -21,6 +21,8 @@
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
+#include <boost/asio.hpp>
+
 #include <folly/concurrency/UnboundedQueue.h>
 
 #include <algorithm>
@@ -62,6 +64,7 @@ public:
     , m_pop_limit_size(0)
     , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
+    , m_thread_pool(4)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
@@ -112,6 +115,7 @@ public:
       m_future_recording_stopper.wait();
     m_stats_thread.join();
     m_waiting_queue_thread.join();
+    m_thread_pool.join();
   }
 
   void record(const nlohmann::json& args) override
@@ -154,7 +158,7 @@ public:
     m_cv.wait(lock, [&]{return !m_cleanup_requested;});
     m_requests_running++;
     // Start a new thread for now, use a thread pool in the future
-    std::thread([&, datarequest](){
+    boost::asio::post(m_thread_pool, [&, datarequest](){
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       auto result = data_request(datarequest);
       {
@@ -167,7 +171,7 @@ public:
                                     << "With timestamp=" << result.data_request.trigger_timestamp;
         issue_request(result.data_request);
       }
-    }).detach();
+    });
   }
 
   void get_info(datalinkhandlerinfo::Info& info) override
@@ -472,6 +476,8 @@ private:
   std::atomic<int> m_request_gone{ 0 };
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
+
+  boost::asio::thread_pool m_thread_pool;
 };
 
 } // namespace readout
