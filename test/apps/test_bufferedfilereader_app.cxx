@@ -6,15 +6,15 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "BufferedFileReader.hpp"
+#include "readout/utils/BufferedFileReader.hpp"
 
 #include "logging/Logging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
 #include <atomic>
-#include <string>
 #include <chrono>
 #include <memory>
+#include <string>
 
 using namespace dunedaq::readout;
 
@@ -39,10 +39,12 @@ main(int argc, char* argv[])
   auto statistics_thread = std::thread([&]() {
     while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now()
-                                                                                   - time_point_last_statistics).count();
+      double time_diff = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() -
+                                                                                   time_point_last_statistics)
+                           .count();
       TLOG() << "Bytes read: " << bytes_read_total << ", Throughput: "
-                << static_cast<double>(bytes_read_since_last_statistics) / ((int64_t) 1 << 20) / time_diff << " MiB/s" << std::endl;
+             << static_cast<double>(bytes_read_since_last_statistics) / ((int64_t)1 << 20) / time_diff << " MiB/s"
+             << std::endl;
       time_point_last_statistics = std::chrono::steady_clock::now();
       bytes_read_since_last_statistics = 0;
     }

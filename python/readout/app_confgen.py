@@ -32,13 +32,13 @@ QUEUE_POP_WAIT_MS=100;
 CLOCK_SPEED_HZ = 50000000;
 
 def generate(
+        FRONTEND_TYPE='wib',
         NUMBER_OF_DATA_PRODUCERS=1,          
         NUMBER_OF_TP_PRODUCERS=1,          
         DATA_RATE_SLOWDOWN_FACTOR = 1,
         RUN_NUMBER = 333, 
         DATA_FILE="./frames.bin"
     ):
-    
 
     # Define modules and queues
     queue_bare_specs = [
@@ -48,13 +48,13 @@ def generate(
             app.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            app.QueueSpec(inst=f"wib_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"{FRONTEND_TYPE}_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
             app.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS) 
         ] + [
-            app.QueueSpec(inst=f"snb_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+            app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
     
@@ -65,25 +65,30 @@ def generate(
 
     mod_specs = [
         mspec("fake_source", "FakeCardReader", [
-                        app.QueueInfo(name=f"output_{idx}", inst=f"wib_fake_link_{idx}", dir="output")
+                        app.QueueInfo(name=f"output_{idx}", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
-                        ] + [
-                        app.QueueInfo(name=f"tp_output_{idx}", inst=f"tp_fake_link_{idx}", dir="output")
-			    for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
                         ]),
 
         ] + [
                 mspec(f"datahandler_{idx}", "DataLinkHandler", [
-                            app.QueueInfo(name="raw_input", inst=f"wib_fake_link_{idx}", dir="input"),
+                            app.QueueInfo(name="raw_input", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="input"),
                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                             app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
-                            app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="output")
+                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
-                            app.QueueInfo(name="snb", inst=f"snb_link_{idx}", dir="input")
+                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+        ] + [
+                mspec(f"timesync_consumer", "DummyConsumerTimeSync", [
+                                            app.QueueInfo(name="input_queue", inst=f"time_sync_q", dir="input")
+                                            ])
+        ] + [
+                mspec(f"fragment_consumer", "DummyConsumerFragment", [
+                                            app.QueueInfo(name="input_queue", inst=f"data_fragments_q", dir="input")
+                                            ])
         ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
@@ -101,20 +106,17 @@ def generate(
 
     confcmd = mrccmd("conf", "INITIAL", "CONFIGURED", [
                 ("fake_source",fcr.Conf(
-                            link_ids=list(range(NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)),
+                            link_confs=[fcr.LinkConfiguration(
+                                geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                                slowdown=DATA_RATE_SLOWDOWN_FACTOR,
+                                queue_name=f"output_{idx}"
+                            ) for idx in range(NUMBER_OF_DATA_PRODUCERS)],
                             # input_limit=10485100, # default
-                            rate_khz = CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR*1000),
-                            raw_type = "wib",
-                            data_filename = DATA_FILE,
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
-			    set_t0_to = 0,
-                            tp_enabled = "false",
-                            tp_rate_khz = 0,
-                            tp_data_filename = "./tp_frames.bin"
+			                set_t0_to = 0
                         )),
             ] + [
                 (f"datahandler_{idx}", dlh.Conf(
-                        raw_type = "wib",
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
@@ -137,7 +139,9 @@ def generate(
     startcmd = mrccmd("start", "CONFIGURED", "RUNNING", [
             ("datahandler_.*", startpars),
             ("fake_source", startpars),
-            ("data_recorder_.*", startpars)
+            ("data_recorder_.*", startpars),
+            ("timesync_consumer", startpars),
+            ("fragment_consumer", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -147,7 +151,9 @@ def generate(
     stopcmd = mrccmd("stop", "RUNNING", "CONFIGURED", [
             ("fake_source", None),
             ("datahandler_.*", None),
-            ("data_recorder_.*", None)
+            ("data_recorder_.*", None),
+            ("timesync_consumer", None),
+            ("fragment_consumer", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
@@ -163,6 +169,17 @@ def generate(
     # Create a list of commands
     cmd_seq = [initcmd, confcmd, startcmd, stopcmd, scrapcmd]
 
+    record_cmd = mrccmd("record", "RUNNING", "RUNNING", [
+        ("datahandler_.*", dlh.RecordingParams(
+            duration=10
+        ))
+    ])
+
+    jstr = json.dumps(record_cmd.pod(), indent=4, sort_keys=True)
+    print("="*80+"\nRecord\n\n", jstr)
+
+    cmd_seq.append(record_cmd)
+
     # Print them as json (to be improved/moved out)
     jstr = json.dumps([c.pod() for c in cmd_seq], indent=4, sort_keys=True)
     return jstr
@@ -174,13 +191,14 @@ if __name__ == '__main__':
     import click
 
     @click.command(context_settings=CONTEXT_SETTINGS)
+    @click.option('-f', '--frontend-type', type=click.Choice(['wib', 'wib2', 'pds_queue', 'pds_list'], case_sensitive=True), default='wib')
     @click.option('-n', '--number-of-data-producers', default=1)
     @click.option('-t', '--number-of-tp-producers', default=0)
     @click.option('-s', '--data-rate-slowdown-factor', default=10)
     @click.option('-r', '--run-number', default=333)
     @click.option('-d', '--data-file', type=click.Path(), default='./frames.bin')
     @click.argument('json_file', type=click.Path(), default='fake_readout.json')
-    def cli(number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
+    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
         """
           JSON_FILE: Input raw data file.
           JSON_FILE: Output json configuration file.
@@ -188,6 +206,7 @@ if __name__ == '__main__':
 
         with open(json_file, 'w') as f:
             f.write(generate(
+                    FRONTEND_TYPE = frontend_type,
                     NUMBER_OF_DATA_PRODUCERS = number_of_data_producers,
                     NUMBER_OF_TP_PRODUCERS = number_of_tp_producers,
                     DATA_RATE_SLOWDOWN_FACTOR = data_rate_slowdown_factor,

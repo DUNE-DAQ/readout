@@ -13,10 +13,10 @@
 
 #include "boost/test/unit_test.hpp"
 
+#include "readout/utils/BufferedFileReader.hpp"
+#include "readout/utils/BufferedFileWriter.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "BufferedFileWriter.hpp"
-#include "BufferedFileReader.hpp"
 
 #include <cstdio>
 #include <string>
