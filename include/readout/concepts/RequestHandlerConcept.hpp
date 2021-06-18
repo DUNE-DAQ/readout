@@ -63,14 +63,19 @@ protected:
   // Request Result
   struct RequestResult
   {
-    RequestResult(ResultCode rc, dfmessages::DataRequest dr, unsigned rdus = 0)
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr)
+        : result_code(rc)
+        , data_request(dr)
+        , fragment()
+    {}
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr, dataformats::Fragment&& frag)
       : result_code(rc)
       , data_request(dr)
-      , request_delay_us(rdus)
+      , fragment(std::move(frag))
     {}
     ResultCode result_code;
     dfmessages::DataRequest data_request;
-    unsigned request_delay_us;
+    std::unique_ptr<dataformats::Fragment> fragment;
   };
 
   // Bookkeeping of OOB requests

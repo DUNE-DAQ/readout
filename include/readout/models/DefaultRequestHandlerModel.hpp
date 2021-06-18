@@ -97,6 +97,7 @@ public:
         << "auto-pop size: " << m_pop_size_pct * 100.0f << "% "
         << "max requested elements: " << m_max_requested_elements;
     TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+    TLOG() << "size: " << sizeof(dataformats::FragmentHeader) << std::endl;
   }
 
   void start(const nlohmann::json& /*args*/)
@@ -159,17 +160,26 @@ public:
     m_requests_running++;
     // Start a new thread for now, use a thread pool in the future
     boost::asio::post(m_thread_pool, [&, datarequest](){
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       auto result = data_request(datarequest);
       {
         std::unique_lock<std::mutex> lock(m_cv_mutex);
         m_requests_running--;
       }
       m_cv.notify_all();
-      if (result.result_code == ResultCode::kNotYet) {
+      if (result.result_code == ResultCode::kFound) {
+        // Push to Fragment queue
+        try {
+          m_fragment_sink->push(std::move(result.fragment));
+        } catch (const ers::Issue& excpt) {
+          std::ostringstream oss;
+          oss << "fragments output queue for link " << m_geoid.element_id;
+          ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+        }
+      } else if (result.result_code == ResultCode::kNotYet) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
                                     << "With timestamp=" << result.data_request.trigger_timestamp;
-        issue_request(result.data_request);
+        std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
+        m_waiting_requests.push(datarequest);
       }
     });
   }
@@ -368,10 +378,6 @@ protected:
       // Requeue if needed
       if (rres.result_code == ResultCode::kNotYet) {
         if (m_run_marker.load()) {
-          // rres.request_delay_us = (min_num_elements - occupancy_guess) * m_frames_per_element * m_tick_dist / 1000.;
-          if (rres.request_delay_us < m_min_delay_us) { // minimum delay protection
-            rres.request_delay_us = m_min_delay_us;
-          }
           return rres; // If kNotYet, return immediately, don't check for fragment pieces.
         } else {
           frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
@@ -397,18 +403,10 @@ protected:
     }
 
     // Create fragment from pieces
-    auto frag = std::make_unique<dataformats::Fragment>(frag_pieces);
+    rres.fragment = std::make_unique<dataformats::Fragment>(frag_pieces);
 
     // Set header
-    frag->set_header_fields(frag_header);
-    // Push to Fragment queue
-    try {
-      m_fragment_sink->push(std::move(frag));
-    } catch (const ers::Issue& excpt) {
-      std::ostringstream oss;
-      oss << "fragments output queueu for link " << m_geoid.element_id;
-      ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
-    }
+    rres.fragment->set_header_fields(frag_header);
 
     return rres;
   }
