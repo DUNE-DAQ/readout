@@ -192,6 +192,7 @@ public:
     info.retry_request = m_retry_request;
     info.uncategorized_request = m_uncategorized_request;
     info.cleanups = m_cleanups;
+    info.num_waiting_requests = m_waiting_requests.size();
   }
 
 protected:
