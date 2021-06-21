@@ -87,15 +87,6 @@ public:
 
   std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
 
-  void lock() override
-  {
-    // m_queue->lock();
-  }
-
-  void unlock() override
-  {
-    // m_queue->unlock();
-  }
 
   // For the continous buffer, the data is moved into the Folly queue.
   bool write(RawType&& new_element) override

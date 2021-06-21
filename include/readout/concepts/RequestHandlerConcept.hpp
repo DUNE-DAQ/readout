@@ -37,8 +37,9 @@ public:
   virtual void record(const nlohmann::json& args) = 0;
   virtual void get_info(datalinkhandlerinfo::Info&) = 0;
 
-  // requests
+  //! Check if cleanup is necessary and execute it if necessary
   virtual void cleanup_check() = 0;
+  //! Issue a data request to the request handler
   virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:

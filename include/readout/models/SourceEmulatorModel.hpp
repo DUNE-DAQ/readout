@@ -101,6 +101,8 @@ public:
         m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
+      m_dropouts_length = m_link_conf.random_population_size;
+
       m_is_configured = true;
     }
     // Configure thread:
@@ -234,7 +236,7 @@ private:
 
   std::vector<bool> m_dropouts; // Random population
 
-  static constexpr int m_dropouts_length = 10000; // Random population size
+  uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
 };
 
 } // namespace readout

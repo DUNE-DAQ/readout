@@ -53,7 +53,9 @@ local fakecardreader = {
         s.field("data_filename", self.string, "/tmp/frames.bin",
             doc="Data file that contains user payloads"),
         s.field("queue_name", self.string,
-            doc="Name of the output queue")
+            doc="Name of the output queue"),
+        s.field("random_population_size", self.uint4, 10000,
+            doc="Size of the random population")
         ], doc="Configuration for one link"),
 
     link_conf_list : s.sequence("link_conf_list", self.link_conf, doc="Link configuration list"),
