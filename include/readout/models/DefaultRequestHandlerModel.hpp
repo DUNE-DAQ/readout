@@ -64,7 +64,6 @@ public:
     , m_pop_limit_size(0)
     , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
-    , m_thread_pool(4)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
@@ -78,6 +77,7 @@ public:
     m_pop_limit_pct = conf.pop_limit_pct;
     m_pop_size_pct = conf.pop_size_pct;
     m_buffer_capacity = conf.latency_buffer_size;
+    m_thread_pool = std::make_unique<boost::asio::thread_pool>(conf.num_request_handling_threads);
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -116,7 +116,7 @@ public:
       m_future_recording_stopper.wait();
     m_stats_thread.join();
     m_waiting_queue_thread.join();
-    m_thread_pool.join();
+    m_thread_pool->join();
   }
 
   void record(const nlohmann::json& args) override
@@ -159,7 +159,7 @@ public:
     m_cv.wait(lock, [&]{return !m_cleanup_requested;});
     m_requests_running++;
     // Start a new thread for now, use a thread pool in the future
-    boost::asio::post(m_thread_pool, [&, datarequest](){
+    boost::asio::post(*m_thread_pool, [&, datarequest](){
       auto result = data_request(datarequest);
       {
         std::unique_lock<std::mutex> lock(m_cv_mutex);
@@ -476,7 +476,7 @@ private:
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
 
-  boost::asio::thread_pool m_thread_pool;
+  std::unique_ptr<boost::asio::thread_pool> m_thread_pool;
 };
 
 } // namespace readout
