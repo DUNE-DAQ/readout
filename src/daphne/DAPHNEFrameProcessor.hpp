@@ -1,5 +1,5 @@
 /**
- * @file PDSFrameProcessor.hpp PDS specific Task based raw processor
+ * @file DAPHNEFrameProcessor.hpp DAPHNE specific Task based raw processor
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
@@ -11,7 +11,7 @@
 #include "ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
-#include "dataformats/pds/PDSFrame.hpp"
+#include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
@@ -25,20 +25,20 @@ using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 namespace dunedaq {
 namespace readout {
 
-class DaphneFrameProcessor : public TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>
+class DAPHNEFrameProcessor : public TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>
 {
 
 public:
-  using inherited = TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>;
-  using frameptr = types::PDS_SUPERCHUNK_STRUCT*;
-  using pdsframeptr = dunedaq::dataformats::PDSFrame*;
+  using inherited = TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>;
+  using frameptr = types::DAPHNE_SUPERCHUNK_STRUCT*;
+  using daphneframeptr = dunedaq::dataformats::DAPHNEFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  DaphneFrameProcessor()
-    : TaskRawDataProcessorModel<types::PDS_SUPERCHUNK_STRUCT>()
+  DAPHNEFrameProcessor()
+    : TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>()
   {
-    m_tasklist.push_back(std::bind(&DaphneFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    // m_tasklist.push_back( std::bind(&PDSFrameProcessor::frame_error_check, this, std::placeholders::_1) );
+    m_tasklist.push_back(std::bind(&DAPHNEFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    // m_tasklist.push_back( std::bind(&DAPHNEFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 
 protected:
@@ -51,7 +51,7 @@ protected:
   std::atomic<int> m_ts_error_ctr{ 0 };
 
   /**
-   * Pipeline Stage 1.: Check proper timestamp increments in PDS frame
+   * Pipeline Stage 1.: Check proper timestamp increments in DAPHNE frame
    * */
   void timestamp_check(frameptr fp)
   {
@@ -88,7 +88,7 @@ protected:
   }
 
   /**
-   * Pipeline Stage 2.: Check PDS headers for error flags
+   * Pipeline Stage 2.: Check DAPHNE headers for error flags
    * */
   void frame_error_check(frameptr /*fp*/)
   {

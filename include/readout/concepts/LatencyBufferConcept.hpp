@@ -17,7 +17,7 @@ namespace readout {
  * @tparam RawType the type of contained elements
  * @tparam KeyType the type of key for searchability
  */
-template<class RawType, class KeyType>
+template<class RawType>
 class LatencyBufferConcept
 {
 
@@ -29,40 +29,29 @@ public:
   LatencyBufferConcept(LatencyBufferConcept&&) = delete;            ///< LatencyBufferConcept is not move-constructible
   LatencyBufferConcept& operator=(LatencyBufferConcept&&) = delete; ///< LatencyBufferConcept is not move-assignable
 
-  virtual void conf(const nlohmann::json& cfg) = 0;
+  //! Resize LB to the new capacity
+  virtual void resize(size_t capacity) = 0;
 
   //! Occupancy of LB
-  virtual size_t occupancy() = 0;
+  virtual size_t occupancy() const = 0;
 
   //! Move referenced object into LB
-  virtual bool write(RawType&&) = 0;
+  virtual bool write(RawType&& element) = 0;
 
   //! Move object from LB to referenced
-  virtual bool read(RawType&) = 0;
+  virtual bool read(RawType& element) = 0;
 
-  //! Place object into LB with key (if LB is searchable)
-  virtual bool place(RawType&&, KeyType&) = 0;
+  //! Write referenced object into LB without moving it
+  virtual bool put(RawType& element) = 0;
 
-  //! Find object in LB by key (if LB is searchable)
-  virtual bool find(RawType&, KeyType&) = 0;
+  //! Get pointer to the front of the LB
+  virtual const RawType* front() = 0;
 
-  //! Get Xth raw pointer to element in LB (if LB is indexable)
-  virtual RawType* get_ptr(unsigned) = 0;
+  //! Get pointer to the back of the LB
+  virtual const RawType* back() = 0;
 
-  //! Find raw pointer to element in LB based on key (if LB is searchable)
-  virtual RawType* find_ptr(KeyType&) = 0;
-
-  //! Find index of object in LB by key (if LB is searchable & indexable)
-  virtual int find_index(KeyType&) = 0;
-
-  //! Pop N amount of elements from LB
-  virtual void pop(unsigned) = 0;
-
-  //! Lock LB
-  virtual void lock() = 0;
-
-  //! Unlock LB
-  virtual void unlock() = 0;
+  //! Pop specified amount of elements from LB
+  virtual void pop(size_t amount) = 0;
 
 private:
 };

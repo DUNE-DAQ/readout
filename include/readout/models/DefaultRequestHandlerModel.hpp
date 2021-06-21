@@ -16,20 +16,26 @@
 #include "readout/datalinkhandler/Structs.hpp"
 
 #include "dataformats/Fragment.hpp"
+#include "dataformats/Types.hpp"
 #include "dfmessages/DataRequest.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
+#include <boost/asio.hpp>
+
 #include <folly/concurrency/UnboundedQueue.h>
 
+#include <algorithm>
 #include <atomic>
 #include <functional>
 #include <future>
 #include <iomanip>
 #include <memory>
+#include <queue>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
@@ -48,6 +54,8 @@ public:
     : m_latency_buffer(latency_buffer)
     , m_fragment_sink(fragment_sink)
     , m_snb_sink(snb_sink)
+    , m_waiting_requests()
+    , m_waiting_requests_lock()
     , m_pop_reqs(0)
     , m_pops_count(0)
     , m_occupancy(0)
@@ -69,6 +77,7 @@ public:
     m_pop_limit_pct = conf.pop_limit_pct;
     m_pop_size_pct = conf.pop_size_pct;
     m_buffer_capacity = conf.latency_buffer_size;
+    m_thread_pool = std::make_unique<boost::asio::thread_pool>(conf.num_request_handling_threads);
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -77,19 +86,26 @@ public:
       m_pop_limit_size = m_pop_limit_pct * m_buffer_capacity;
       m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
     }
+
+    m_geoid.element_id = conf.link_number;
+    m_geoid.region_id = conf.apa_number;
+    m_geoid.system_type = RawType::system_type;
+
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
         << "auto-pop limit: " << m_pop_limit_pct * 100.0f << "% "
         << "auto-pop size: " << m_pop_size_pct * 100.0f << "% "
         << "max requested elements: " << m_max_requested_elements;
     TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+    TLOG() << "size: " << sizeof(dataformats::FragmentHeader) << std::endl;
   }
 
   void start(const nlohmann::json& /*args*/)
   {
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
-    m_executor = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::executor, this);
+    m_waiting_queue_thread =
+      std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -98,8 +114,9 @@ public:
     // if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
     if (m_future_recording_stopper.valid())
       m_future_recording_stopper.wait();
-    m_executor.join();
     m_stats_thread.join();
+    m_waiting_queue_thread.join();
+    m_thread_pool->join();
   }
 
   void record(const nlohmann::json& args) override
@@ -124,40 +141,93 @@ public:
       conf.duration);
   }
 
-  void auto_cleanup_check()
+  void cleanup_check() override
   {
-    // TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter auto_cleanup_check";
-    auto size_guess = m_latency_buffer->occupancy();
-    if (!m_cleanup_requested.load(std::memory_order_acquire) && size_guess > m_pop_limit_size) {
-      dfmessages::DataRequest dr;
-      auto delay_us = 0;
-      // 10-May-2021, KAB: moved the assignment of m_cleanup_requested so that is is *before* the creation of
-      // the future and the addition of the future to the completion queue in order to avoid the race condition
-      // in which the future gets run before we have a chance to set the m_cleanup_requested flag here.
-      m_cleanup_requested.store(true);
-      auto execfut = std::async(std::launch::deferred,
-                                &DefaultRequestHandlerModel<RawType, LatencyBufferType>::cleanup_request,
-                                this,
-                                dr,
-                                delay_us);
-      m_completion_queue.enqueue(std::move(execfut));
+    std::unique_lock<std::mutex> lock(m_cv_mutex);
+    if (m_latency_buffer->occupancy() > m_pop_limit_size && !m_cleanup_requested.exchange(true)) {
+      m_cv.wait(lock, [&] { return m_requests_running == 0; });
+      cleanup();
+      m_cleanup_requested = false;
+      m_cv.notify_all();
     }
   }
 
-  // DataRequest struct!?
-  void issue_request(dfmessages::DataRequest datarequest, unsigned delay_us = 0) // NOLINT(build/unsigned)
+  void issue_request(dfmessages::DataRequest datarequest) override
   {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Enter issue_request";
-    auto reqfut = std::async(std::launch::async,
-                             &DefaultRequestHandlerModel<RawType, LatencyBufferType>::data_request,
-                             this,
-                             datarequest,
-                             delay_us);
-    m_completion_queue.enqueue(std::move(reqfut));
+    std::unique_lock<std::mutex> lock(m_cv_mutex);
+    m_cv.wait(lock, [&] { return !m_cleanup_requested; });
+    m_requests_running++;
+    // Start a new thread for now, use a thread pool in the future
+    boost::asio::post(*m_thread_pool, [&, datarequest]() {
+      auto result = data_request(datarequest);
+      {
+        std::unique_lock<std::mutex> lock(m_cv_mutex);
+        m_requests_running--;
+      }
+      m_cv.notify_all();
+      if (result.result_code == ResultCode::kFound) {
+        // Push to Fragment queue
+        try {
+          m_fragment_sink->push(std::move(result.fragment));
+        } catch (const ers::Issue& excpt) {
+          std::ostringstream oss;
+          oss << "fragments output queue for link " << m_geoid.element_id;
+          ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+        }
+      } else if (result.result_code == ResultCode::kNotYet) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
+                                    << "With timestamp=" << result.data_request.trigger_timestamp;
+        std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
+        m_waiting_requests.push(datarequest);
+      }
+    });
+  }
+
+  void get_info(datalinkhandlerinfo::Info& info) override
+  {
+    info.found_requested = m_found_requested_count;
+    info.bad_requested = m_bad_requested_count;
+    info.request_window_too_old = m_request_gone;
+    info.retry_request = m_retry_request;
+    info.uncategorized_request = m_uncategorized_request;
+    info.cleanups = m_cleanups;
+    info.num_waiting_requests = m_waiting_requests.size();
   }
 
 protected:
-  RequestResult cleanup_request(dfmessages::DataRequest dr, unsigned /** delay_us */ = 0) // NOLINT(build/unsigned)
+  inline dataformats::FragmentHeader create_fragment_header(const dfmessages::DataRequest& dr)
+  {
+    dataformats::FragmentHeader fh;
+    fh.size = sizeof(fh);
+    fh.trigger_number = dr.trigger_number;
+    fh.trigger_timestamp = dr.trigger_timestamp;
+    fh.window_begin = dr.window_begin;
+    fh.window_end = dr.window_end;
+    fh.run_number = dr.run_number;
+    fh.element_id = { m_geoid.system_type, m_geoid.region_id, m_geoid.element_id };
+    fh.fragment_type = static_cast<dataformats::fragment_type_t>(RawType::fragment_type);
+    return std::move(fh);
+  }
+
+  inline void dump_to_buffer(const void* data,
+                             std::size_t size,
+                             void* buffer,
+                             uint32_t buffer_pos, // NOLINT(build/unsigned)
+                             const std::size_t& buffer_size)
+  {
+    auto bytes_to_copy = size;
+    while (bytes_to_copy > 0) {
+      auto n = std::min(bytes_to_copy, buffer_size - buffer_pos);
+      std::memcpy(static_cast<char*>(buffer) + buffer_pos, static_cast<const char*>(data), n);
+      buffer_pos += n;
+      bytes_to_copy -= n;
+      if (buffer_pos == buffer_size) {
+        buffer_pos = 0;
+      }
+    }
+  }
+
+  void cleanup()
   {
     // auto now_s = time::now_as<std::chrono::seconds>();
     auto size_guess = m_latency_buffer->occupancy();
@@ -187,44 +257,26 @@ protected:
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load() + to_pop);
     }
-    m_cleanup_requested.store(false);
-    return RequestResult(ResultCode::kCleanup, dr);
+    m_cleanups++;
   }
 
-  void executor()
+  void check_waiting_requests()
   {
-    std::future<RequestResult> fut;
-    while (m_run_marker.load() || !m_completion_queue.empty()) {
-      if (m_completion_queue.empty()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
-      } else {
-        bool success = m_completion_queue.try_dequeue(fut);
-        if (!success) {
-          ers::error(CannotReadFromQueue(ERS_HERE, "RequestsCompletionQueue."));
-        } else {
-          // m_lock_callback();
-          fut.wait(); // trigger execution
-          // m_unlock_callback();
-          auto reqres = fut.get();
-          // TLOG() << "Request result handled: " << resultCodeAsString(reqres.result_code);
-
-          // 28-Apr-2021, KAB: I believe that a test on m_run_marker when reqres.result_code is kNotYet
-          // leads to missing fragments in TriggerRecords at the end of a run (i.e. at Stop time).
-          // In the case of the WIBRequestHandler::tcp_data_request() method, that method is smart enough to
-          // recognize that a Stop has been requested and create an empty Fragment if the data can not
-          // be found. Checking on the status of the run_marker here prevents that code from doing that
-          // valuable service.  So, in this candidate change, I have commented out the check on the
-          // run_marker here.  With this change, I see fewer (maybe even zero) TriggerRecords with
-          // missing fragments at the end of runs.  Of course, those Fragments may be empty, but at
-          // least they are not missing.
-          if (reqres.result_code == ResultCode::kNotYet) { // && m_run_marker.load()) { // give it another chance
-            TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
-                                        << "With timestamp=" << reqres.data_request.trigger_timestamp << "delay [us] "
-                                        << reqres.request_delay_us;
-            issue_request(reqres.data_request, 0);
+    while (m_run_marker.load()) {
+      {
+        std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
+        if (m_latency_buffer->occupancy() != 0) {
+          auto last_frame = m_latency_buffer->back();       // NOLINT
+          uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
+          while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
+            dfmessages::DataRequest request = m_waiting_requests.top();
+            issue_request(request);
+            m_waiting_requests.pop();
           }
         }
       }
+      cleanup_check();
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
 
@@ -251,6 +303,113 @@ protected:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread stopped...";
   }
 
+  RequestResult data_request(dfmessages::DataRequest dr) override
+  {
+    // Prepare response
+    RequestResult rres(ResultCode::kUnknown, dr);
+
+    // Prepare FragmentHeader and empty Fragment pieces list
+    auto frag_header = create_fragment_header(dr);
+    std::vector<std::pair<void*, size_t>> frag_pieces;
+    std::ostringstream oss;
+
+    if (m_latency_buffer->occupancy() != 0) {
+      // Data availability is calculated here
+      auto front_frame = m_latency_buffer->front();     // NOLINT
+      auto last_frame = m_latency_buffer->back();       // NOLINT
+      uint64_t last_ts = front_frame->get_timestamp();  // NOLINT(build/unsigned)
+      uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
+
+      uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
+      uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
+      // std::cout << start_idx << ", " << end_idx << std::endl;
+      // std::cout << "Timestamps: " << start_win_ts << ", " << end_win_ts << std::endl;
+      // std::cout << "Found timestamps: " << m_latency_buffer->at(start_idx)->get_timestamp() << ", " <<
+      // m_latency_buffer->at(end_idx)->get_timestamp() << std::endl;
+
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Data request for "
+                                  << "Trigger TS=" << dr.trigger_timestamp << " "
+                                  << "Oldest stored TS=" << last_ts << " "
+                                  << "Newest stored TS=" << newest_ts << " "
+                                  << "Start of window TS=" << start_win_ts << " "
+                                  << "End of window TS=" << end_win_ts;
+
+      // List of safe-extraction conditions
+      if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
+        RawType request_element;
+        request_element.set_timestamp(start_win_ts);
+        auto start_iter = m_latency_buffer->lower_bound(request_element);
+        if (start_iter == m_latency_buffer->end()) {
+          // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
+          ++m_retry_request;
+          rres.result_code = ResultCode::kNotYet; // give it another chance
+        } else {
+          rres.result_code = ResultCode::kFound;
+          ++m_found_requested_count;
+
+          auto elements_handled = 0;
+
+          RawType* element = &(*start_iter);
+          while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
+            frag_pieces.emplace_back(
+              std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(RawType::element_size)));
+            elements_handled++;
+            ++start_iter;
+            element = &(*start_iter);
+          }
+        }
+      } else if (last_ts > start_win_ts) { // data is gone.
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+        rres.result_code = ResultCode::kNotFound;
+        ++m_request_gone;
+        ++m_bad_requested_count;
+      } else if (newest_ts < end_win_ts) {
+        ++m_retry_request;
+        rres.result_code = ResultCode::kNotYet; // give it another chance
+      } else {
+        TLOG() << "Don't know how to categorise this request";
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+        rres.result_code = ResultCode::kNotFound;
+        ++m_uncategorized_request;
+        ++m_bad_requested_count;
+      }
+
+      // Requeue if needed
+      if (rres.result_code == ResultCode::kNotYet) {
+        if (m_run_marker.load()) {
+          return rres; // If kNotYet, return immediately, don't check for fragment pieces.
+        } else {
+          frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+          rres.result_code = ResultCode::kNotFound;
+          ++m_bad_requested_count;
+        }
+      }
+
+      // Build fragment
+      oss << "TS match result on link " << m_geoid.element_id << ": " << ' ' << "Trigger number=" << dr.trigger_number
+          << " "
+          << "Oldest stored TS=" << last_ts << " "
+          << "Start of window TS=" << start_win_ts << " "
+          << "End of window TS=" << end_win_ts << " "
+          << "Estimated newest stored TS=" << newest_ts;
+      TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
+    } else {
+      ++m_bad_requested_count;
+    }
+
+    if (rres.result_code != ResultCode::kFound) {
+      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
+    }
+
+    // Create fragment from pieces
+    rres.fragment = std::make_unique<dataformats::Fragment>(frag_pieces);
+
+    // Set header
+    rres.fragment->set_header_fields(frag_header);
+
+    return rres;
+  }
+
   // Data access (LB)
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
@@ -263,9 +422,23 @@ protected:
   // Requests
   std::size_t m_max_requested_elements;
 
-  // Completion of requests requests
-  using completion_queue_t = folly::UMPSCQueue<std::future<RequestResult>, true>;
-  completion_queue_t m_completion_queue;
+  std::mutex m_cv_mutex;
+  std::condition_variable m_cv;
+
+  std::atomic<bool> m_cleanup_requested = false;
+  std::atomic<int> m_requests_running = 0;
+
+  // Priority queue for waiting requests
+  class Comparator
+  {
+  public:
+    bool operator()(dfmessages::DataRequest& left, dfmessages::DataRequest& right)
+    {
+      return left.window_end > right.window_end;
+    }
+  };
+  std::priority_queue<dfmessages::DataRequest, std::vector<dfmessages::DataRequest>, Comparator> m_waiting_requests;
+  std::mutex m_waiting_requests_lock;
 
   // The run marker
   std::atomic<bool> m_run_marker = false;
@@ -275,16 +448,14 @@ protected:
   std::atomic<int> m_pops_count;
   std::atomic<int> m_occupancy;
   std::thread m_stats_thread;
+  std::thread m_waiting_queue_thread;
 
-  std::atomic<bool> m_cleanup_requested = false;
+  std::atomic<int> m_cleanups{ 0 };
 
 private:
   // For recording
   std::atomic<bool> m_recording = false;
   std::future<void> m_future_recording_stopper;
-
-  // Executor
-  std::thread m_executor;
 
   // Configuration
   bool m_configured;
@@ -293,6 +464,17 @@ private:
   unsigned m_pop_limit_size; // pop_limit_pct * buffer_capacity
   std::atomic<int> m_pop_counter;
   size_t m_buffer_capacity;
+  dataformats::GeoID m_geoid;
+  static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
+
+  // Stats
+  std::atomic<int> m_found_requested_count{ 0 };
+  std::atomic<int> m_bad_requested_count{ 0 };
+  std::atomic<int> m_request_gone{ 0 };
+  std::atomic<int> m_retry_request{ 0 };
+  std::atomic<int> m_uncategorized_request{ 0 };
+
+  std::unique_ptr<boost::asio::thread_pool> m_thread_pool;
 };
 
 } // namespace readout

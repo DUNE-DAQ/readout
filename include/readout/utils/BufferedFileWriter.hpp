@@ -96,8 +96,12 @@ public:
    * @throw CannotOpenFile If the file can not be opened.
    * @throw ConfigurationError If the compression algorithm parameter is not recognized.
    */
-  void open(std::string filename, size_t buffer_size, std::string compression_algorithm = "None")
+  void open(std::string filename,
+            size_t buffer_size,
+            std::string compression_algorithm = "None",
+            bool use_o_direct = true)
   {
+    m_use_o_direct = use_o_direct;
     if (m_is_open) {
       close();
     }
@@ -105,8 +109,12 @@ public:
     m_filename = filename;
     m_buffer_size = buffer_size;
     m_compression_algorithm = compression_algorithm;
+    auto oflag = O_CREAT | O_WRONLY;
+    if (m_use_o_direct) {
+      oflag = oflag | O_DIRECT;
+    }
 
-    m_fd = ::open(m_filename.c_str(), O_CREAT | O_WRONLY | O_DIRECT, 0644);
+    m_fd = ::open(m_filename.c_str(), oflag, 0644);
     if (m_fd == -1) {
       throw CannotOpenFile(ERS_HERE, m_filename);
     }
@@ -174,7 +182,11 @@ public:
     // This does not flush the compressor as it is not flushable
     m_output_stream.flush();
     // Activate O_DIRECT again
-    fcntl(m_fd, F_SETFL, O_CREAT | O_WRONLY | O_DIRECT);
+    auto oflag = O_CREAT | O_WRONLY;
+    if (m_use_o_direct) {
+      oflag = oflag | O_DIRECT;
+    }
+    fcntl(m_fd, F_SETFL, oflag);
   }
 
 private:
@@ -188,6 +200,7 @@ private:
   io_sink_t m_sink;
   filtering_ostream_t m_output_stream;
   bool m_is_open = false;
+  bool m_use_o_direct = true;
 };
 
 } // namespace readout

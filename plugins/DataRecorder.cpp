@@ -5,12 +5,12 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "readout/models/RecorderModel.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/InfoNljs.hpp"
+#include "readout/models/RecorderModel.hpp"
 
 #include "DataRecorder.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
@@ -59,7 +59,7 @@ DataRecorder::init(const data_t& args)
     // IF PDS
     if (inst.find("pds") != std::string::npos) {
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for pds";
-      recorder.reset(new RecorderImpl<types::PDS_SUPERCHUNK_STRUCT>(get_name()));
+      recorder.reset(new RecorderImpl<types::DAPHNE_SUPERCHUNK_STRUCT>(get_name()));
       recorder->init(args);
       return;
     }

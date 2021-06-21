@@ -46,7 +46,9 @@ local datalinkhandler = {
         s.field("apa_number", self.apa_number, 0,
                 doc="The APA number of this link"),
         s.field("link_number", self.link_number, 0,
-                doc="The link number of this link")
+                doc="The link number of this link"),
+        s.field("num_request_handling_threads", self.count, 1,
+                doc="Number of threads to use for data request handling")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [

@@ -13,7 +13,9 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
-#include "dataformats/pds/PDSFrame.hpp"
+#include "dataformats/FragmentHeader.hpp"
+#include "dataformats/GeoID.hpp"
+#include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
 
@@ -55,9 +57,9 @@ struct WIB_SUPERCHUNK_STRUCT
   // comparable based on first timestamp
   bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
-    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
+    // auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
+    // auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
+    return this->get_timestamp() < other.get_timestamp();
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
@@ -80,6 +82,13 @@ struct WIB_SUPERCHUNK_STRUCT
       ts_next += offset;
     }
   }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 464;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
 /**
@@ -121,33 +130,40 @@ struct WIB2_SUPERCHUNK_STRUCT
       ts_next += offset;
     }
   }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t tick_dist = 32; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 468;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
 /**
- * @brief For PDS the numbers are different.
- * 12[PDS frames] x 584[Bytes] = 7008[Bytes]
+ * @brief For DAPHNE the numbers are different.
+ * 12[DAPHNE frames] x 584[Bytes] = 7008[Bytes]
  * */
-const constexpr std::size_t PDS_SUPERCHUNK_SIZE = 7008; // for 12: 7008
-struct PDS_SUPERCHUNK_STRUCT
+const constexpr std::size_t DAPHNE_SUPERCHUNK_SIZE = 7008; // for 12: 7008
+struct DAPHNE_SUPERCHUNK_STRUCT
 {
   // data
-  char data[PDS_SUPERCHUNK_SIZE];
+  char data[DAPHNE_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
-  bool operator<(const PDS_SUPERCHUNK_STRUCT& other) const
+  bool operator<(const DAPHNE_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&other.data); // NOLINT
-    return thisptr->get_timestamp() > otherptr->get_timestamp() ? true : false;
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&other.data); // NOLINT
+    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::dataformats::PDSFrame*>(&data)->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data)->get_timestamp(); // NOLINT
   }
 
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    auto frame = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&data); // NOLINT
+    auto frame = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&data); // NOLINT
     frame->header.timestamp_wf_1 = ts;
     frame->header.timestamp_wf_2 = ts >> 32;
   }
@@ -156,23 +172,46 @@ struct PDS_SUPERCHUNK_STRUCT
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto pdsf = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
-      pdsf->header.timestamp_wf_1 = ts_next;
-      pdsf->header.timestamp_wf_2 = ts_next >> 32;
+      auto df = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
+      df->header.timestamp_wf_1 = ts_next;
+      df->header.timestamp_wf_2 = ts_next >> 32;
       ts_next += offset;
     }
   }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
+  static const constexpr uint64_t tick_dist = 16; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 584;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
 /**
  * Key finder for LBs.
  * */
-struct PDSTimestampGetter
+struct DAPHNETimestampGetter
 {
-  uint64_t operator()(PDS_SUPERCHUNK_STRUCT& pdss) // NOLINT(build/unsigned)
+  uint64_t operator()(DAPHNE_SUPERCHUNK_STRUCT& ds) // NOLINT(build/unsigned)
   {
-    auto pdsfptr = reinterpret_cast<dunedaq::dataformats::PDSFrame*>(&pdss); // NOLINT
-    return pdsfptr->get_timestamp();
+    auto dsptr = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&ds); // NOLINT
+    return dsptr->get_timestamp();
+  }
+};
+
+struct WIBTimestampGetter
+{
+  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
+  {
+    return chunk.get_timestamp();
+  }
+};
+
+struct WIB2TimestampGetter
+{
+  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
+  {
+    return chunk.get_timestamp();
   }
 };
 
