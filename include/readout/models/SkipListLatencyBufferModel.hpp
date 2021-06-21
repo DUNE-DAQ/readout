@@ -155,16 +155,16 @@ public:
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  RawType front() override
+  const RawType* front() override
   {
     SkipListTAcc acc(m_skip_list);
-    return *acc.first();
+    return acc.first();
   }
 
-  RawType back() override
+  const RawType* back() override
   {
     SkipListTAcc acc(m_skip_list);
-    return *acc.last();
+    return acc.last();
   }
 
   void pop(size_t num = 1) override // NOLINT(build/unsigned)

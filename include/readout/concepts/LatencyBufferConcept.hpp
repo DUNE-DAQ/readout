@@ -42,9 +42,9 @@ public:
 
   virtual bool put(RawType&) = 0;
 
-  virtual RawType front() = 0;
+  virtual const RawType* front() = 0;
 
-  virtual RawType back() = 0;
+  virtual const RawType* back() = 0;
 
   //! Pop N amount of elements from LB
   virtual void pop(size_t) = 0;

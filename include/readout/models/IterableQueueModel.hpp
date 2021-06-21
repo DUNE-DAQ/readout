@@ -115,35 +115,6 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   bool write(T&& record) override { return write_(std::move(record)); }
 
-  template<class... Args>
-  bool write_(Args&&... recordArgs)
-  {
-    // const std::lock_guard<std::mutex> lock(m_mutex);
-    auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
-    auto nextRecord = currentWrite + 1;
-    if (nextRecord == size_) {
-      nextRecord = 0;
-    }
-    // if (nextRecord == readIndex_.load(std::memory_order_acquire)) {
-    // std::cout << "SPSC WARNING -> Queue is full! WRITE PASSES READ!!! \n";
-    //}
-    //    new (&records_[currentWrite]) T(std::forward<Args>(recordArgs)...);
-    // writeIndex_.store(nextRecord, std::memory_order_release);
-    // return true;
-
-    // ORIGINAL:
-    if (nextRecord != readIndex_.load(std::memory_order_acquire)) {
-      new (&records_[currentWrite]) T(std::forward<Args>(recordArgs)...);
-      writeIndex_.store(nextRecord, std::memory_order_release);
-      return true;
-    }
-    // queue is full
-
-    ++overflow_ctr;
-
-    return false;
-  }
-
   // move (or copy) the value at the front of the queue to given variable
   bool read(T& record) override
   {
@@ -281,22 +252,28 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return Iterator(*this, currentRead);
   }
 
-  T front() override
+  const T* front() override
   {
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
-    return records_[currentRead];
+    if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
+      return nullptr;
+    }
+    return &records_[currentRead];
   }
 
-  T back() override
+  const T* back() override
   {
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+    if (currentWrite == readIndex_.load(std::memory_order_acquire)) {
+      return nullptr;
+    }
     int currentLast = currentWrite;
     if (currentLast == 0) {
       currentLast = size_;
     } else {
       currentLast--;
     }
-    return records_[currentLast];
+    return &records_[currentLast];
   };
 
   Iterator end()
@@ -330,6 +307,35 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   }
 
 protected:
+  template<class... Args>
+  bool write_(Args&&... recordArgs)
+  {
+    // const std::lock_guard<std::mutex> lock(m_mutex);
+    auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+    auto nextRecord = currentWrite + 1;
+    if (nextRecord == size_) {
+      nextRecord = 0;
+    }
+    // if (nextRecord == readIndex_.load(std::memory_order_acquire)) {
+    // std::cout << "SPSC WARNING -> Queue is full! WRITE PASSES READ!!! \n";
+    //}
+    //    new (&records_[currentWrite]) T(std::forward<Args>(recordArgs)...);
+    // writeIndex_.store(nextRecord, std::memory_order_release);
+    // return true;
+
+    // ORIGINAL:
+    if (nextRecord != readIndex_.load(std::memory_order_acquire)) {
+      new (&records_[currentWrite]) T(std::forward<Args>(recordArgs)...);
+      writeIndex_.store(nextRecord, std::memory_order_release);
+      return true;
+    }
+    // queue is full
+
+    ++overflow_ctr;
+
+    return false;
+  }
+
   // hardware_destructive_interference_size is set to 128.
   // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
   std::mutex m_mutex;
