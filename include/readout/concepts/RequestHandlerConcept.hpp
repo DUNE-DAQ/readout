@@ -13,6 +13,8 @@
 
 #include <map>
 #include <string>
+#include <utility>
+#include <memory>
 
 namespace dunedaq {
 namespace readout {

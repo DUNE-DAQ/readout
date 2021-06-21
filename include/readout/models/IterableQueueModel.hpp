@@ -211,7 +211,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
     reference operator*() const { return m_queue.records_[m_index]; }
     pointer operator->() { return &m_queue.records_[m_index]; }
-    Iterator& operator++()
+    Iterator& operator++() // NOLINT(runtime/increment_decrement) :)
     {
       m_index++;
       if (m_index == m_queue.size_) {
@@ -219,7 +219,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
       }
       return *this;
     }
-    Iterator operator++(int)
+    Iterator operator++(int) // NOLINT(runtime/increment_decrement) :)
     {
       Iterator tmp = *this;
       ++(*this);

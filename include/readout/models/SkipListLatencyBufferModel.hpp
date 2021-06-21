@@ -57,7 +57,7 @@ public:
 
     reference operator*() const { return *m_iter; }
     pointer operator->() { return &(*m_iter); }
-    Iterator& operator++()
+    Iterator& operator++() // NOLINT(runtime/increment_decrement) :)
     {
       m_iter++;
       return *this;
