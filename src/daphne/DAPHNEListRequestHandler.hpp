@@ -38,8 +38,8 @@ class DAPHNEListRequestHandler
                                       SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>
 {
 public:
-  using inherited =
-    DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT, SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>;
+  using inherited = DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                               SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>;
   using SkipListAcc = typename folly::ConcurrentSkipList<types::DAPHNE_SUPERCHUNK_STRUCT>::Accessor;
   using SkipListSkip = typename folly::ConcurrentSkipList<types::DAPHNE_SUPERCHUNK_STRUCT>::Skipper;
 
@@ -48,17 +48,14 @@ public:
                            std::unique_ptr<appfwk::DAQSink<types::DAPHNE_SUPERCHUNK_STRUCT>>& snb_sink)
     : DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
                                  SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(latency_buffer,
-                                                                                           fragment_sink,
-                                                                                           snb_sink)
+                                                                                              fragment_sink,
+                                                                                              snb_sink)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DAPHNEListRequestHandler created...";
   }
 
 protected:
-  void cleanup() override
-  {
-    daphne_cleanup_request();
-  }
+  void cleanup() override { daphne_cleanup_request(); }
 
   void daphne_cleanup_request()
   {

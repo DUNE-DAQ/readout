@@ -22,8 +22,8 @@
 
 #include "daphne/DAPHNEFrameProcessor.hpp"
 #include "daphne/DAPHNEListRequestHandler.hpp"
-#include "wib2/WIB2FrameProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
+#include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
@@ -73,16 +73,16 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       // IF DAPHNE queue
       if (inst.find("pds_queue") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pds using Searchable Queue";
-        auto readout_model = std::make_unique<ReadoutModel<
-          types::DAPHNE_SUPERCHUNK_STRUCT,
-          DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                     BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                                            uint64_t, // NOLINT(build/unsigned)
-                                                            types::DAPHNETimestampGetter>>,
-          BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                 uint64_t, // NOLINT(build/unsigned)
-                                 types::DAPHNETimestampGetter>,
-          DAPHNEFrameProcessor>>(run_marker);
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                       DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                                  BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                                                         uint64_t, // NOLINT(build/unsigned)
+                                                                         types::DAPHNETimestampGetter>>,
+                       BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
+                                              uint64_t, // NOLINT(build/unsigned)
+                                              types::DAPHNETimestampGetter>,
+                       DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

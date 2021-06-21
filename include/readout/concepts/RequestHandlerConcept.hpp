@@ -12,9 +12,9 @@
 #include "dfmessages/DataRequest.hpp"
 
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
-#include <memory>
 
 namespace dunedaq {
 namespace readout {
@@ -66,9 +66,9 @@ protected:
   struct RequestResult
   {
     RequestResult(ResultCode rc, dfmessages::DataRequest dr)
-        : result_code(rc)
-        , data_request(dr)
-        , fragment()
+      : result_code(rc)
+      , data_request(dr)
+      , fragment()
     {}
     RequestResult(ResultCode rc, dfmessages::DataRequest dr, dataformats::Fragment&& frag)
       : result_code(rc)

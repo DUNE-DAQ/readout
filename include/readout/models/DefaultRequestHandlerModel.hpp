@@ -145,21 +145,20 @@ public:
   {
     std::unique_lock<std::mutex> lock(m_cv_mutex);
     if (m_latency_buffer->occupancy() > m_pop_limit_size && !m_cleanup_requested.exchange(true)) {
-      m_cv.wait(lock, [&]{return m_requests_running == 0;});
+      m_cv.wait(lock, [&] { return m_requests_running == 0; });
       cleanup();
       m_cleanup_requested = false;
       m_cv.notify_all();
     }
   }
 
-
-  void issue_request(dfmessages::DataRequest datarequest)  override
+  void issue_request(dfmessages::DataRequest datarequest) override
   {
     std::unique_lock<std::mutex> lock(m_cv_mutex);
-    m_cv.wait(lock, [&]{return !m_cleanup_requested;});
+    m_cv.wait(lock, [&] { return !m_cleanup_requested; });
     m_requests_running++;
     // Start a new thread for now, use a thread pool in the future
-    boost::asio::post(*m_thread_pool, [&, datarequest](){
+    boost::asio::post(*m_thread_pool, [&, datarequest]() {
       auto result = data_request(datarequest);
       {
         std::unique_lock<std::mutex> lock(m_cv_mutex);
@@ -267,7 +266,7 @@ protected:
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
         if (m_latency_buffer->occupancy() != 0) {
-          auto last_frame = m_latency_buffer->back();      // NOLINT
+          auto last_frame = m_latency_buffer->back();       // NOLINT
           uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
           while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
             dfmessages::DataRequest request = m_waiting_requests.top();
@@ -280,7 +279,6 @@ protected:
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
-
 
   void run_stats()
   {
@@ -317,8 +315,8 @@ protected:
 
     if (m_latency_buffer->occupancy() != 0) {
       // Data availability is calculated here
-      auto front_frame = m_latency_buffer->front();    // NOLINT
-      auto last_frame = m_latency_buffer->back();      // NOLINT
+      auto front_frame = m_latency_buffer->front();     // NOLINT
+      auto last_frame = m_latency_buffer->back();       // NOLINT
       uint64_t last_ts = front_frame->get_timestamp();  // NOLINT(build/unsigned)
       uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
 
