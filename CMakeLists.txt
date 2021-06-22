@@ -12,7 +12,7 @@ find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(folly REQUIRED)
 find_package(Boost COMPONENTS iostreams REQUIRED)
-set(BOOST_LIBS Boost::iostreams ${Boost_LIBRARIES})
+set(BOOST_LIBS Boost::iostreams ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_LIBRARIES})
 
 daq_codegen( datalinkhandler.jsonnet  datarecorder.jsonnet  fakecardreader.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 daq_codegen( *info.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.j2 opmonlib/InfoNljs.hpp.j2 )
@@ -39,8 +39,8 @@ daq_add_library(
 daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
-daq_add_plugin(DummyConsumerTimeSync duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(DummyConsumerFragment duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests
@@ -49,18 +49,12 @@ daq_add_application(readout_test_bufferedfilewriter test_bufferedfilewriter_app.
 daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 
-##############################################################################
-# Test configurations
-file(COPY test/wib_app.json DESTINATION test) 
-file(COPY test/wib2_app.json DESTINATION test) 
-file(COPY test/pds_queue_app.json DESTINATION test) 
-file(COPY test/pds_list_app.json DESTINATION test) 
 
 ##############################################################################
 # Unit Tests
 daq_add_unit_test(RawWIBTp_test                LINK_LIBRARIES readout)
 daq_add_unit_test(BufferedReadWrite_test       LINK_LIBRARIES readout ${BOOST_LIBS})
-daq_add_unit_test(VariableSizeElementQueue_test LINK_LIBRARIES readout)
+#daq_add_unit_test(VariableSizeElementQueue_test LINK_LIBRARIES readout)
 
 ##############################################################################
 # Installation

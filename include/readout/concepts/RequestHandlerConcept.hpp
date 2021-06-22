@@ -12,7 +12,9 @@
 #include "dfmessages/DataRequest.hpp"
 
 #include <map>
+#include <memory>
 #include <string>
+#include <utility>
 
 namespace dunedaq {
 namespace readout {
@@ -33,10 +35,12 @@ public:
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
   virtual void record(const nlohmann::json& args) = 0;
+  virtual void get_info(datalinkhandlerinfo::Info&) = 0;
 
-  // requests
-  virtual void auto_cleanup_check() = 0;
-  virtual void issue_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
+  //! Check if cleanup is necessary and execute it if necessary
+  virtual void cleanup_check() = 0;
+  //! Issue a data request to the request handler
+  virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:
   // Result code of requests
@@ -62,22 +66,26 @@ protected:
   // Request Result
   struct RequestResult
   {
-    RequestResult(ResultCode rc, dfmessages::DataRequest dr, unsigned rdus = 0)
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr)
       : result_code(rc)
       , data_request(dr)
-      , request_delay_us(rdus)
+      , fragment()
+    {}
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr, dataformats::Fragment&& frag)
+      : result_code(rc)
+      , data_request(dr)
+      , fragment(std::move(frag))
     {}
     ResultCode result_code;
     dfmessages::DataRequest data_request;
-    unsigned request_delay_us;
+    std::unique_ptr<dataformats::Fragment> fragment;
   };
 
   // Bookkeeping of OOB requests
   std::map<dfmessages::DataRequest, int> m_request_counter;
 
-  virtual RequestResult cleanup_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
-  virtual RequestResult data_request(dfmessages::DataRequest /*dr*/, unsigned /*delay_us*/ = 0) = 0;
-  virtual void executor() = 0;
+  virtual void cleanup() = 0;
+  virtual RequestResult data_request(dfmessages::DataRequest /*dr*/) = 0;
 
 private:
 };

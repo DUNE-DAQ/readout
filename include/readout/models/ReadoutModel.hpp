@@ -128,7 +128,7 @@ public:
     // m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
     try {
-      m_latency_buffer_impl->conf(args);
+      m_latency_buffer_impl->resize(m_latency_buffer_size);
     } catch (const std::bad_alloc& be) {
       ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
     }
@@ -187,6 +187,9 @@ public:
     dli.new_packets = m_packet_count.exchange(0);
     dli.requests = m_request_count_tot.load();
     dli.new_requests = m_request_count.exchange(0);
+    dli.overwritten_packet_count = m_overwritten_packet_count.load();
+
+    m_request_handler_impl->get_info(dli);
 
     ci.add(dli);
   }
@@ -209,8 +212,8 @@ private:
         m_raw_processor_impl->process_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
+          m_overwritten_packet_count++;
         }
-        m_request_handler_impl->auto_cleanup_check();
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;
@@ -231,7 +234,7 @@ private:
     while (m_run_marker.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(m_raw_processor_impl->get_last_daq_time());
-        // TLOG_DEBUG(0) << "New timesync: daq=" << timesyncmsg.DAQ_time << " wall=" << timesyncmsg.system_time;
+        // TLOG() << "New timesync: daq=" << timesyncmsg.daq_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.daq_time != 0) {
           try {
             m_timesync_sink->push(std::move(timesyncmsg));
@@ -331,6 +334,7 @@ private:
   std::atomic<int> m_request_count_tot{ 0 };
   std::atomic<int> m_rawq_timeout_count{ 0 };
   std::atomic<int> m_stats_packet_count{ 0 };
+  std::atomic<int> m_overwritten_packet_count{ 0 };
   ReusableThread m_stats_thread;
 
   // CONSUMER

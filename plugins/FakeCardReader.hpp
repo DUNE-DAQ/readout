@@ -14,10 +14,10 @@
 #define READOUT_PLUGINS_FAKECARDREADER_HPP_
 
 // package
-#include "readout/concepts/SourceEmulatorConcept.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "readout/concepts/SourceEmulatorConcept.hpp"
 #include "readout/fakecardreader/Structs.hpp"
+#include "readout/utils/ReusableThread.hpp"
 //#include "CreateSourceEmulator.hpp"
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"

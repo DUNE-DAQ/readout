@@ -42,7 +42,9 @@ local datarecorder = {
         s.field("stream_buffer_size", self.size, 8388608,
                 doc="Buffer size of the stream buffer"),
         s.field("compression_algorithm", self.string, "None",
-                doc="Compression algorithm to use before writing to file")
+                doc="Compression algorithm to use before writing to file"),
+        s.field("use_o_direct", self.choice, true,
+                doc="Whether to use O_DIRECT flag when opening files")
     ], doc="SNBWriter configuration"),
 
 };
