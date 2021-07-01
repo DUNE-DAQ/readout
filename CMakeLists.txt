@@ -23,7 +23,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
 # Dependency sets
 set(READOUT_DEPENDENCIES 
   # system
-  numa  
+  numa
+ 
   # dunedaq
   ers::ers 
   logging::logging
