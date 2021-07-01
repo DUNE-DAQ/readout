@@ -17,9 +17,14 @@ set(BOOST_LIBS Boost::iostreams ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} 
 daq_codegen( datalinkhandler.jsonnet  datarecorder.jsonnet  fakecardreader.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 daq_codegen( *info.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.j2 opmonlib/InfoNljs.hpp.j2 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+
 ##############################################################################
 # Dependency sets
 set(READOUT_DEPENDENCIES 
+  # system
+  numa  
+  # dunedaq
   ers::ers 
   logging::logging
   opmonlib::opmonlib
@@ -31,6 +36,7 @@ set(READOUT_DEPENDENCIES
 ##############################################################################
 # Main library
 daq_add_library(
+  wib/tpg/*.cpp
   LINK_LIBRARIES appfwk::appfwk ${READOUT_DEPENDENCIES}
 )
 

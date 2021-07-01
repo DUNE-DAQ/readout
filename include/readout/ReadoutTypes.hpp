@@ -26,6 +26,28 @@ namespace dunedaq {
 namespace readout {
 namespace types {
 
+// Location of this struct is very bad very bad
+struct TriggerPrimitive
+{
+    TriggerPrimitive(uint64_t messageTimestamp_,
+                     uint16_t channel_,
+                     uint16_t endTime_,
+                     uint16_t charge_,
+                     uint16_t timeOverThreshold_)
+        : messageTimestamp(messageTimestamp_),
+          channel(channel_),
+          endTime(endTime_),
+          charge(charge_),
+          timeOverThreshold(timeOverThreshold_)
+    {}
+
+    uint64_t messageTimestamp;   // The timestamp of the netio message that this hit comes from
+    uint16_t channel;            // The electronics channel number within the (crate, slot, fiber)
+    uint16_t endTime;            // In TPC ticks relative to the start of the netio message
+    uint16_t charge;             // In ADC
+    uint16_t timeOverThreshold;  // In *TPC* clock ticks
+};
+
 /**
  * @brief A FULLMODE Elink is identified by the following:
  * - card id (physical card ID)
@@ -90,6 +112,7 @@ struct WIB_SUPERCHUNK_STRUCT
   static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
+static_assert(sizeof(struct WIB_SUPERCHUNK_STRUCT) == 5568, "Check your assumptions on WIB_SUPERCHUNK_STRUCT");
 
 /**
  * @brief For WIB2 the numbers are different.
