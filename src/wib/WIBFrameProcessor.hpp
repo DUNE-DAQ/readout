@@ -60,7 +60,7 @@ public:
 
     TLOG() << "TAPS SIZE: " << m_taps.size() << " threshold:" << m_threshold << " exponent:" << m_tap_exponent;
 
-    m_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME, 
+    m_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME,
       m_primfind_dest, m_taps_p, (uint8_t)m_taps.size(), m_tap_exponent, m_threshold, 0, 0);
 
     m_tasklist.push_back(std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
@@ -81,7 +81,7 @@ public:
     int crate = frame->get_wib_header()->crate_no;
     int slot = frame->get_wib_header()->slot_no;
     int fiber = frame->get_wib_header()->fiber_no;
- 
+
     unsigned int fiberloc = 0;
     if (fiber == 1) {
       fiberloc = 1;
@@ -91,7 +91,7 @@ public:
       TLOG() << " Fiber number " << (int)fiber << " is expected to be 1 or 2 -- revisit logic";
       fiberloc = 1;
     }
- 
+
     unsigned int chloc = ch;
     if (chloc > 127) {
       chloc -= 128;
@@ -171,12 +171,12 @@ protected:
     if (!fp)
       return;
 
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>((uint8_t*)fp); // NOLINT 
+    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
     uint64_t timestamp=wfptr->get_wib_header()->get_timestamp();
 
     MessageRegistersCollection collection_registers;
     InductionItemToProcess* ind_item = &m_dummy_induction_item;
-    expand_message_adcs_inplace(fp, &collection_registers, &ind_item->registers); 
+    expand_message_adcs_inplace(fp, &collection_registers, &ind_item->registers);
 
     if (m_first) {
       m_tpg_pi->setState(collection_registers);
@@ -202,28 +202,64 @@ protected:
     size_t n_sent_hits=0; // The number of "sendable" hits we produced (ie, that weren't suppressed as bad/noisy)
     size_t sent_adcsum=0; // The adc sum for "sendable" hits
 
-    while (*m_primfind_dest != MAGIC) {
+    uint16_t* primfind_it=m_primfind_dest;
+
+    constexpr int clocksPerTPCTick=25;
+
+    // process_window_avx2 stores its output in the buffer pointed to
+    // by m_primfind_dest in a (necessarily) complicated way: for
+    // every set of 16 channels (one AVX2 register) that has at least
+    // one hit which ends at this tick, the full 16-channel registers
+    // of channel number, hit end time, hit charge and hit t-o-t are
+    // stored. This is done for each of the (6 collection registers
+    // per tick) x (12 ticks per superchunk), and the end of valid
+    // hits is indicated by the presence of the value MAGIC (defined
+    // in constants.h).
+    //
+    // Since not all channels in a register will have hits ending at
+    // this tick, we look at the stored hit_charge to determine
+    // whether this channel in the register actually had a hit ending
+    // in it: for channels which *did* have a hit ending, the value of
+    // hit_charge is nonzero.
+    while (*primfind_it != MAGIC) {
+        // First, get all of the register values (including those with no hit) into local variables
         for (int i=0; i<16; ++i) {
-          chan[i] = *m_primfind_dest++;
+          chan[i] = *primfind_it++;
         }
         for (int i=0; i<16; ++i) {
-          hit_end[i] = *m_primfind_dest++;
+          hit_end[i] = *primfind_it++;
         }
         for (int i=0; i<16; ++i) {
-          hit_charge[i] = *m_primfind_dest++;
+          hit_charge[i] = *primfind_it++;
         }
         for (int i=0; i<16; ++i) {
-          hit_tover[i] = *m_primfind_dest++;
+          hit_tover[i] = *primfind_it++;
         }
 
-        for (int i=0; i<16; ++i) { 
+        // Now that we have all the register values in local
+        // variables, loop over the register index (ie, channel) and
+        // find the channels which actually had a hit, as indicated by
+        // nonzero value of hit_charge
+        for (int i=0; i<16; ++i) {
           if (hit_charge[i] && chan[i] != MAGIC) {
+            // This channel had a hit ending here, so we can create and output the hit here
             const uint16_t online_channel = collection_index_to_channel(chan[i]);
             int multiplier = (m_fiber_no == 1) ? 1 : -1;
             const uint32_t offline_channel = m_offline_channel_base + multiplier * collection_index_to_offline(chan[i]);
-            
+            // hit_end is the end time of the hit in TPC clock
+            // ticks after the start of the netio message in which
+            // the hit ended
+            uint64_t hit_start=timestamp+clocksPerTPCTick*(int64_t(hit_end[i])-hit_tover[i]);
+
+            // For quick n' dirty debugging: print out time/channel of hits. Can then make a text file suitable for numpy plotting with, eg:
+            //
+            // sed -n -e 's/.*Hit: \(.*\) \(.*\).*/\1 \2/p' log.txt  > hits.txt
+            //
+            // TLOG() << "Hit: " << hit_start << " " << offline_channel;
+
+            ++nhits;
           }
-          ++nhits;
+
         }
     }
 
@@ -235,7 +271,7 @@ protected:
     if (m_first) {
       TLOG() << "Total hits in first superchunk: " << nhits;
       m_first = false;
-    } 
+    }
 
   }
 
@@ -278,7 +314,7 @@ private:
 
   uint16_t* m_primfind_dest;
   int16_t* m_taps_p;
-  
+
   std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_tpg_pi;
 
 };
