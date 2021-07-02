@@ -28,8 +28,9 @@ template<class RawType>
 class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType>
 {
 public:
-  TaskRawDataProcessorModel()
+  TaskRawDataProcessorModel(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : RawDataProcessorConcept<RawType>()
+    , m_error_registry(error_registry)
   {}
 
   ~TaskRawDataProcessorModel() {}
@@ -63,6 +64,7 @@ public:
 protected:
   // Async tasks and
   std::vector<std::function<void(RawType*)>> m_tasklist;
+  std::unique_ptr<FrameErrorRegistry>& m_error_registry;
   // std::map<std::string, std::function<void(RawType*)>> m_tasklist; // futures
 };
 

@@ -20,6 +20,7 @@
 #include "dfmessages/DataRequest.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 
 #include <boost/asio.hpp>
 
@@ -50,7 +51,8 @@ public:
   explicit DefaultRequestHandlerModel(
     std::unique_ptr<LatencyBufferType>& latency_buffer,
     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-    std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
+    std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink,
+    std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
     , m_fragment_sink(fragment_sink)
     , m_snb_sink(snb_sink)
@@ -64,6 +66,7 @@ public:
     , m_pop_limit_size(0)
     , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
+    , m_error_registry(error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
@@ -256,6 +259,7 @@ protected:
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load() + to_pop);
+      m_error_registry->update_latest_frame_in_buffer(m_latency_buffer->front()->get_timestamp());
     }
     m_cleanups++;
   }
@@ -338,7 +342,7 @@ protected:
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         RawType request_element;
         request_element.set_timestamp(start_win_ts);
-        auto start_iter = m_latency_buffer->lower_bound(request_element);
+        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true) : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
           ++m_retry_request;
@@ -475,6 +479,8 @@ private:
   std::atomic<int> m_uncategorized_request{ 0 };
 
   std::unique_ptr<boost::asio::thread_pool> m_thread_pool;
+
+  std::unique_ptr<FrameErrorRegistry>& m_error_registry;
 };
 
 } // namespace readout

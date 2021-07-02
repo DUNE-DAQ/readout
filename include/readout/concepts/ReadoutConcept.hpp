@@ -39,7 +39,6 @@ public:
   //! Function that will be run in its own thread and consumes new incoming requests and handles them
   virtual void run_requests() = 0;
 
-private:
 };
 
 } // namespace readout
