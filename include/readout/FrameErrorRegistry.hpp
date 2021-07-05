@@ -9,6 +9,8 @@
 #define READOUT_INCLUDE_READOUT_FRAMEERRORREGISTRY_HPP_
 
 #include <vector>
+#include <queue>
+#include <readout/FrameError.hpp>
 
 namespace dunedaq {
   namespace readout {
@@ -16,28 +18,28 @@ namespace dunedaq {
     class FrameErrorRegistry {
     public:
       FrameErrorRegistry()
-      : m_missing_frames()
+      : m_errors()
       {
 
       }
 
-      void add_missing_frame_sequence(uint64_t start, uint64_t end) {
-        m_missing_frames.emplace_back(start, end);
+      void add_error(FrameError error) {
+        m_errors.push(error);
       }
 
       void update_latest_frame_in_buffer(uint64_t ts) {
-        while (has_error() && m_missing_frames.front().second < ts) {
-          m_missing_frames.erase(m_missing_frames.begin());
+        while (has_error() && m_errors.top().end_ts < ts) {
+          m_errors.pop();
         }
       }
 
       bool has_error() {
-        return !m_missing_frames.empty();
+        return !m_errors.empty();
       }
 
 
     private:
-      std::vector<std::pair<uint64_t, uint64_t>> m_missing_frames;
+      std::priority_queue<FrameError, std::vector<FrameError>, std::greater<FrameError>> m_errors;
     };
 
   } // namespace readout
