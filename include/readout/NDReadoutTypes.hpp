@@ -36,13 +36,13 @@ struct PACMAN_MESSAGE_STRUCT
   {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
-    return* thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
+    return thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
   }
 
   // message UNIX timestamp - NOT individual packet timestamps
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return* reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts(); // NOLINT
+    return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts()); // NOLINT
   }
 
   // FIX ME - implement this in the frame later
@@ -53,7 +53,7 @@ struct PACMAN_MESSAGE_STRUCT
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
-    return* reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type(); // NOLINT
+    return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
   }
 
   // FIX ME - figure out what this is and what to do for ND
