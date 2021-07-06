@@ -20,6 +20,7 @@
 #include <atomic>
 #include <functional>
 #include <string>
+#include <memory>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -35,7 +36,7 @@ public:
   using wib2frameptr = dunedaq::dataformats::WIB2Frame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  WIB2FrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+  explicit WIB2FrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>(error_registry)
   {
     m_tasklist.push_back(std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1));

@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <memory>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
@@ -28,7 +29,7 @@ template<class RawType>
 class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType>
 {
 public:
-  TaskRawDataProcessorModel(std::unique_ptr<FrameErrorRegistry>& error_registry)
+  explicit TaskRawDataProcessorModel(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : RawDataProcessorConcept<RawType>()
     , m_error_registry(error_registry)
   {}

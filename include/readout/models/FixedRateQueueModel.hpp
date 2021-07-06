@@ -30,7 +30,7 @@ public:
     : BinarySearchQueueModel<T>(size)
   {}
 
-  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool use_backup_strategy=false)
+  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool use_backup_strategy = false)
   {
     if (use_backup_strategy) {
       return BinarySearchQueueModel<T>::lower_bound(element, use_backup_strategy);

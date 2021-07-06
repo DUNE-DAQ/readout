@@ -111,7 +111,8 @@ public:
     m_error_registry.reset(new FrameErrorRegistry());
     m_latency_buffer_impl.reset(new LatencyBufferType());
     m_raw_processor_impl.reset(new RawDataProcessorType(m_error_registry));
-    m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink, m_error_registry));
+    m_request_handler_impl.reset(
+      new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink, m_error_registry));
   }
 
   void conf(const nlohmann::json& args)

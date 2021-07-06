@@ -62,10 +62,7 @@ struct WIB_SUPERCHUNK_STRUCT
     return this->get_timestamp() < other.get_timestamp();
   }
 
-  bool operator==(const WIB_SUPERCHUNK_STRUCT& other) const
-  {
-    return this->get_timestamp() == other.get_timestamp();
-  }
+  bool operator==(const WIB_SUPERCHUNK_STRUCT& other) const { return this->get_timestamp() == other.get_timestamp(); }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
@@ -113,10 +110,7 @@ struct WIB2_SUPERCHUNK_STRUCT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
-  bool operator==(const WIB2_SUPERCHUNK_STRUCT& other) const
-  {
-    return this->get_timestamp() == other.get_timestamp();
-  }
+  bool operator==(const WIB2_SUPERCHUNK_STRUCT& other) const { return this->get_timestamp() == other.get_timestamp(); }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
@@ -201,7 +195,6 @@ struct DAPHNE_SUPERCHUNK_STRUCT
   static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
-
 
 /**
  * @brief Convencience wrapper to take ownership over char pointers with

@@ -19,8 +19,8 @@
 #include "dataformats/Types.hpp"
 #include "dfmessages/DataRequest.hpp"
 #include "logging/Logging.hpp"
-#include "readout/ReadoutLogging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <boost/asio.hpp>
 
@@ -347,7 +347,8 @@ protected:
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         RawType request_element;
         request_element.set_timestamp(start_win_ts);
-        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true) : m_latency_buffer->lower_bound(request_element, false);
+        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true)
+                                                        : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
           ++m_retry_request;
