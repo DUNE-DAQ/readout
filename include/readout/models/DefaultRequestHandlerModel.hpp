@@ -39,6 +39,7 @@
 #include <vector>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
+using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
 namespace dunedaq {
@@ -171,6 +172,10 @@ public:
       if (result.result_code == ResultCode::kFound) {
         // Push to Fragment queue
         try {
+          TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
+                                      << result.fragment->get_trigger_number() << ", run number "
+                                      << result.fragment->get_run_number() << ", and GeoID "
+                                      << result.fragment->get_element_id();
           m_fragment_sink->push(std::move(result.fragment));
         } catch (const ers::Issue& excpt) {
           std::ostringstream oss;

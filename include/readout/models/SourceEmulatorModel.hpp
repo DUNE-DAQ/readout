@@ -31,7 +31,6 @@
 #include <utility>
 #include <vector>
 
-using dunedaq::readout::logging::TLVL_QUEUE_POP;
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
