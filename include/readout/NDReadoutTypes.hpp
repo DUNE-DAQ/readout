@@ -34,20 +34,20 @@ struct PACMAN_MESSAGE_STRUCT
   // comparable based on first timestamp
   bool operator<(const PACMAN_MESSAGE_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const PACMANFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const PACMANFrame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   // message UNIX timestamp - NOT individual packet timestamps
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return* reinterpret_cast<const PACMANFrame*>(&data)->get_msg_unix_ts(); // NOLINT
+    return* reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts(); // NOLINT
   }
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
-    return* reinterpret_cast<const PACMANFrame*>(&data)->get_msg_type(); // NOLINT
+    return* reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type(); // NOLINT
   }
 
   // FIX ME - figure out what this is and what to do for ND
