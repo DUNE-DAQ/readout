@@ -45,6 +45,12 @@ struct PACMAN_MESSAGE_STRUCT
     return* reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts(); // NOLINT
   }
 
+  // FIX ME - implement this in the frame later
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    //reinterpret_cast<dunedaq::dataformats::PACMANFrame*>(&data)->set_timestamp(ts); // NOLINT
+  }
+
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
     return* reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type(); // NOLINT
