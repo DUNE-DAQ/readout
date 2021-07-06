@@ -76,6 +76,8 @@ typedef dunedaq::appfwk::DAQSink<PACMAN_MESSAGE_STRUCT> PACMANFrameSink;
 typedef std::unique_ptr<PACMANFrameSink> UniquePACMANFrameSink;
 using PACMANFramePtrSink = appfwk::DAQSink<std::unique_ptr<types::PACMAN_MESSAGE_STRUCT>>;
 using UniquePACMANFramePtrSink = std::unique_ptr<PACMANFramePtrSink>;
+static const constexpr size_t frame_size = 816;
+static const constexpr size_t element_size = frame_size;
 
 } // namespace types
 } // namespace readout
