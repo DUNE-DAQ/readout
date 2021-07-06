@@ -62,7 +62,6 @@ struct PACMAN_MESSAGE_STRUCT
     //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
   }
 
-  // FIX ME - figure out what this is and what to do for ND
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
   static const constexpr size_t frame_size = 816;
