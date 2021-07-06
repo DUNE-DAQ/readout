@@ -34,26 +34,32 @@ struct PACMAN_MESSAGE_STRUCT
   // comparable based on first timestamp
   bool operator<(const PACMAN_MESSAGE_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
-    return thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
+    dunedaq::dataformats::PACMANFrame translator;
+    return *(translator.get_msg_unix_ts((void *) &data)) < *(translator.get_msg_unix_ts((void *) &other.data)) ? true : false;
+    //auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
+    //auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
+    //return thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
   }
 
   // message UNIX timestamp - NOT individual packet timestamps
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts()); // NOLINT
+    dunedaq::dataformats::PACMANFrame translator;
+    return *(translator.get_msg_unix_ts((void *) &data)); // NOLINT
+    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts()); // NOLINT
   }
 
   // FIX ME - implement this in the frame later
-  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  void set_timestamp(uint64_t /*ts*/) // NOLINT(build/unsigned)
   {
     //reinterpret_cast<dunedaq::dataformats::PACMANFrame*>(&data)->set_timestamp(ts); // NOLINT
   }
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
-    return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
+    dunedaq::dataformats::PACMANFrame translator;
+    return *(translator.get_msg_type((void *) &data)); // NOLINT
+    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
   }
 
   // FIX ME - figure out what this is and what to do for ND
