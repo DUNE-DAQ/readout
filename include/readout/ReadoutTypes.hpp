@@ -202,33 +202,6 @@ struct DAPHNE_SUPERCHUNK_STRUCT
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
-/**
- * Key finder for LBs.
- * */
-struct DAPHNETimestampGetter
-{
-  uint64_t operator()(DAPHNE_SUPERCHUNK_STRUCT& ds) // NOLINT(build/unsigned)
-  {
-    auto dsptr = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&ds); // NOLINT
-    return dsptr->get_timestamp();
-  }
-};
-
-struct WIBTimestampGetter
-{
-  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
-  {
-    return chunk.get_timestamp();
-  }
-};
-
-struct WIB2TimestampGetter
-{
-  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
-  {
-    return chunk.get_timestamp();
-  }
-};
 
 /**
  * @brief Convencience wrapper to take ownership over char pointers with
