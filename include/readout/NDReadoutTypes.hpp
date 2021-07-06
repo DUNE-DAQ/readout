@@ -36,7 +36,7 @@ struct PACMAN_MESSAGE_STRUCT
   {
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
-    return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
+    return* thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
   }
 
   // message UNIX timestamp - NOT individual packet timestamps
