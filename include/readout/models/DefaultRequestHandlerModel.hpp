@@ -45,14 +45,14 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class LatencyBufferType>
-class DefaultRequestHandlerModel : public RequestHandlerConcept<RawType, LatencyBufferType>
+template<class ReadoutType, class LatencyBufferType>
+class DefaultRequestHandlerModel : public RequestHandlerConcept<ReadoutType, LatencyBufferType>
 {
 public:
   explicit DefaultRequestHandlerModel(
     std::unique_ptr<LatencyBufferType>& latency_buffer,
     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-    std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink,
+    std::unique_ptr<appfwk::DAQSink<ReadoutType>>& snb_sink,
     std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
     , m_fragment_sink(fragment_sink)
@@ -72,8 +72,8 @@ public:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
 
-  using RequestResult = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::RequestResult;
-  using ResultCode = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::ResultCode;
+  using RequestResult = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::RequestResult;
+  using ResultCode = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::ResultCode;
 
   void conf(const nlohmann::json& args)
   {
@@ -93,7 +93,7 @@ public:
 
     m_geoid.element_id = conf.link_number;
     m_geoid.region_id = conf.apa_number;
-    m_geoid.system_type = RawType::system_type;
+    m_geoid.system_type = ReadoutType::system_type;
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
@@ -107,9 +107,9 @@ public:
   void start(const nlohmann::json& /*args*/)
   {
     m_run_marker.store(true);
-    m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
+    m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
-      std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
+      std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -213,7 +213,7 @@ protected:
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
     fh.element_id = { m_geoid.system_type, m_geoid.region_id, m_geoid.element_id };
-    fh.fragment_type = static_cast<dataformats::fragment_type_t>(RawType::fragment_type);
+    fh.fragment_type = static_cast<dataformats::fragment_type_t>(ReadoutType::fragment_type);
     return std::move(fh);
   }
 
@@ -245,7 +245,7 @@ protected:
 
       // SNB handling
       if (m_recording) {
-        RawType element;
+        ReadoutType element;
         for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
           if (m_latency_buffer->read(element)) {
             try {
@@ -345,7 +345,7 @@ protected:
 
       // List of safe-extraction conditions
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
-        RawType request_element;
+        ReadoutType request_element;
         request_element.set_timestamp(start_win_ts);
         auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true)
                                                         : m_latency_buffer->lower_bound(request_element, false);
@@ -359,10 +359,10 @@ protected:
 
           auto elements_handled = 0;
 
-          RawType* element = &(*start_iter);
+          ReadoutType* element = &(*start_iter);
           while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
             frag_pieces.emplace_back(
-              std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(RawType::element_size)));
+              std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(ReadoutType::element_size)));
             elements_handled++;
             ++start_iter;
             element = &(*start_iter);
@@ -427,7 +427,7 @@ protected:
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
 
   // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<RawType>>& m_snb_sink;
+  std::unique_ptr<appfwk::DAQSink<ReadoutType>>& m_snb_sink;
 
   // Requests
   std::size_t m_max_requested_elements;

@@ -25,12 +25,12 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
-class TaskRawDataProcessorModel : public RawDataProcessorConcept<RawType>
+template<class ReadoutType>
+class TaskRawDataProcessorModel : public RawDataProcessorConcept<ReadoutType>
 {
 public:
   explicit TaskRawDataProcessorModel(std::unique_ptr<FrameErrorRegistry>& error_registry)
-    : RawDataProcessorConcept<RawType>()
+    : RawDataProcessorConcept<ReadoutType>()
     , m_error_registry(error_registry)
   {}
 
@@ -40,7 +40,7 @@ public:
   // void conf(const nlohmann::json& /*cfg*/) override {
   //}
 
-  void process_item(RawType* item) { invoke_all(item); }
+  void process_item(ReadoutType* item) { invoke_all(item); }
 
   template<typename Task>
   void add_task(Task&& task)
@@ -48,14 +48,14 @@ public:
     m_tasklist.push_back(std::forward<Task>(task));
   }
 
-  void invoke_all(RawType* item)
+  void invoke_all(ReadoutType* item)
   {
     for (auto&& task : m_tasklist) {
       task(item);
     }
   }
 
-  void launch_all(RawType* item)
+  void launch_all(ReadoutType* item)
   {
     for (auto&& task : m_tasklist) {
       auto fut = std::async(std::launch::async, task, item);
@@ -64,9 +64,9 @@ public:
 
 protected:
   // Async tasks and
-  std::vector<std::function<void(RawType*)>> m_tasklist;
+  std::vector<std::function<void(ReadoutType*)>> m_tasklist;
   std::unique_ptr<FrameErrorRegistry>& m_error_registry;
-  // std::map<std::string, std::function<void(RawType*)>> m_tasklist; // futures
+  // std::map<std::string, std::function<void(ReadoutType*)>> m_tasklist; // futures
 };
 
 } // namespace readout

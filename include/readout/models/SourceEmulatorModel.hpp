@@ -37,11 +37,11 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
+template<class ReadoutType>
 class SourceEmulatorModel : public SourceEmulatorConcept
 {
 public:
-  using sink_t = appfwk::DAQSink<RawType>;
+  using sink_t = appfwk::DAQSink<ReadoutType>;
 
   explicit SourceEmulatorModel(std::string name,
                                std::atomic<bool>& run_marker,
@@ -83,7 +83,7 @@ public:
       std::mt19937 mt(rand()); // NOLINT(runtime/threadsafe_fn)
       std::uniform_real_distribution<double> dis(0.0, 1.0);
 
-      m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(RawType));
+      m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, sizeof(ReadoutType));
       try {
         m_file_source->read(m_link_conf.data_filename);
       } catch (const ers::Issue& ex) {
@@ -116,8 +116,8 @@ public:
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_rate_limiter = std::make_unique<RateLimiter>(m_rate_khz / m_link_conf.slowdown);
-    // m_stats_thread.set_work(&SourceEmulatorModel<RawType>::run_stats, this);
-    m_producer_thread.set_work(&SourceEmulatorModel<RawType>::run_produce, this);
+    // m_stats_thread.set_work(&SourceEmulatorModel<ReadoutType>::run_stats, this);
+    m_producer_thread.set_work(&SourceEmulatorModel<ReadoutType>::run_produce, this);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -150,7 +150,7 @@ protected:
       num_elem = m_file_source->num_elements();
     }
 
-    auto rptr = reinterpret_cast<RawType*>(source.data()); // NOLINT
+    auto rptr = reinterpret_cast<ReadoutType*>(source.data()); // NOLINT
 
     // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
     uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT(build/unsigned)
@@ -160,17 +160,17 @@ protected:
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
-      if (offset == num_elem || (offset + 1) * sizeof(RawType) > source.size()) {
+      if (offset == num_elem || (offset + 1) * sizeof(ReadoutType) > source.size()) {
         offset = 0;
       }
 
       bool create_frame = m_dropouts[dropout_index]; // NOLINT(runtime/threadsafe_fn)
       dropout_index = (dropout_index + 1) % m_dropouts.size();
       if (create_frame) {
-        RawType payload;
+        ReadoutType payload;
         // Memcpy from file buffer to flat char array
         ::memcpy(
-          static_cast<void*>(&payload), static_cast<void*>(source.data() + offset * sizeof(RawType)), sizeof(RawType));
+          static_cast<void*>(&payload), static_cast<void*>(source.data() + offset * sizeof(ReadoutType)), sizeof(ReadoutType));
 
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);
@@ -215,7 +215,7 @@ private:
 
   // RAW SINK
   std::chrono::milliseconds m_sink_queue_timeout_ms;
-  using raw_sink_qt = appfwk::DAQSink<RawType>;
+  using raw_sink_qt = appfwk::DAQSink<ReadoutType>;
   std::unique_ptr<raw_sink_qt> m_raw_data_sink;
 
   bool m_sink_is_set = false;
