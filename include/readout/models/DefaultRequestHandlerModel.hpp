@@ -81,7 +81,7 @@ public:
     m_pop_limit_pct = conf.pop_limit_pct;
     m_pop_size_pct = conf.pop_size_pct;
     m_buffer_capacity = conf.latency_buffer_size;
-    m_thread_pool = std::make_unique<boost::asio::thread_pool>(conf.num_request_handling_threads);
+    m_num_request_handling_threads = conf.num_request_handling_threads;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -110,6 +110,7 @@ public:
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
+    m_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -485,6 +486,7 @@ private:
   std::atomic<int> m_uncategorized_request{ 0 };
 
   std::unique_ptr<boost::asio::thread_pool> m_thread_pool;
+  size_t m_num_request_handling_threads = 0;
 
   std::unique_ptr<FrameErrorRegistry>& m_error_registry;
 };
