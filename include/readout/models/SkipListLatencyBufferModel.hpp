@@ -138,7 +138,7 @@ public:
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  Iterator lower_bound(RawType& element, bool /*use_backup_strategy=false*/)
+  Iterator lower_bound(RawType& element, bool /*with_errors=false*/)
   {
     SkipListTAcc acc = SkipListTAcc(m_skip_list);
     SkipListTIter iter = acc.lower_bound(element);

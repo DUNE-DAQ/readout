@@ -264,7 +264,7 @@ protected:
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load() + to_pop);
-      m_error_registry->update_latest_frame_in_buffer(m_latency_buffer->front()->get_timestamp());
+      m_error_registry->remove_errors_until(m_latency_buffer->front()->get_timestamp());
     }
     m_cleanups++;
   }

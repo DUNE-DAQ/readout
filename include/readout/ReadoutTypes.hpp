@@ -62,8 +62,6 @@ struct WIB_SUPERCHUNK_STRUCT
     return this->get_timestamp() < other.get_timestamp();
   }
 
-  bool operator==(const WIB_SUPERCHUNK_STRUCT& other) const { return this->get_timestamp() == other.get_timestamp(); }
-
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
     return reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
@@ -109,8 +107,6 @@ struct WIB2_SUPERCHUNK_STRUCT
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
-
-  bool operator==(const WIB2_SUPERCHUNK_STRUCT& other) const { return this->get_timestamp() == other.get_timestamp(); }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
@@ -158,11 +154,6 @@ struct DAPHNE_SUPERCHUNK_STRUCT
     auto thisptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data);        // NOLINT
     auto otherptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
-  }
-
-  bool operator==(const DAPHNE_SUPERCHUNK_STRUCT& other) const
-  {
-    return this->get_timestamp() == other.get_timestamp();
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)

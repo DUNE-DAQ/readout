@@ -30,10 +30,10 @@ public:
     : BinarySearchQueueModel<T>(size)
   {}
 
-  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool use_backup_strategy = false)
+  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool with_errors = false)
   {
-    if (use_backup_strategy) {
-      return BinarySearchQueueModel<T>::lower_bound(element, use_backup_strategy);
+    if (with_errors) {
+      return BinarySearchQueueModel<T>::lower_bound(element, with_errors);
     }
     uint64_t timestamp = element.get_timestamp(); // NOLINT(build/unsigned)
     unsigned int start_index =

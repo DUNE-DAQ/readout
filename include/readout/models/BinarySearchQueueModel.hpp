@@ -30,7 +30,7 @@ public:
     : IterableQueueModel<T>(size)
   {}
 
-  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool /*use_backup_strategy=false*/)
+  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool /*with_errors=false*/)
   {
     unsigned int start_index =
       IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
@@ -57,15 +57,12 @@ public:
       if (middle_index >= IterableQueueModel<T>::size_)
         middle_index -= IterableQueueModel<T>::size_;
       T& element_between = IterableQueueModel<T>::records_[middle_index];
-      if (element_between == element) {
+      if (diff == 0) {
         return typename IterableQueueModel<T>::Iterator(*this, middle_index);
       } else if (element < element_between) {
         end_index = middle_index != 0 ? middle_index - 1 : IterableQueueModel<T>::size_ - 1;
       } else {
         start_index = middle_index;
-      }
-      if (diff == 0) {
-        return typename IterableQueueModel<T>::Iterator(*this, middle_index);
       }
     }
   }

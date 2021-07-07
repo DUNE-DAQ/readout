@@ -38,9 +38,9 @@ public:
 
   void add_error(FrameError error) { m_errors.push_back(error); }
 
-  void update_latest_frame_in_buffer(uint64_t ts) // NOLINT(build/unsigned)
+  void remove_errors_until(uint64_t ts) // NOLINT(build/unsigned)
   {
-    while (has_error() && m_errors.front().end_ts < ts) {
+    while (!m_errors.empty() && m_errors.front().end_ts < ts) {
       m_errors.pop_front();
     }
   }
