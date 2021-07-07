@@ -193,7 +193,6 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   // maximum number of items in the queue.
   size_t capacity() const { return size_ - 1; }
 
-
   struct Iterator
   {
     using iterator_category = std::forward_iterator_tag;

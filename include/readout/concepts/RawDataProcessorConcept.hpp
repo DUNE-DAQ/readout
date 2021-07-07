@@ -13,7 +13,7 @@
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
+template<class ReadoutType>
 class RawDataProcessorConcept
 {
 public:
@@ -38,7 +38,7 @@ public:
   //! Get the emulator mode
   bool get_emulator_mode() { return m_emulator_mode; }
   //! Process one element
-  virtual void process_item(RawType* item) = 0;
+  virtual void process_item(ReadoutType* item) = 0;
 
 protected:
   bool m_emulator_mode{ false };

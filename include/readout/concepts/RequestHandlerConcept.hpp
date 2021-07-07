@@ -19,7 +19,7 @@
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class LatencyBufferType>
+template<class ReadoutType, class LatencyBufferType>
 class RequestHandlerConcept
 {
 

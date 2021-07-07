@@ -36,10 +36,10 @@ namespace dunedaq {
 namespace readout {
 /**
  * Class to read data of a specified type in a buffered manner.
- * @tparam RawType Type of the data that is read from the file.
+ * @tparam ReadoutType Type of the data that is read from the file.
  * @tparam Alignment The alignment size of internal buffers.
  */
-template<class RawType, size_t Alignment = 4096>
+template<class ReadoutType, size_t Alignment = 4096>
 class BufferedFileReader
 {
   using io_source_t = boost::iostreams::file_descriptor_source;
@@ -123,7 +123,7 @@ public:
    * @param element Reference to the element that will contain the value that was read.
    * @return true if the read was successful, false if the reader is not open or the read was not successful.
    */
-  bool read(RawType& element)
+  bool read(ReadoutType& element)
   {
     if (!m_is_open)
       return false;
