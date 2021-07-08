@@ -14,6 +14,7 @@
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 
 #include "tpg/PdspChannelMapService.h"
 #include "tpg/frame_expand.h"
@@ -25,6 +26,7 @@
 #include <atomic>
 #include <functional>
 #include <string>
+#include <memory>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -43,8 +45,8 @@ public:
   // Channel map funciton type
   typedef int (*chan_map_fn_t)(int);
 
-  WIBFrameProcessor()
-    : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>()
+  explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+    : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
     , m_channel_map("/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
                     "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt")
   {
@@ -137,6 +139,7 @@ protected:
     // Check timestamp
     if (m_current_ts - m_previous_ts != 300) {
       ++m_ts_error_ctr;
+      m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts + 300, m_current_ts));
       if (m_first_ts_missmatch) { // log once
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
                                      << " current: " + std::to_string(m_current_ts);

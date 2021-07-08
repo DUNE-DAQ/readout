@@ -17,7 +17,7 @@ namespace readout {
  * @tparam RawType the type of contained elements
  * @tparam KeyType the type of key for searchability
  */
-template<class RawType>
+template<class T>
 class LatencyBufferConcept
 {
 
@@ -36,19 +36,19 @@ public:
   virtual size_t occupancy() const = 0;
 
   //! Move referenced object into LB
-  virtual bool write(RawType&& element) = 0;
+  virtual bool write(T&& element) = 0;
 
   //! Move object from LB to referenced
-  virtual bool read(RawType& element) = 0;
+  virtual bool read(T& element) = 0;
 
   //! Write referenced object into LB without moving it
-  virtual bool put(RawType& element) = 0;
+  virtual bool put(T& element) = 0;
 
   //! Get pointer to the front of the LB
-  virtual const RawType* front() = 0;
+  virtual const T* front() = 0;
 
   //! Get pointer to the back of the LB
-  virtual const RawType* back() = 0;
+  virtual const T* back() = 0;
 
   //! Pop specified amount of elements from LB
   virtual void pop(size_t amount) = 0;

@@ -1,46 +1,44 @@
 /**
- * @file DAPHNEFrameProcessor.hpp DAPHNE specific Task based raw processor
+ * @file PACMANFrameProcessor.hpp PACMAN specific Task based raw processor
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
-#define READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
+#ifndef READOUT_SRC_PACMAN_PACMANFRAMEPROCESSOR_HPP_
+#define READOUT_SRC_PACMAN_PACMANFRAMEPROCESSOR_HPP_
 
 #include "ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
-#include "dataformats/daphne/DAPHNEFrame.hpp"
+#include "dataformats/pacman/PACMANFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
-#include "readout/ReadoutTypes.hpp"
-#include "readout/FrameErrorRegistry.hpp"
+#include "readout/NDReadoutTypes.hpp"
 
 #include <atomic>
 #include <functional>
 #include <string>
-#include <memory>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
 namespace dunedaq {
 namespace readout {
 
-class DAPHNEFrameProcessor : public TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>
+class PACMANFrameProcessor : public TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>
 {
 
 public:
-  using inherited = TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>;
-  using frameptr = types::DAPHNE_SUPERCHUNK_STRUCT*;
-  using daphneframeptr = dunedaq::dataformats::DAPHNEFrame*;
+  using inherited = TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>;
+  using frameptr = types::PACMAN_MESSAGE_STRUCT*;
+  using pacmanframeptr = dunedaq::dataformats::PACMANFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  explicit DAPHNEFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
-    : TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>(error_registry)
+  PACMANFrameProcessor()
+    : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>()
   {
-    m_tasklist.push_back(std::bind(&DAPHNEFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    // m_tasklist.push_back( std::bind(&DAPHNEFrameProcessor::frame_error_check, this, std::placeholders::_1) );
+    m_tasklist.push_back(std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    // m_tasklist.push_back( std::bind(&PACMANFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 
 protected:
@@ -59,13 +57,7 @@ protected:
   {
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
-      // RS warning : not fixed rate!
-      if (m_first_ts_fake) {
-        fp->fake_timestamp(m_previous_ts, 16);
-        m_first_ts_fake = false;
-      } else {
-        fp->fake_timestamp(m_previous_ts + 192, 16);
-      }
+      // FIX ME - add fake timestamp to PACMAN message struct
     }
 
     // Acquire timestamp
@@ -90,11 +82,12 @@ protected:
   }
 
   /**
-   * Pipeline Stage 2.: Check DAPHNE headers for error flags
+   * Pipeline Stage 2.: Check headers for error flags
    * */
   void frame_error_check(frameptr /*fp*/)
   {
     // check error fields
+    // FIX ME - to be implemented
   }
 
 private:
@@ -103,4 +96,4 @@ private:
 } // namespace readout
 } // namespace dunedaq
 
-#endif // READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
+#endif // READOUT_SRC_PACMAN_PACMANFRAMEPROCESSOR_HPP_
