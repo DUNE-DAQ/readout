@@ -46,10 +46,10 @@ struct PACMAN_MESSAGE_STRUCT
   {
     dunedaq::dataformats::PACMANFrame translator;
     //std::cout << "Test TS " << *(translator.get_msg_unix_ts((void *) &data)); 
-    for(unsigned int i = 0; i < 816; i++){
+    /*for(unsigned int i = 0; i < 816; i++){
       std::cout << data[i] << std::endl;
     }
-    getchar();
+    getchar();*/
     //return *(translator.get_msg_unix_ts((void *) &data));
     //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts());
 
