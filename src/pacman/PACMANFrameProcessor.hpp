@@ -34,8 +34,8 @@ public:
   using pacmanframeptr = dunedaq::dataformats::PACMANFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  PACMANFrameProcessor()
-    : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>()
+  PACMANFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+    : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>(error_registry)
   {
     m_tasklist.push_back(std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&PACMANFrameProcessor::frame_error_check, this, std::placeholders::_1) );
