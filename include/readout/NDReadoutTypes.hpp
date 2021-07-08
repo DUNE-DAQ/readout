@@ -36,8 +36,8 @@ struct PACMAN_MESSAGE_STRUCT
   {
     dunedaq::dataformats::PACMANFrame translator;
     return *(translator.get_msg_unix_ts((void *) &data)) < *(translator.get_msg_unix_ts((void *) &other.data)) ? true : false;
-    //auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
-    //auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
+    //auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);       
+    //auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); 
     //return thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
   }
 
@@ -45,21 +45,64 @@ struct PACMAN_MESSAGE_STRUCT
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
     dunedaq::dataformats::PACMANFrame translator;
-    return *(translator.get_msg_unix_ts((void *) &data)); // NOLINT
-    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts()); // NOLINT
+    //std::cout << "Test TS " << *(translator.get_msg_unix_ts((void *) &data)); 
+    for(unsigned int i = 0; i < 816; i++){
+      std::cout << data[i] << std::endl;
+    }
+    getchar();
+    //return *(translator.get_msg_unix_ts((void *) &data));
+    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts());
+
+    void* msgWord = translator.get_msg_word((void *) &data, 0);
+
+    return *(translator.get_word_receipt_timestamp(msgWord));
   }
 
   // FIX ME - implement this in the frame later
   void set_timestamp(uint64_t /*ts*/) // NOLINT(build/unsigned)
   {
-    //reinterpret_cast<dunedaq::dataformats::PACMANFrame*>(&data)->set_timestamp(ts); // NOLINT
+    //reinterpret_cast<dunedaq::dataformats::PACMANFrame*>(&data)->set_timestamp(ts);
   }
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
     dunedaq::dataformats::PACMANFrame translator;
-    return *(translator.get_msg_type((void *) &data)); // NOLINT
-    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
+    return *(translator.get_msg_type((void *) &data)); 
+    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); 
+  }
+
+  void debug_message() const
+  {
+    dunedaq::dataformats::PACMANFrame translator;
+    std::cout << "msg bytes: " <<  translator.get_msg_bytes((void *) &data) << std::endl;
+
+    std::cout << "msg type: " <<  (char)*(translator.get_msg_type((void *) &data)) << std::endl;
+
+    uint16_t numWords = *(translator.get_msg_words((void *) &data));
+    std::cout << "msg words: " << numWords << std::endl;
+
+    for(unsigned int i = 0; i < numWords; i++)
+    {
+      std::cout << "Inspecting word " << i << std::endl;
+      void* msgWord = translator.get_msg_word((void *) &data, i);
+
+      std::cout << "Word type: " << (char)*(translator.get_word_type(msgWord)) << std::endl;
+      std::cout << "PACMAN I/O Channel: " << (char)*(translator.get_word_io_channel(msgWord)) << std::endl;
+      std::cout << "Word receipt timestamp: " << *(translator.get_word_receipt_timestamp(msgWord)) << std::endl;
+      
+      
+      uint64_t* packet = translator.get_word_packet(msgWord);
+
+      std::cout << "Inspecting packet" << std::endl;
+
+      std::cout << "Packet Type: " << translator.get_packet_type(packet) << std::endl;
+      std::cout << "Packet Chip ID: " << translator.get_packet_chipid(packet) << std::endl;  
+      std::cout << "Packet Channel ID: " << translator.get_packet_channelid(packet) << std::endl;
+
+      uint64_t packetTS = translator.get_packet_timestamp(packet);
+
+      std::cout << "packet timestamp: " << packetTS << std::endl;
+    }
   }
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;

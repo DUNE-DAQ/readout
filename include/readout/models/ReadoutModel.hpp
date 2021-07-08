@@ -235,6 +235,7 @@ private:
       try {
         auto timesyncmsg = dfmessages::TimeSync(m_raw_processor_impl->get_last_daq_time());
         // TLOG() << "New timesync: daq=" << timesyncmsg.daq_time << " wall=" << timesyncmsg.system_time;
+        //std::cout << "New timesync: daq=" << timesyncmsg.daq_time << " wall=" << timesyncmsg.system_time << std::endl;
         if (timesyncmsg.daq_time != 0) {
           try {
             m_timesync_sink->push(std::move(timesyncmsg));
@@ -244,14 +245,19 @@ private:
 
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
+            //std::cout << "New timesync: daq=" << timesyncmsg.daq_time << " " << timesyncmsg.daq_time - 500 * us << " " <<  500 * us << std::endl;
+           
             dr.trigger_timestamp = timesyncmsg.daq_time > 500 * us ? timesyncmsg.daq_time - 500 * us : 0;
-            auto width = 10000;
-            uint offset = 100;
+            auto width = 1000000;
+            uint offset = 0;//-100000; // was 100
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
                                         << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                                         << " window_end=" << dr.window_end;
+            /*std::cout << "Issuing fake trigger based on timesync. "
+                                        << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
+                                        << " window_end=" << dr.window_end << std::endl;*/
             m_request_handler_impl->issue_request(dr);
             ++m_request_count;
             ++m_request_count_tot;

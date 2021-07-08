@@ -55,6 +55,8 @@ protected:
    * */
   void timestamp_check(frameptr fp)
   {
+
+
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
       // FIX ME - add fake timestamp to PACMAN message struct
@@ -62,6 +64,12 @@ protected:
 
     // Acquire timestamp
     m_current_ts = fp->get_timestamp();
+
+    /*std::cout << "READOUT: checking timestamp: " << m_current_ts << std::endl;
+    std::cout << "READOUT: previous timestamp: " << m_previous_ts << std::endl;
+    std::cout << "READOUT: previous processed timestamp: " << m_last_processed_daq_ts << std::endl;
+*/
+    //fp->debug_message();
 
     // Check timestamp
     // RS warning : not fixed rate!

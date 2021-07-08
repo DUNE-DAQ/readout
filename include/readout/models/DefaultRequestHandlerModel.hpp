@@ -339,6 +339,14 @@ protected:
                                   << "Start of window TS=" << start_win_ts << " "
                                   << "End of window TS=" << end_win_ts;
 
+
+      std::cout << "Data request for "
+                                  << "Trigger TS=" << dr.trigger_timestamp << " "
+                                  << "Oldest stored TS=" << last_ts << " "
+                                  << "Newest stored TS=" << newest_ts << " "
+                                  << "Start of window TS=" << start_win_ts << " "
+                                  << "End of window TS=" << end_win_ts << std::endl;
+
       // List of safe-extraction conditions
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         RawType request_element;
@@ -350,6 +358,8 @@ protected:
           rres.result_code = ResultCode::kNotYet; // give it another chance
         } else {
           rres.result_code = ResultCode::kFound;
+          std::cout << " Data found!" << std::endl;
+
           ++m_found_requested_count;
 
           auto elements_handled = 0;
@@ -368,11 +378,14 @@ protected:
         rres.result_code = ResultCode::kNotFound;
         ++m_request_gone;
         ++m_bad_requested_count;
+        std::cout << " Data gone! " << last_ts << " " << start_win_ts << std::endl;
       } else if (newest_ts < end_win_ts) {
+
         ++m_retry_request;
         rres.result_code = ResultCode::kNotYet; // give it another chance
       } else {
         TLOG() << "Don't know how to categorise this request";
+
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
         ++m_uncategorized_request;
@@ -382,8 +395,10 @@ protected:
       // Requeue if needed
       if (rres.result_code == ResultCode::kNotYet) {
         if (m_run_marker.load()) {
+
           return rres; // If kNotYet, return immediately, don't check for fragment pieces.
         } else {
+
           frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
           rres.result_code = ResultCode::kNotFound;
           ++m_bad_requested_count;
