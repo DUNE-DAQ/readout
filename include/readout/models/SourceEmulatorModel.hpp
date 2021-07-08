@@ -140,7 +140,7 @@ protected:
 
     // pthread_setname_np(pthread_self(), get_name().c_str());
 
-    int offset = 0;
+    uint offset = 0; // NOLINT(build/unsigned)
     auto& source = m_file_source->get();
 
     int num_elem = m_file_source->num_elements();
@@ -160,7 +160,7 @@ protected:
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
-      if (offset == num_elem || (offset + 1) * sizeof(ReadoutType) > source.size()) {
+      if (offset == num_elem * sizeof(ReadoutType) || (offset + 1) * sizeof(ReadoutType) > source.size()) {
         offset = 0;
       }
 
