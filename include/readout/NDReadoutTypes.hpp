@@ -34,28 +34,15 @@ struct PACMAN_MESSAGE_STRUCT
   // comparable based on first timestamp
   bool operator<(const PACMAN_MESSAGE_STRUCT& other) const
   {
-    dunedaq::dataformats::PACMANFrame translator;
-    return *(translator.get_msg_unix_ts((void *) &data)) < *(translator.get_msg_unix_ts((void *) &other.data)) ? true : false;
-    //auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);       
-    //auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); 
-    //return thisptr->get_msg_unix_ts() < otherptr->get_msg_unix_ts() ? true : false;
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);       
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); 
+    return thisptr->get_msg_header((void *) &data)->unix_ts < otherptr->get_msg_header((void *) &data)->unix_ts ? true : false;
   }
 
   // message UNIX timestamp - NOT individual packet timestamps
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    dunedaq::dataformats::PACMANFrame translator;
-    //std::cout << "Test TS " << *(translator.get_msg_unix_ts((void *) &data)); 
-    /*for(unsigned int i = 0; i < 816; i++){
-      std::cout << data[i] << std::endl;
-    }
-    getchar();*/
-    //return *(translator.get_msg_unix_ts((void *) &data));
-    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_unix_ts());
-
-    void* msgWord = translator.get_msg_word((void *) &data, 0);
-
-    return *(translator.get_word_receipt_timestamp(msgWord));
+    return reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void *) &data)->unix_ts;
   }
 
   // FIX ME - implement this in the frame later
@@ -66,13 +53,11 @@ struct PACMAN_MESSAGE_STRUCT
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
-    dunedaq::dataformats::PACMANFrame translator;
-    return *(translator.get_msg_type((void *) &data)); 
-    //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); 
+    return reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void *) &data)->type;
   }
 
   void debug_message() const
-  {
+  {/*
     dunedaq::dataformats::PACMANFrame translator;
     std::cout << "msg bytes: " <<  translator.get_msg_bytes((void *) &data) << std::endl;
 
@@ -102,7 +87,7 @@ struct PACMAN_MESSAGE_STRUCT
       uint64_t packetTS = translator.get_packet_timestamp(packet);
 
       std::cout << "packet timestamp: " << packetTS << std::endl;
-    }
+    }*/
   }
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
