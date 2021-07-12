@@ -137,7 +137,6 @@ namespace dunedaq {
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the raw WIB TP source file: " << ts_0;
         uint64_t ts_next = ts_0; // NOLINT
 
-        dunedaq::dataformats::RawWIBTp* tf{nullptr};
         while (m_run_marker.load()) {
           // Which element to push to the buffer
           if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE) || static_cast<uint>((offset + 1) * constant::RAW_WIB_TP_SUBFRAME_SIZE) > source.size()) { // NOLINT(bulid/unsigned)
@@ -156,18 +155,15 @@ namespace dunedaq {
             auto* sp = reinterpret_cast<types::TpSubframe*>( // NOLINT
                 ((uint8_t*)source.data())+offset+i*constant::RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT
             if (!m_found_tp_header) {
-              tf = new dunedaq::dataformats::RawWIBTp();
-              const dunedaq::dataformats::TpHeader* tfh = tf->get_header();
-              tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
-              tf->set_timestamp(ts_next);
-              ts_next += 25;
+              dunedaq::dataformats::TpHeader* tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
+              tfh->set_timestamp(ts_next);
+              ts_next += 1600;
               m_found_tp_header = true;
               payload_ptr->head = *tfh;
               continue;
             }
             if (sp->word3 == 0xDEADBEEF) {
-              const dunedaq::dataformats::TpPedinfo* tpi = tf->get_pedinfo();
-              tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp); // NOLINT
+              const dunedaq::dataformats::TpPedinfo* tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp); // NOLINT
               m_found_tp_header = false;
               payload_ptr->ped = *tpi;
               continue;
