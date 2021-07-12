@@ -178,7 +178,12 @@ namespace dunedaq {
 
           // queue in to actual DAQSink
           try {
-            m_raw_data_sink->push(std::move(payload_ptr), m_sink_queue_timeout_ms);
+            /*std::cout << "New frame" << std::endl;
+            for (uint i = 0; i < payload_ptr->block.get_num_tp_per_block(); ++i) {
+              std::cout << payload_ptr->block.get_tp(i)->m_hit_continue << std::endl;
+            }
+            std::cout << "End of frame" << std::endl;*/
+            //m_raw_data_sink->push(std::move(payload_ptr), m_sink_queue_timeout_ms);
           } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
             // std::runtime_error("Queue timed out...");
           }

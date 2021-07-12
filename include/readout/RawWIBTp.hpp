@@ -25,6 +25,7 @@ struct TpHeader
   tp_word_t m_flags : 13, m_slot_no : 3, m_wire_no : 8, m_fiber_no : 3, m_crate_no : 5;
   tp_word_t m_timestamp_1;
   tp_word_t m_timestamp_2;
+  tp_word_t m_raw_tp_size;
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
@@ -36,6 +37,11 @@ struct TpHeader
   {
     m_timestamp_1 = new_timestamp;
     m_timestamp_2 = new_timestamp >> 32;
+  }
+
+  tp_word_t get_raw_tp_size() const
+  {
+    return m_raw_tp_size;
   }
 
   // Print functions for debugging.
@@ -266,7 +272,7 @@ public:
   void set_wire_no(const uint8_t new_wire_no) { m_head.m_wire_no = new_wire_no; }     // NOLINT(build/unsigned)
   void set_timestamp(uint64_t new_timestamp) { m_head.set_timestamp(new_timestamp); } // NOLINT(build/unsigned)
   // TP data accessors
-  int get_num_tp_per_block() const { return m_data.get_num_tp_per_block(); }
+  int get_num_tp_per_block() const { return (m_head.get_raw_tp_size() - sizeof(m_head) - sizeof(m_pedinfo)) / sizeof(TpData); }
   uint16_t get_start_time(const TpData& tp) const { return tp.m_start_time; }    // NOLINT(build/unsigned)
   uint16_t get_end_time(const TpData& tp) const { return tp.m_end_time; }        // NOLINT(build/unsigned)
   uint16_t get_peak_adc(const TpData& tp) const { return tp.m_peak_adc; }        // NOLINT(build/unsigned)
@@ -311,22 +317,25 @@ public:
 
   // Const struct accessors
   const TpHeader* get_header() const { return &m_head; }
-  const TpData* get_tp(const int& tp_num) const { return m_data.get_tp(tp_num); }
-  const TpDataBlock* get_data() const { return &m_data; }
+  const TpData* get_tp(const int& tp_num) const { return m_block[tp_num]; }
+  const TpData* get_data() const { return &m_block[0]; }
   const TpPedinfo* get_pedinfo() const { return &m_pedinfo; }
-  size_t get_data_size() const { return m_data.get_data_size(); }
+  size_t get_data_size() const { return m_head.get_raw_tp_size() - sizeof(m_head) - sizeof(m_pedinfo); }
   // Const struct mutators
   void set_header(const TpHeader& hdr) { m_head = hdr; }
-  void set_tp(const TpData& tpdata) { m_data.set_tp(tpdata); }
-  void set_data(const TpDataBlock& block) { m_data = block; }
+  void set_tp(const TpData& tpdata, int tp_num) { m_block[tp_num] = tpdata; }
+  //void set_data(const TpDataBlock& block) { m_data = block; }
   void set_pedinfo(const TpPedinfo& ped) { m_pedinfo = ped; }
 
   friend std::ostream& operator<<(std::ostream& o, RawWIBTp const& rwtp);
 
 private:
   TpHeader m_head;
-  TpDataBlock m_data;
   TpPedinfo m_pedinfo;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+  TpData m_block[]; // 💀💀💀
+#pragma GCC diagnostic pop
 };
 
 inline std::ostream&
@@ -334,7 +343,7 @@ operator<<(std::ostream& o, RawWIBTp const& rwtp)
 {
   o << "Printing raw WIB TP frame:" << '\n';
   o << rwtp.m_head << '\n';
-  o << rwtp.m_data << '\n';
+  //o << rwtp.m_data << '\n';
   o << rwtp.m_pedinfo << '\n';
   return o;
 }

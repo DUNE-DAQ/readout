@@ -74,7 +74,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
   // TP link
   if (inst.find("tp") != std::string::npos) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake tp link";
-    auto source_emu_model = std::make_unique<TPEmulatorModel>(run_marker, 66.0);
+    auto source_emu_model = std::make_unique<TPEmulatorModel>(run_marker, 200.0);
     return std::move(source_emu_model);
   }
 
