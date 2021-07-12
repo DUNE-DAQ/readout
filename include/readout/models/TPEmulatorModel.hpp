@@ -146,7 +146,7 @@ namespace dunedaq {
 
           // Count number of subframes in a TP frame
           int n = 1;
-          while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
+          while (offset + (n-1)*constant::RAW_WIB_TP_SUBFRAME_SIZE < source.size() && reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
                                                       + offset + (n-1)*constant::RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
             n++;
           }
