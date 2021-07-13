@@ -234,6 +234,7 @@ private:
     while (m_run_marker.load()) {
       try {
         auto timesyncmsg = dfmessages::TimeSync(m_raw_processor_impl->get_last_daq_time());
+        //std::cout << "Get last DAQ Time: " << m_raw_processor_impl->get_last_daq_time() << std::endl;
         // TLOG() << "New timesync: daq=" << timesyncmsg.daq_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.daq_time != 0) {
           try {
@@ -245,8 +246,8 @@ private:
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
            
-            dr.trigger_timestamp = timesyncmsg.daq_time > 500 * us ? timesyncmsg.daq_time - 500 * us : 0;
-            auto width = 100;
+            dr.trigger_timestamp = timesyncmsg.daq_time > 1 ? timesyncmsg.daq_time + 1 : 0;
+            auto width = 1;
             uint offset = 0;//-100000; // was 100
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;

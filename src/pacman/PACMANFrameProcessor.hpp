@@ -81,12 +81,13 @@ protected:
 
     m_previous_ts = m_current_ts;
     m_last_processed_daq_ts = m_current_ts;
+    //std::cout << "Last Processed DAQ TS: " << m_last_processed_daq_ts << std::endl;
   }
 
   /**
    * Pipeline Stage 2.: Check headers for error flags
    * */
-  void frame_error_check(frameptr fp)
+  void frame_error_check(frameptr /*fp*/)
   {
     // check error fields
     // FIX ME - to be implemented
