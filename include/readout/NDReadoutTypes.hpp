@@ -56,38 +56,39 @@ struct PACMAN_MESSAGE_STRUCT
     return reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void *) &data)->type;
   }
 
-  void debug_message() const
-  {/*
-    dunedaq::dataformats::PACMANFrame translator;
-    std::cout << "msg bytes: " <<  translator.get_msg_bytes((void *) &data) << std::endl;
+  void inspect_message() const
+  {
 
-    std::cout << "msg type: " <<  (char)*(translator.get_msg_type((void *) &data)) << std::endl;
+    std::cout << "Message timestamp: " << get_timestamp() << std::endl;
 
-    uint16_t numWords = *(translator.get_msg_words((void *) &data));
-    std::cout << "msg words: " << numWords << std::endl;
+    std::cout << "Message Type: " << (char)get_message_type() << std::endl;
+
+    uint16_t numWords = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void *) &data)->words;
+
+    std::cout << "Num words in message: " << numWords << std::endl;
 
     for(unsigned int i = 0; i < numWords; i++)
     {
-      std::cout << "Inspecting word " << i << std::endl;
-      void* msgWord = translator.get_msg_word((void *) &data, i);
 
-      std::cout << "Word type: " << (char)*(translator.get_word_type(msgWord)) << std::endl;
-      std::cout << "PACMAN I/O Channel: " << (char)*(translator.get_word_io_channel(msgWord)) << std::endl;
-      std::cout << "Word receipt timestamp: " << *(translator.get_word_receipt_timestamp(msgWord)) << std::endl;
+      std::cout << "Inspecting word " << i << std::endl;
+
+      dunedaq::dataformats::PACMANFrame::PACMANMessageWord* theWord = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_word((void *) &data, i);
+
       
+      std::cout << "Word type: " << (char)theWord->data_word.type << std::endl;
+      std::cout << "PACMAN I/O Channel: " << (char)theWord->data_word.channel_id << std::endl;
+      std::cout << "Word receipt timestamp: " << theWord->data_word.receipt_timestamp << std::endl;
       
-      uint64_t* packet = translator.get_word_packet(msgWord);
+      dunedaq::dataformats::PACMANFrame::LArPixPacket* thePacket = &(theWord->data_word.larpix_word);
 
       std::cout << "Inspecting packet" << std::endl;
 
-      std::cout << "Packet Type: " << translator.get_packet_type(packet) << std::endl;
-      std::cout << "Packet Chip ID: " << translator.get_packet_chipid(packet) << std::endl;  
-      std::cout << "Packet Channel ID: " << translator.get_packet_channelid(packet) << std::endl;
+      std::cout << "Packet Type: " << thePacket->data_packet.type << std::endl;
+      std::cout << "Packet Chip ID: " << thePacket->data_packet.chipid << std::endl;  
+      std::cout << "Packet Channel ID: " << thePacket->data_packet.channelid << std::endl;
 
-      uint64_t packetTS = translator.get_packet_timestamp(packet);
-
-      std::cout << "packet timestamp: " << packetTS << std::endl;
-    }*/
+      std::cout << "packet timestamp: " << thePacket->data_packet.timestamp<< std::endl;
+    }
   }
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;

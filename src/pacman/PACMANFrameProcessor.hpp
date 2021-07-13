@@ -38,7 +38,6 @@ public:
     : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>()
   {
     m_tasklist.push_back(std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    // m_tasklist.push_back( std::bind(&PACMANFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 
 protected:
@@ -56,7 +55,6 @@ protected:
   void timestamp_check(frameptr fp)
   {
 
-
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
       // FIX ME - add fake timestamp to PACMAN message struct
@@ -65,18 +63,14 @@ protected:
     // Acquire timestamp
     m_current_ts = fp->get_timestamp();
 
-    /*std::cout << "READOUT: checking timestamp: " << m_current_ts << std::endl;
-    std::cout << "READOUT: previous timestamp: " << m_previous_ts << std::endl;
-    std::cout << "READOUT: previous processed timestamp: " << m_last_processed_daq_ts << std::endl;
-*/
-    //fp->debug_message();
-
     // Check timestamp
     // RS warning : not fixed rate!
-    // if (m_current_ts - m_previous_ts != ???) {
-    //  ++m_ts_error_ctr;
-    //}
-
+    /*if (m_current_ts - m_previous_ts <= 0) {
+      ++m_ts_error_ctr;
+        TLOG_DEBUG(TLVL_BOOKKEEPING) << "Timestamp continuity MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
+                                     << " current: " + std::to_string(m_current_ts);
+      }
+*/
     if (m_ts_error_ctr > 1000) {
       if (!m_problem_reported) {
         TLOG() << "*** Data Integrity ERROR *** Timestamp continuity is completely broken! "
@@ -92,10 +86,12 @@ protected:
   /**
    * Pipeline Stage 2.: Check headers for error flags
    * */
-  void frame_error_check(frameptr /*fp*/)
+  void frame_error_check(frameptr fp)
   {
     // check error fields
     // FIX ME - to be implemented
+
+    //fp->inspect_message();
   }
 
 private:
