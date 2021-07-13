@@ -68,7 +68,7 @@ local fakecardreader = {
                 doc="Queue timeout in milliseconds"),
         
         s.field("set_t0_to", self.int8, -1,
-                doc="The first DAQ timestamp. If -1, t0 from file is used."),
+                doc="The first DAQ timestamp. If -1, t0 from file is used.")
 
     ], doc="Fake Elink reader module configuration"),
 
