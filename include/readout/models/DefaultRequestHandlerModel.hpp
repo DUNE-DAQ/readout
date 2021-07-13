@@ -339,14 +339,6 @@ protected:
                                   << "Start of window TS=" << start_win_ts << " "
                                   << "End of window TS=" << end_win_ts;
 
-
-      /*std::cout << "Data request for "
-                                  << "Trigger TS=" << dr.trigger_timestamp << " "
-                                  << "Oldest stored TS=" << last_ts << " "
-                                  << "Newest stored TS=" << newest_ts << " "
-                                  << "Start of window TS=" << start_win_ts << " "
-                                  << "End of window TS=" << end_win_ts << std::endl;*/
-
       // List of safe-extraction conditions
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         RawType request_element;
