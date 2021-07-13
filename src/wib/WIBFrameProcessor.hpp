@@ -10,6 +10,8 @@
 
 #include "ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
+#include "readout/models/IterableQueueModel.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
@@ -47,32 +49,52 @@ public:
 
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
+    , m_stats_thread(0)
     , m_channel_map("/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
                     "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt")
   {
-    m_taps = firwin_int(7, 0.1, m_multiplier);
-    m_taps.push_back(0);
 
-    m_taps_p = new int16_t[m_taps.size()];
-    for (size_t i=0; i<m_taps.size(); ++i) {
-      m_taps_p[i] = m_taps[i];
+    m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
+
+    m_coll_taps = firwin_int(7, 0.1, m_coll_multiplier);
+    m_coll_taps.push_back(0);
+    m_ind_taps = firwin_int(7, 0.1, m_ind_multiplier);
+    m_ind_taps.push_back(0);
+
+    m_coll_taps_p = new int16_t[m_coll_taps.size()];
+    for (size_t i=0; i<m_coll_taps.size(); ++i) {
+      m_coll_taps_p[i] = m_coll_taps[i];
     }
+
+    m_ind_taps_p = new int16_t[m_ind_taps.size()];
+    for (size_t i=0; i<m_ind_taps.size(); ++i) {
+      m_ind_taps_p[i] = m_ind_taps[i];
+    }
+
     // Temporary place to stash the hits
-    m_primfind_dest = new uint16_t[100000];
+    m_coll_primfind_dest = new uint16_t[100000];
+    m_ind_primfind_dest = new uint16_t[100000];
 
-    TLOG() << "TAPS SIZE: " << m_taps.size() << " threshold:" << m_threshold << " exponent:" << m_tap_exponent;
+    TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold << " exponent:" << m_coll_tap_exponent;
 
-    m_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME,
-      m_primfind_dest, m_taps_p, (uint8_t)m_taps.size(), m_tap_exponent, m_threshold, 0, 0);
+    m_coll_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME,
+      m_coll_primfind_dest, m_coll_taps_p, (uint8_t)m_coll_taps.size(), m_coll_tap_exponent, m_coll_threshold, 0, 0);
+
+    m_ind_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, 10,
+      m_ind_primfind_dest, m_ind_taps_p, (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
 
     m_tasklist.push_back(std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_hits, this, std::placeholders::_1));
+    m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+    m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_induction_hits, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
+    
+    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
+
   }
 
   ~WIBFrameProcessor() {
-    delete[] m_taps_p;
-    delete[] m_primfind_dest;
+    delete[] m_coll_taps_p;
+    delete[] m_coll_primfind_dest;
   }
 
   unsigned int getOfflineChannel(PdspChannelMapService& channelMap, const dunedaq::dataformats::WIBFrame* frame, unsigned int ch)
@@ -170,7 +192,7 @@ protected:
   /**
    * Pipeline Stage 3.: Do software TPG
    * */
-  void find_hits(frameptr fp) {
+  void find_collection_hits(frameptr fp) {
     if (!fp)
       return;
 
@@ -178,11 +200,15 @@ protected:
     uint64_t timestamp=wfptr->get_wib_header()->get_timestamp();
 
     MessageRegistersCollection collection_registers;
-    InductionItemToProcess* ind_item = &m_dummy_induction_item;
-    expand_message_adcs_inplace(fp, &collection_registers, &ind_item->registers);
 
-    if (m_first) {
-      m_tpg_pi->setState(collection_registers);
+
+    //InductionItemToProcess* ind_item = &m_dummy_induction_item;
+    InductionItemToProcess ind_item;
+    expand_message_adcs_inplace(fp, &collection_registers, &ind_item.registers);
+    m_induction_items_to_process->write(std::move(ind_item));
+
+    if (m_first_coll) {
+      m_coll_tpg_pi->setState(collection_registers);
 
       m_fiber_no = wfptr->get_wib_header()->fiber_no;
       m_crate_no = wfptr->get_wib_header()->crate_no;
@@ -194,9 +220,9 @@ protected:
       TLOG() << "Got first item, fiber/crate/slot=" << (int)m_fiber_no << "/" << (int)m_crate_no << "/" << (int)m_slot_no;
     }
 
-    m_tpg_pi->input = &collection_registers;
-    *m_primfind_dest = MAGIC;
-    process_window_avx2(*m_tpg_pi);
+    m_coll_tpg_pi->input = &collection_registers;
+    *m_coll_primfind_dest = MAGIC;
+    process_window_avx2(*m_coll_tpg_pi);
 
     //uint32_t offline_channel_base = (view_type == kInduction) ? m_offline_channel_base_induction : m_offline_channel_base;
 
@@ -205,12 +231,12 @@ protected:
     size_t n_sent_hits=0; // The number of "sendable" hits we produced (ie, that weren't suppressed as bad/noisy)
     size_t sent_adcsum=0; // The adc sum for "sendable" hits
 
-    uint16_t* primfind_it=m_primfind_dest;
+    uint16_t* primfind_it=m_coll_primfind_dest;
 
     constexpr int clocksPerTPCTick=25;
 
     // process_window_avx2 stores its output in the buffer pointed to
-    // by m_primfind_dest in a (necessarily) complicated way: for
+    // by m_coll_primfind_dest in a (necessarily) complicated way: for
     // every set of 16 channels (one AVX2 register) that has at least
     // one hit which ends at this tick, the full 16-channel registers
     // of channel number, hit end time, hit charge and hit t-o-t are
@@ -261,21 +287,57 @@ protected:
             // TLOG() << "Hit: " << hit_start << " " << offline_channel;
 
             ++nhits;
+
           }
 
         }
     }
 
-    if (nhits > 0) {
-      TLOG() << "NON null hits: " << nhits << " for ts: " << timestamp;
-      TLOG() << *wfptr;
-    }
+    //if (nhits > 0) {
+      //TLOG() << "NON null hits: " << nhits << " for ts: " << timestamp;
+      //TLOG() << *wfptr;
+    //}
 
-    if (m_first) {
+    m_num_hits_coll += nhits;
+    m_coll_hits_count += nhits;
+
+    if (m_first_coll) {
       TLOG() << "Total hits in first superchunk: " << nhits;
-      m_first = false;
+      m_first_coll = false;
     }
 
+  }
+
+
+  // Stage: induction hit finding port
+  void find_induction_hits(frameptr fp) {
+    m_induction_items_to_process->popFront(); 
+
+  // while (m_running()) { // if spawned as thread.
+
+    //InductionItemToProcess item = nullptr;
+    
+    //if (m_first_ind) { 
+    //  m_ind_tpg_pi->setState(
+    //}
+
+  }
+
+  void run_stats() {
+    int new_hits = 0;
+    auto t0 = std::chrono::high_resolution_clock::now();
+    while (true) {
+      auto now = std::chrono::high_resolution_clock::now();
+      new_hits = m_coll_hits_count.exchange(0);
+      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.)
+                                 << " [kHz]";
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits;
+      for (int i = 0; i < 50; ++i) { // 100 x 100ms = 5s sleeps
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+      t0 = now;
+    }
   }
 
 private:
@@ -294,12 +356,22 @@ private:
     static constexpr uint64_t END_OF_MESSAGES=UINT64_MAX;
   };
 
+  std::unique_ptr<IterableQueueModel<InductionItemToProcess>> m_induction_items_to_process;
+
   PdspChannelMapService m_channel_map;
 
-  size_t m_num_hits = 0;
   size_t m_num_msg = 0;
   size_t m_num_push_fail = 0;
-  bool m_first = true;
+
+  size_t m_num_hits_coll = 0;
+  size_t m_num_hits_ind = 0;
+
+  std::atomic<int> m_coll_hits_count{ 0 };
+  std::atomic<int> m_indu_hits_count{ 0 };
+  ReusableThread m_stats_thread;
+
+  bool m_first_coll = true;
+  bool m_first_ind = true;
 
   InductionItemToProcess m_dummy_induction_item;
 
@@ -310,15 +382,24 @@ private:
   uint32_t m_offline_channel_base;
   uint32_t m_offline_channel_base_induction;
 
-  const uint16_t m_threshold = 5; // units of sigma
-  const uint8_t m_tap_exponent = 6;
-  const int m_multiplier = 1 << m_tap_exponent; // 64
-  std::vector<int16_t> m_taps; // firwin_int(7, 0.1, multiplier);
+  // Collection
+  const uint16_t m_coll_threshold = 5; // units of sigma
+  const uint8_t m_coll_tap_exponent = 6;
+  const int m_coll_multiplier = 1 << m_coll_tap_exponent; // 64
+  std::vector<int16_t> m_coll_taps; // firwin_int(7, 0.1, multiplier);
+  uint16_t* m_coll_primfind_dest;
+  int16_t* m_coll_taps_p;
+  std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_coll_tpg_pi;
 
-  uint16_t* m_primfind_dest;
-  int16_t* m_taps_p;
+  // Induction
+  const uint16_t m_ind_threshold = 3; // units of sigma
+  const uint8_t m_ind_tap_exponent = 6;
+  const int m_ind_multiplier = 1 << m_ind_tap_exponent; // 64
+  std::vector<int16_t> m_ind_taps; // firwin_int(7, 0.1, multiplier);
+  uint16_t* m_ind_primfind_dest;
+  int16_t* m_ind_taps_p;
+  std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
-  std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_tpg_pi;
 
 };
 
