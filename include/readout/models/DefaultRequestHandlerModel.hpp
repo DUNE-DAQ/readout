@@ -356,11 +356,8 @@ protected:
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
           ++m_retry_request;
           rres.result_code = ResultCode::kNotYet; // give it another chance
-          std::cout << " Retry due to LB concurrency!" << std::endl;
         } else {
           rres.result_code = ResultCode::kFound;
-          std::cout << " Data found!" << std::endl;
-
           ++m_found_requested_count;
 
           auto elements_handled = 0;
@@ -379,14 +376,11 @@ protected:
         rres.result_code = ResultCode::kNotFound;
         ++m_request_gone;
         ++m_bad_requested_count;
-        std::cout << " Data gone! " << last_ts << " " << start_win_ts << std::endl;
       } else if (newest_ts < end_win_ts) {
-        //std::cout << " Retry request! " << newest_ts << " " << end_win_ts << std::endl;
         ++m_retry_request;
         rres.result_code = ResultCode::kNotYet; // give it another chance
       } else {
         TLOG() << "Don't know how to categorise this request";
-        std::cout << "undefined" << std::endl;
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
         ++m_uncategorized_request;
@@ -396,12 +390,9 @@ protected:
       // Requeue if needed
       if (rres.result_code == ResultCode::kNotYet) {
         if (m_run_marker.load()) {
-        //std::cout << "requeue" << std::endl;
 
           return rres; // If kNotYet, return immediately, don't check for fragment pieces.
         } else {
-        std::cout << "not found" << std::endl;
-
           frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
           rres.result_code = ResultCode::kNotFound;
           ++m_bad_requested_count;
