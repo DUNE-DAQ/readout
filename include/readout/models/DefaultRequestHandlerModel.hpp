@@ -101,7 +101,6 @@ public:
         << "auto-pop size: " << m_pop_size_pct * 100.0f << "% "
         << "max requested elements: " << m_max_requested_elements;
     TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
-    TLOG() << "size: " << sizeof(dataformats::FragmentHeader) << std::endl;
   }
 
   void start(const nlohmann::json& /*args*/)
@@ -362,9 +361,20 @@ protected:
           auto elements_handled = 0;
 
           ReadoutType* element = &(*start_iter);
-          while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
-            frag_pieces.emplace_back(
-              std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(ReadoutType::element_size)));
+          while (start_iter.good() && element->get_timestamp() < end_win_ts) {
+            if (element->get_timestamp() < start_win_ts || element->get_timestamp() + (ReadoutType::frames_per_element - 1) * ReadoutType::tick_dist >= end_win_ts) {
+              // We don't need the whole superchunk
+              for (auto frame_iter = element->begin(); frame_iter != element->end(); frame_iter++) {
+                if ((*frame_iter).get_timestamp() >= start_win_ts && (*frame_iter).get_timestamp() < end_win_ts) {
+                  frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)), std::size_t(ReadoutType::frame_size)));
+                }
+              }
+            } else {
+              // We are somewhere in the middle -> the whole superchunk can be copied
+              frag_pieces.emplace_back(
+                  std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(ReadoutType::element_size)));
+            }
+
             elements_handled++;
             ++start_iter;
             element = &(*start_iter);
