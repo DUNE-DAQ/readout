@@ -15,6 +15,7 @@
 
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
+#include "readout/NDReadoutTypes.hpp"
 
 #include "ReadoutIssues.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
@@ -24,6 +25,8 @@
 #include "daphne/DAPHNEListRequestHandler.hpp"
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
+#include "pacman/PACMANFrameProcessor.hpp"
+#include "pacman/PACMANListRequestHandler.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
@@ -76,12 +79,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         auto readout_model = std::make_unique<
           ReadoutModel<types::DAPHNE_SUPERCHUNK_STRUCT,
                        DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                                  BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                                                         uint64_t, // NOLINT(build/unsigned)
-                                                                         types::DAPHNETimestampGetter>>,
-                       BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                              uint64_t, // NOLINT(build/unsigned)
-                                              types::DAPHNETimestampGetter>,
+                                                  BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>>,
+                       BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                        DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
@@ -94,6 +93,17 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            DAPHNEListRequestHandler,
                                                            SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                                                            DAPHNEFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      // IF ND LAr PACMAN
+      if (inst.find("pacman") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pacman";
+        auto readout_model = std::make_unique<ReadoutModel<types::PACMAN_MESSAGE_STRUCT,
+                                                           PACMANListRequestHandler,
+                                                           SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>,
+                                                           PACMANFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

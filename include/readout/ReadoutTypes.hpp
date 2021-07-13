@@ -91,6 +91,8 @@ struct WIB_SUPERCHUNK_STRUCT
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
+static_assert(sizeof(struct WIB_SUPERCHUNK_STRUCT) == WIB_SUPERCHUNK_SIZE, "Check your assumptions on WIB_SUPERCHUNK_STRUCT");
+
 /**
  * @brief For WIB2 the numbers are different.
  * 12[WIB2 frames] x 468[Bytes] = 5616[Bytes]
@@ -138,6 +140,8 @@ struct WIB2_SUPERCHUNK_STRUCT
   static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
+
+static_assert(sizeof(struct WIB2_SUPERCHUNK_STRUCT) == WIB2_SUPERCHUNK_SIZE, "Check your assumptions on WIB2_SUPERCHUNK_STRUCT");
 
 /**
  * @brief For DAPHNE the numbers are different.
@@ -187,33 +191,7 @@ struct DAPHNE_SUPERCHUNK_STRUCT
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
-/**
- * Key finder for LBs.
- * */
-struct DAPHNETimestampGetter
-{
-  uint64_t operator()(DAPHNE_SUPERCHUNK_STRUCT& ds) // NOLINT(build/unsigned)
-  {
-    auto dsptr = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&ds); // NOLINT
-    return dsptr->get_timestamp();
-  }
-};
-
-struct WIBTimestampGetter
-{
-  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
-  {
-    return chunk.get_timestamp();
-  }
-};
-
-struct WIB2TimestampGetter
-{
-  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
-  {
-    return chunk.get_timestamp();
-  }
-};
+static_assert(sizeof(struct DAPHNE_SUPERCHUNK_STRUCT) == DAPHNE_SUPERCHUNK_SIZE, "Check your assumptions on DAPHNE_SUPERCHUNK_STRUCT");
 
 /**
  * @brief Convencience wrapper to take ownership over char pointers with

@@ -15,10 +15,12 @@
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 
 #include <atomic>
 #include <functional>
 #include <string>
+#include <memory>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -34,8 +36,8 @@ public:
   using wib2frameptr = dunedaq::dataformats::WIB2Frame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  WIB2FrameProcessor()
-    : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>()
+  explicit WIB2FrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+    : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>(error_registry)
   {
     m_tasklist.push_back(std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&WIB2FrameProcessor::frame_error_check, this, std::placeholders::_1) );
@@ -74,6 +76,7 @@ protected:
     // Check timestamp
     if (m_current_ts - m_previous_ts != 384) {
       ++m_ts_error_ctr;
+      m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts + 384, m_current_ts));
       if (m_first_ts_missmatch) { // log once
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
                                      << " current: " + std::to_string(m_current_ts);

@@ -30,6 +30,8 @@
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
+#include "readout/FrameErrorRegistry.hpp"
+
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
@@ -49,7 +51,7 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
+template<class ReadoutType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
 class ReadoutModel : public ReadoutConcept
 {
 public:
@@ -106,9 +108,11 @@ public:
     }
 
     // Instantiate functionalities
+    m_error_registry.reset(new FrameErrorRegistry());
     m_latency_buffer_impl.reset(new LatencyBufferType());
-    m_raw_processor_impl.reset(new RawDataProcessorType());
-    m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink));
+    m_raw_processor_impl.reset(new RawDataProcessorType(m_error_registry));
+    m_request_handler_impl.reset(
+      new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink, m_error_registry));
   }
 
   void conf(const nlohmann::json& args)
@@ -148,13 +152,13 @@ public:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_request_handler_impl->start(args);
     m_stats_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
     m_consumer_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
     m_requester_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
     m_timesync_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
   }
 
   void stop(const nlohmann::json& args)
@@ -204,7 +208,7 @@ private:
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
-      RawType payload;
+      ReadoutType payload;
       // Try to acquire data
       try {
         // m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
@@ -342,7 +346,7 @@ private:
 
   // RAW SOURCE
   std::chrono::milliseconds m_source_queue_timeout_ms;
-  using raw_source_qt = appfwk::DAQSource<RawType>;
+  using raw_source_qt = appfwk::DAQSource<ReadoutType>;
   std::unique_ptr<raw_source_qt> m_raw_data_source;
 
   // REQUEST SOURCE
@@ -357,7 +361,7 @@ private:
 
   // SNB SINK
   std::chrono::milliseconds m_snb_queue_timeout_ms;
-  using snb_sink_qt = appfwk::DAQSink<RawType>;
+  using snb_sink_qt = appfwk::DAQSink<ReadoutType>;
   std::unique_ptr<snb_sink_qt> m_snb_sink;
 
   // LATENCY BUFFER:
@@ -370,6 +374,8 @@ private:
   // REQUEST HANDLER:
   std::unique_ptr<RequestHandlerType> m_request_handler_impl;
   ReusableThread m_requester_thread;
+
+  std::unique_ptr<FrameErrorRegistry> m_error_registry;
 
   // TIME-SYNC
   std::chrono::milliseconds m_timesync_queue_timeout_ms;

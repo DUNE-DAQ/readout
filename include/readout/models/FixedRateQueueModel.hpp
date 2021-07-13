@@ -13,25 +13,28 @@
 
 #include "logging/Logging.hpp"
 
-#include "IterableQueueModel.hpp"
+#include "BinarySearchQueueModel.hpp"
 
 namespace dunedaq {
 namespace readout {
 
 template<class T>
-class FixedRateQueueModel : public IterableQueueModel<T>
+class FixedRateQueueModel : public BinarySearchQueueModel<T>
 {
 public:
   FixedRateQueueModel()
-    : IterableQueueModel<T>()
+    : BinarySearchQueueModel<T>()
   {}
 
   explicit FixedRateQueueModel(uint32_t size) // NOLINT(build/unsigned)
-    : IterableQueueModel<T>(size)
+    : BinarySearchQueueModel<T>(size)
   {}
 
-  typename IterableQueueModel<T>::Iterator lower_bound(T& element)
+  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool with_errors = false)
   {
+    if (with_errors) {
+      return BinarySearchQueueModel<T>::lower_bound(element, with_errors);
+    }
     uint64_t timestamp = element.get_timestamp(); // NOLINT(build/unsigned)
     unsigned int start_index =
       IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
