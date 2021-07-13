@@ -25,7 +25,7 @@ public:
     {}
 
     uint64_t start_ts; // NOLINT(build/unsigned)
-    uint64_t end_ts; // NOLINT(build/unsigned)
+    uint64_t end_ts;   // NOLINT(build/unsigned)
 
     bool operator<(const FrameError& other) const { return end_ts < other.end_ts; }
 

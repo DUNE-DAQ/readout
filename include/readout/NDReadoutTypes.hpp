@@ -29,6 +29,7 @@ namespace types {
 const constexpr std::size_t PACMAN_FRAME_SIZE = 816; // FIX ME - check this
 struct PACMAN_MESSAGE_STRUCT
 {
+  using FrameType = PACMAN_MESSAGE_STRUCT;
   // data
   char data[PACMAN_FRAME_SIZE];
   // comparable based on first timestamp
@@ -62,9 +63,24 @@ struct PACMAN_MESSAGE_STRUCT
     //return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
   }
 
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
+  }
+
+  FrameType* end()
+  {
+    return reinterpret_cast<FrameType*>(data + PACMAN_FRAME_SIZE); // NOLINT
+  }
+
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
   static const constexpr size_t frame_size = 816;
+
+  // TODO: Set the right value for this field
+  static const constexpr uint64_t tick_dist = 0; // NOLINT(build/unsigned)
+  
+  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
   static const constexpr size_t element_size = frame_size;
 };
 

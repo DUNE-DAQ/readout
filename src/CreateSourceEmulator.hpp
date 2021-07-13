@@ -16,6 +16,7 @@
 #include "readout/ReadoutTypes.hpp"
 
 #include "readout/models/SourceEmulatorModel.hpp"
+#include "readout/models/TPEmulatorModel.hpp"
 
 #include <memory>
 #include <string>
@@ -67,6 +68,13 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake pds link";
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(
       qi.name, run_marker, daphne_time_tick_diff, daphne_dropout_rate, daphne_rate_khz);
+    return std::move(source_emu_model);
+  }
+
+  // TP link
+  if (inst.find("tp") != std::string::npos) {
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake tp link";
+    auto source_emu_model = std::make_unique<TPEmulatorModel>(run_marker, 66.0);
     return std::move(source_emu_model);
   }
 
