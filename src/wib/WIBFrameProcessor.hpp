@@ -41,6 +41,7 @@ class WIBFrameProcessor : public TaskRawDataProcessorModel<types::WIB_SUPERCHUNK
 public:
   using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
+  using constframeptr = const types::WIB_SUPERCHUNK_STRUCT*;
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
@@ -92,8 +93,9 @@ public:
     // new way:
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    //TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
-    //  std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
+      std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
    
     // To be removed: 
     m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
@@ -205,7 +207,7 @@ protected:
   /**
    * Pipeline Stage 3.: Do software TPG
    * */
-  void find_collection_hits(frameptr fp) {
+  void find_collection_hits(constframeptr fp) {
     if (!fp)
       return;
 
