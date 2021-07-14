@@ -8,15 +8,15 @@
 #ifndef READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
-#include "readout/ReadoutLogging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include "tpg/PdspChannelMapService.h"
 #include "tpg/frame_expand.h"
@@ -27,8 +27,8 @@
 
 #include <atomic>
 #include <functional>
-#include <string>
 #include <memory>
+#include <string>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -83,11 +83,19 @@ public:
     m_ind_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, 10,
       m_ind_primfind_dest, m_ind_taps_p, (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
 
-    m_tasklist.push_back(std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
-    m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_induction_hits, this, std::placeholders::_1));
-    // m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
-    
+    // old way: 
+    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1));
+    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_induction_hits, this, std::placeholders::_1));
+
+    // new way:
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
+      std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    //TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
+    //  std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+   
+    // To be removed: 
     m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
 
   }
@@ -137,6 +145,11 @@ protected:
   bool m_first_ts_missmatch = true;
   bool m_problem_reported = false;
   std::atomic<int> m_ts_error_ctr{ 0 };
+
+  void postprocess_example(const types::WIB_SUPERCHUNK_STRUCT* fp)
+  {
+    TLOG() << "Postprocessing: " << fp->get_timestamp();
+  }
 
   /**
    * Pipeline Stage 1.: Check proper timestamp increments in WIB frame
