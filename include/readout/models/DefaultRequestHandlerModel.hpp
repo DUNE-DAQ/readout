@@ -9,7 +9,7 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
 

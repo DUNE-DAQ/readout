@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_PACMAN_PACMANLISTREQUESTHANDLER_HPP_
 #define READOUT_SRC_PACMAN_PACMANLISTREQUESTHANDLER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 

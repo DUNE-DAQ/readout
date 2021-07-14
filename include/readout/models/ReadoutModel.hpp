@@ -36,7 +36,7 @@
 #include "readout/concepts/RawDataProcessorConcept.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>

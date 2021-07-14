@@ -11,7 +11,7 @@
 #ifndef READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_
 #define READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"

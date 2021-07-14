@@ -17,7 +17,7 @@
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "../include/readout/ReadoutIssues.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/models/ReadoutModel.hpp"
 

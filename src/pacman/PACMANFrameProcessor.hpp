@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_PACMAN_PACMANFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_PACMAN_PACMANFRAMEPROCESSOR_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
 #include "dataformats/pacman/PACMANFrame.hpp"

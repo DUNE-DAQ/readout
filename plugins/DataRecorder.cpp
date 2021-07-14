@@ -15,7 +15,7 @@
 #include "DataRecorder.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
 #include <string>

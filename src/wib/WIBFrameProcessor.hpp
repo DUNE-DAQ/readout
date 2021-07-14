@@ -8,7 +8,7 @@
 #ifndef READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
