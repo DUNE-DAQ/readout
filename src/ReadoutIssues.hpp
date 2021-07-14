@@ -29,6 +29,8 @@ ERS_DECLARE_ISSUE(readout, CannotOpenFile, " Couldn't open binary file: " << fil
 
 ERS_DECLARE_ISSUE(readout, CannotWriteToFile, " Could not write to file: " << filename, ((std::string)filename))
 
+ERS_DECLARE_ISSUE(readout, PostprocessingNotKeepingUp, "Postprocessing has too much backlog, thread: " << i, ((size_t) i))
+
 ERS_DECLARE_ISSUE(readout,
                   EmptySourceBuffer,
                   " Source Buffer is empty, check file: " << filename,

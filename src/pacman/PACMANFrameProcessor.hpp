@@ -37,7 +37,7 @@ public:
   PACMANFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>(error_registry)
   {
-    m_tasklist.push_back(std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>::add_preprocess_task(std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&PACMANFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 

@@ -139,7 +139,7 @@ namespace dunedaq {
 
         while (m_run_marker.load()) {
           // Which element to push to the buffer
-          if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE) || static_cast<uint>((offset + 1) * constant::RAW_WIB_TP_SUBFRAME_SIZE) > source.size()) { // NOLINT(bulid/unsigned)
+          if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE) || static_cast<uint>((offset + 1) * constant::RAW_WIB_TP_SUBFRAME_SIZE) > source.size()) { // NOLINT(build/unsigned)
             offset = 0;
           }
 
