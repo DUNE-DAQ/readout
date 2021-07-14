@@ -45,7 +45,7 @@ public:
     m_postprocess_queue_sizes = config.postprocess_queue_sizes;
 
     for (size_t i = 0; i < m_post_process_functions.size(); ++i) {
-      m_producer_consumer_queues.push_back(
+      m_items_to_postprocess_queues.push_back(
         std::make_unique<folly::ProducerConsumerQueue<const ReadoutType*>>(m_postprocess_queue_sizes));
     }
     RawDataProcessorConcept<ReadoutType>::conf(cfg);
@@ -58,7 +58,7 @@ public:
       m_post_process_threads[i]->set_work(&TaskRawDataProcessorModel<ReadoutType>::run_post_processing_thread,
                                           this,
                                           std::ref(m_post_process_functions[i]),
-                                          std::ref(*m_producer_consumer_queues[i]));
+                                          std::ref(*m_items_to_postprocess_queues[i]));
     }
   }
 
@@ -81,8 +81,8 @@ public:
 
   void postprocess_item(const ReadoutType* item) override
   {
-    for (size_t i = 0; i < m_producer_consumer_queues.size(); ++i) {
-      if (!m_producer_consumer_queues[i]->write(item)) {
+    for (size_t i = 0; i < m_items_to_postprocess_queues.size(); ++i) {
+      if (!m_items_to_postprocess_queues[i]->write(item)) {
         ers::warning(PostprocessingNotKeepingUp(ERS_HERE, i));
       }
     }
@@ -109,7 +109,7 @@ public:
     }
   }
 
-  void launch_all(ReadoutType* item)
+  void launch_all_preprocess_functions(ReadoutType* item)
   {
     for (auto&& task : m_preprocess_functions) {
       auto fut = std::async(std::launch::async, task, item);
@@ -134,7 +134,7 @@ protected:
   std::unique_ptr<FrameErrorRegistry>& m_error_registry;
 
   std::vector<std::function<void(const ReadoutType*)>> m_post_process_functions;
-  std::vector<std::unique_ptr<folly::ProducerConsumerQueue<const ReadoutType*>>> m_producer_consumer_queues;
+  std::vector<std::unique_ptr<folly::ProducerConsumerQueue<const ReadoutType*>>> m_items_to_postprocess_queues;
   std::vector<std::unique_ptr<ReusableThread>> m_post_process_threads;
 
   size_t m_postprocess_queue_sizes;
