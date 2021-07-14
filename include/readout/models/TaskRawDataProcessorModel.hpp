@@ -18,10 +18,10 @@
 
 #include <functional>
 #include <future>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <memory>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
@@ -39,24 +39,31 @@ public:
 
   ~TaskRawDataProcessorModel() {}
 
-  void conf(const nlohmann::json& cfg) override {
+  void conf(const nlohmann::json& cfg) override
+  {
     auto config = cfg.get<datalinkhandler::Conf>();
     m_postprocess_queue_sizes = config.postprocess_queue_sizes;
 
     for (size_t i = 0; i < m_post_process_functions.size(); ++i) {
-      m_producer_consumer_queues.push_back(std::make_unique<folly::ProducerConsumerQueue<const ReadoutType*>>(m_postprocess_queue_sizes));
+      m_producer_consumer_queues.push_back(
+        std::make_unique<folly::ProducerConsumerQueue<const ReadoutType*>>(m_postprocess_queue_sizes));
     }
     RawDataProcessorConcept<ReadoutType>::conf(cfg);
   }
 
-  void start(const nlohmann::json& /*args*/) override {
+  void start(const nlohmann::json& /*args*/) override
+  {
     m_run_marker.store(true);
     for (size_t i = 0; i < m_post_process_threads.size(); ++i) {
-      m_post_process_threads[i]->set_work(&TaskRawDataProcessorModel<ReadoutType>::run_post_processing_thread, this, std::ref(m_post_process_functions[i]), std::ref(*m_producer_consumer_queues[i]));
+      m_post_process_threads[i]->set_work(&TaskRawDataProcessorModel<ReadoutType>::run_post_processing_thread,
+                                          this,
+                                          std::ref(m_post_process_functions[i]),
+                                          std::ref(*m_producer_consumer_queues[i]));
     }
   }
 
-  void stop(const nlohmann::json& /*args*/) override {
+  void stop(const nlohmann::json& /*args*/) override
+  {
     m_run_marker.store(false);
     for (auto& thread : m_post_process_threads) {
       while (!thread->get_readiness()) {
@@ -65,7 +72,8 @@ public:
     }
   }
 
-  virtual void get_info(datalinkhandlerinfo::Info& /*info*/) {
+  virtual void get_info(datalinkhandlerinfo::Info& /*info*/)
+  {
     // No stats for now, extend later
   }
 
@@ -90,7 +98,7 @@ public:
   void add_postprocess_task(Task&& task)
   {
     m_post_process_threads.emplace_back(std::make_unique<ReusableThread>(0));
-    m_post_process_threads.back()->set_name("postprocess", m_post_process_threads.size()-1);
+    m_post_process_threads.back()->set_name("postprocess", m_post_process_threads.size() - 1);
     m_post_process_functions.push_back(std::forward<Task>(task));
   }
 
@@ -109,8 +117,9 @@ public:
   }
 
 protected:
-
-  void run_post_processing_thread(std::function<void(const ReadoutType*)>& function, folly::ProducerConsumerQueue<const ReadoutType*>& queue) {
+  void run_post_processing_thread(std::function<void(const ReadoutType*)>& function,
+                                  folly::ProducerConsumerQueue<const ReadoutType*>& queue)
+  {
     while (m_run_marker.load() || queue.sizeGuess() > 0) {
       const ReadoutType* element;
       if (queue.read(element)) {

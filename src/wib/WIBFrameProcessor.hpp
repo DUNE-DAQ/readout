@@ -13,13 +13,13 @@
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
-#include "readout/ReadoutLogging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <atomic>
 #include <functional>
-#include <string>
 #include <memory>
+#include <string>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -38,8 +38,10 @@ public:
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
   {
-    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    //TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(std::bind(&WIBFrameProcessor::postprocess_example, this, std::placeholders::_1));
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
+      std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    // TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(std::bind(&WIBFrameProcessor::postprocess_example,
+    // this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 
@@ -51,10 +53,10 @@ protected:
   bool m_problem_reported = false;
   std::atomic<int> m_ts_error_ctr{ 0 };
 
-  void postprocess_example(const types::WIB_SUPERCHUNK_STRUCT* fp) {
-    std::cout << "Postprocessing: " << fp->get_timestamp() << std::endl;
+  void postprocess_example(const types::WIB_SUPERCHUNK_STRUCT* fp)
+  {
+    TLOG() << "Postprocessing: " << fp->get_timestamp();
   }
-
 
   /**
    * Pipeline Stage 1.: Check proper timestamp increments in WIB frame

@@ -169,8 +169,9 @@ protected:
       if (create_frame) {
         ReadoutType payload;
         // Memcpy from file buffer to flat char array
-        ::memcpy(
-          static_cast<void*>(&payload), static_cast<void*>(source.data() + offset * sizeof(ReadoutType)), sizeof(ReadoutType));
+        ::memcpy(static_cast<void*>(&payload),
+                 static_cast<void*>(source.data() + offset * sizeof(ReadoutType)),
+                 sizeof(ReadoutType));
 
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);

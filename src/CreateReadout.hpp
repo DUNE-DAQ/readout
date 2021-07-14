@@ -13,9 +13,9 @@
 #include "appfwk/cmd/Nljs.hpp"
 #include "appfwk/cmd/Structs.hpp"
 
+#include "readout/NDReadoutTypes.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/NDReadoutTypes.hpp"
 
 #include "ReadoutIssues.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
@@ -23,10 +23,10 @@
 
 #include "daphne/DAPHNEFrameProcessor.hpp"
 #include "daphne/DAPHNEListRequestHandler.hpp"
-#include "wib/WIBFrameProcessor.hpp"
-#include "wib2/WIB2FrameProcessor.hpp"
 #include "pacman/PACMANFrameProcessor.hpp"
 #include "pacman/PACMANListRequestHandler.hpp"
+#include "wib/WIBFrameProcessor.hpp"
+#include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"

@@ -14,9 +14,9 @@
 
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/FrameErrorRegistry.hpp"
 
 #include <atomic>
 #include <deque>

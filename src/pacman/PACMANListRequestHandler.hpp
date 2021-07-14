@@ -14,8 +14,8 @@
 
 #include "dataformats/pacman/PACMANFrame.hpp"
 #include "logging/Logging.hpp"
-#include "readout/ReadoutLogging.hpp"
 #include "readout/NDReadoutTypes.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <atomic>
 #include <deque>
@@ -38,8 +38,8 @@ class PACMANListRequestHandler
                                       SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>
 {
 public:
-  using inherited = DefaultRequestHandlerModel<types::PACMAN_MESSAGE_STRUCT,
-                                               SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>;
+  using inherited =
+    DefaultRequestHandlerModel<types::PACMAN_MESSAGE_STRUCT, SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>;
   using SkipListAcc = typename folly::ConcurrentSkipList<types::PACMAN_MESSAGE_STRUCT>::Accessor;
   using SkipListSkip = typename folly::ConcurrentSkipList<types::PACMAN_MESSAGE_STRUCT>::Skipper;
 
@@ -49,17 +49,15 @@ public:
                            std::unique_ptr<FrameErrorRegistry>& error_registry)
     : DefaultRequestHandlerModel<types::PACMAN_MESSAGE_STRUCT,
                                  SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>(latency_buffer,
-                                                                                              fragment_sink,
-                                                                                              snb_sink,
-                                                                                              error_registry)
+                                                                                           fragment_sink,
+                                                                                           snb_sink,
+                                                                                           error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PACMANistRequestHandler created...";
   }
 
 protected:
-
 private:
-
 };
 
 } // namespace readout

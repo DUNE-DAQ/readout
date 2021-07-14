@@ -48,8 +48,8 @@ public:
       auto window_end = fragment.get_header().window_end;
 
       dataformats::WIBFrame* first_frame = static_cast<dataformats::WIBFrame*>(fragment.get_data());
-      dataformats::WIBFrame* last_frame = reinterpret_cast<dataformats::WIBFrame*>(
-        static_cast<char*>(fragment.get_data()) + (num_frames - 1) * 464); // NOLINT
+      dataformats::WIBFrame* last_frame = reinterpret_cast<dataformats::WIBFrame*>( // NOLINT
+        static_cast<char*>(fragment.get_data()) + (num_frames - 1) * 464);          // NOLINT
 
       if (!((first_frame->get_timestamp() >= window_begin) && (first_frame->get_timestamp() < window_begin + 25))) {
         TLOG() << "First fragment not correctly aligned";

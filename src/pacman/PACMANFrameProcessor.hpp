@@ -13,11 +13,12 @@
 
 #include "dataformats/pacman/PACMANFrame.hpp"
 #include "logging/Logging.hpp"
-#include "readout/ReadoutLogging.hpp"
 #include "readout/NDReadoutTypes.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <string>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
@@ -34,10 +35,11 @@ public:
   using pacmanframeptr = dunedaq::dataformats::PACMANFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  PACMANFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+  explicit PACMANFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>(error_registry)
   {
-    TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>::add_preprocess_task(std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>::add_preprocess_task(
+      std::bind(&PACMANFrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&PACMANFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 

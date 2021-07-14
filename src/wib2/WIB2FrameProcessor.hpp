@@ -13,14 +13,14 @@
 
 #include "dataformats/wib2/WIB2Frame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/FrameErrorRegistry.hpp"
 
 #include <atomic>
 #include <functional>
-#include <string>
 #include <memory>
+#include <string>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -39,7 +39,8 @@ public:
   explicit WIB2FrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>(error_registry)
   {
-    TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>::add_preprocess_task(std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1));
+    TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>::add_preprocess_task(
+      std::bind(&WIB2FrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&WIB2FrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 
