@@ -94,6 +94,8 @@ struct PACMAN_MESSAGE_STRUCT
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
+  static const constexpr size_t frames_per_element = 1;
+  static const constexpr size_t tick_dist = 1;
   static const constexpr size_t frame_size = PACMAN_FRAME_SIZE;
   static const constexpr size_t element_size = PACMAN_FRAME_SIZE;
 };
