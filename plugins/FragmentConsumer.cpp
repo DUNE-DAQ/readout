@@ -34,56 +34,47 @@ public:
     validate(*packet.get());
   }
 
+  // Only does wib and daphne validation for now
   void validate(dunedaq::dataformats::Fragment& fragment)
   {
-
-    if ((fragment.get_header().fragment_type ==
-         static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData)) ||
-        (static_cast<dataformats::WIBFrame*>(fragment.get_data())->get_wib_header()->sof == 8)) {
-      // Only do wib1 validation for now
+    if (fragment.get_size() - sizeof(dataformats::FragmentHeader) == 0) {
+      TLOG() << "Encountered empty fragment";
+      return;
+    } else if ((fragment.get_header().fragment_type ==
+                static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData)) ||
+               (static_cast<dataformats::WIBFrame*>(fragment.get_data())->get_wib_header()->sof == 0)) {
       int num_frames = (fragment.get_size() - sizeof(dataformats::FragmentHeader)) / 464;
-      int num_superchunks = num_frames / 12;
       auto window_begin = fragment.get_header().window_begin;
       auto window_end = fragment.get_header().window_end;
 
-      types::WIB_SUPERCHUNK_STRUCT* first_superchunk = static_cast<types::WIB_SUPERCHUNK_STRUCT*>(fragment.get_data());
-      types::WIB_SUPERCHUNK_STRUCT* last_superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>( // NOLINT
-        static_cast<char*>(fragment.get_data()) + ((num_superchunks - 1) * types::WIB_SUPERCHUNK_SIZE));
+      dataformats::WIBFrame* first_frame = static_cast<dataformats::WIBFrame*>(fragment.get_data());
+      dataformats::WIBFrame* last_frame = reinterpret_cast<dataformats::WIBFrame*>( // NOLINT
+        static_cast<char*>(fragment.get_data()) + (num_frames - 1) * 464);          // NOLINT
 
-      // TLOG() << num_superchunks;
-      // TLOG() << "window_begin: " << window_begin << ", window_end: " << window_end << ", first: " <<
-      // first_superchunk->get_timestamp() << ", last: " << last_superchunk->get_timestamp();
-      if (!((first_superchunk->get_timestamp() > window_begin - 25) &&
-            (first_superchunk->get_timestamp() <= window_begin))) {
+      if (!((first_frame->get_timestamp() >= window_begin) && (first_frame->get_timestamp() < window_begin + 25))) {
         TLOG() << "First fragment not correctly aligned";
       }
-      if (!((last_superchunk->get_timestamp() < window_end) &&
-            (last_superchunk->get_timestamp() >= window_end - 300))) {
+      if (!((last_frame->get_timestamp() < window_end) && (last_frame->get_timestamp() >= window_end - 25))) {
         TLOG() << "Last fragment not correctly aligned";
       }
 
-      for (int i = 0; i < num_superchunks; ++i) {
-        types::WIB_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::WIB_SUPERCHUNK_STRUCT*>( // NOLINT
-          static_cast<char*>(fragment.get_data()) + (i * types::WIB_SUPERCHUNK_SIZE));
-        if (superchunk->get_timestamp() < fragment.get_header().window_begin ||
-            superchunk->get_timestamp() >= fragment.get_header().window_end) {
-          TLOG() << "Fragment validation encountered fragment not fitting the requested window";
+      for (int i = 0; i < num_frames; ++i) {
+        dataformats::WIBFrame* frame = reinterpret_cast<dataformats::WIBFrame*>( // NOLINT
+          static_cast<char*>(fragment.get_data()) + (i * 464));
+        if (frame->get_timestamp() < fragment.get_header().window_begin ||
+            frame->get_timestamp() >= fragment.get_header().window_end) {
+          TLOG() << "Fragment validation encountered frame not fitting the requested window";
         }
       }
     } else if (fragment.get_header().fragment_type ==
                static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kPDSData)) {
       int num_frames = (fragment.get_size() - sizeof(dataformats::FragmentHeader)) / 584;
-      int num_superchunks = num_frames / 12;
 
-      // TLOG() << num_superchunks;
-      // TLOG() << "window_begin: " << window_begin << ", window_end: " << window_end << ", first: " <<
-      // first_superchunk->get_timestamp() << ", last: " << last_superchunk->get_timestamp();
-
-      for (int i = 0; i < num_superchunks; ++i) {
-        types::DAPHNE_SUPERCHUNK_STRUCT* superchunk = reinterpret_cast<types::DAPHNE_SUPERCHUNK_STRUCT*>( // NOLINT
-          static_cast<char*>(fragment.get_data()) + (i * types::DAPHNE_SUPERCHUNK_SIZE));
-        if (superchunk->get_timestamp() < fragment.get_header().window_begin ||
-            superchunk->get_timestamp() >= fragment.get_header().window_end) {
+      for (int i = 0; i < num_frames; ++i) {
+        dataformats::DAPHNEFrame* frame = reinterpret_cast<dataformats::DAPHNEFrame*>( // NOLINT
+          static_cast<char*>(fragment.get_data()) + (i * 584));
+        if (frame->get_timestamp() < fragment.get_header().window_begin ||
+            frame->get_timestamp() >= fragment.get_header().window_end) {
           TLOG() << "Fragment validation encountered fragment not fitting the requested window";
         }
       }

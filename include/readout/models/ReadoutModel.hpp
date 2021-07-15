@@ -30,11 +30,13 @@
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
+#include "readout/FrameErrorRegistry.hpp"
+
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -49,7 +51,7 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
+template<class ReadoutType, class RequestHandlerType, class LatencyBufferType, class RawDataProcessorType>
 class ReadoutModel : public ReadoutConcept
 {
 public:
@@ -106,9 +108,11 @@ public:
     }
 
     // Instantiate functionalities
+    m_error_registry.reset(new FrameErrorRegistry());
     m_latency_buffer_impl.reset(new LatencyBufferType());
-    m_raw_processor_impl.reset(new RawDataProcessorType());
-    m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink));
+    m_raw_processor_impl.reset(new RawDataProcessorType(m_error_registry));
+    m_request_handler_impl.reset(
+      new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink, m_error_registry));
   }
 
   void conf(const nlohmann::json& args)
@@ -146,15 +150,16 @@ public:
   void start(const nlohmann::json& args)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
+    m_raw_processor_impl->start(args);
     m_request_handler_impl->start(args);
     m_stats_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
     m_consumer_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
     m_requester_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_requests, this);
     m_timesync_thread.set_work(
-      &ReadoutModel<RawType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
+      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_timesync, this);
   }
 
   void stop(const nlohmann::json& args)
@@ -175,6 +180,7 @@ public:
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
     m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
+    m_raw_processor_impl->stop(args);
     m_raw_processor_impl->reset_last_daq_time();
   }
 
@@ -190,6 +196,7 @@ public:
     dli.overwritten_packet_count = m_overwritten_packet_count.load();
 
     m_request_handler_impl->get_info(dli);
+    m_raw_processor_impl->get_info(dli);
 
     ci.add(dli);
   }
@@ -204,16 +211,17 @@ private:
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
     while (m_run_marker.load() || m_raw_data_source->can_pop()) {
-      RawType payload;
+      ReadoutType payload;
       // Try to acquire data
       try {
         // m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
         m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
-        m_raw_processor_impl->process_item(&payload);
+        m_raw_processor_impl->preprocess_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
           m_overwritten_packet_count++;
         }
+        m_raw_processor_impl->postprocess_item(m_latency_buffer_impl->back());
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;
@@ -344,7 +352,7 @@ private:
 
   // RAW SOURCE
   std::chrono::milliseconds m_source_queue_timeout_ms;
-  using raw_source_qt = appfwk::DAQSource<RawType>;
+  using raw_source_qt = appfwk::DAQSource<ReadoutType>;
   std::unique_ptr<raw_source_qt> m_raw_data_source;
 
   // REQUEST SOURCE
@@ -359,7 +367,7 @@ private:
 
   // SNB SINK
   std::chrono::milliseconds m_snb_queue_timeout_ms;
-  using snb_sink_qt = appfwk::DAQSink<RawType>;
+  using snb_sink_qt = appfwk::DAQSink<ReadoutType>;
   std::unique_ptr<snb_sink_qt> m_snb_sink;
 
   // LATENCY BUFFER:
@@ -372,6 +380,8 @@ private:
   // REQUEST HANDLER:
   std::unique_ptr<RequestHandlerType> m_request_handler_impl;
   ReusableThread m_requester_thread;
+
+  std::unique_ptr<FrameErrorRegistry> m_error_registry;
 
   // TIME-SYNC
   std::chrono::milliseconds m_timesync_queue_timeout_ms;

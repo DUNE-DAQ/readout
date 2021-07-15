@@ -9,7 +9,7 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_DEFAULTREQUESTHANDLERMODEL_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
@@ -19,6 +19,7 @@
 #include "dataformats/Types.hpp"
 #include "dfmessages/DataRequest.hpp"
 #include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include <boost/asio.hpp>
@@ -44,14 +45,15 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType, class LatencyBufferType>
-class DefaultRequestHandlerModel : public RequestHandlerConcept<RawType, LatencyBufferType>
+template<class ReadoutType, class LatencyBufferType>
+class DefaultRequestHandlerModel : public RequestHandlerConcept<ReadoutType, LatencyBufferType>
 {
 public:
   explicit DefaultRequestHandlerModel(
     std::unique_ptr<LatencyBufferType>& latency_buffer,
     std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-    std::unique_ptr<appfwk::DAQSink<RawType>>& snb_sink)
+    std::unique_ptr<appfwk::DAQSink<ReadoutType>>& snb_sink,
+    std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
     , m_fragment_sink(fragment_sink)
     , m_snb_sink(snb_sink)
@@ -65,12 +67,13 @@ public:
     , m_pop_limit_size(0)
     , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
+    , m_error_registry(error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
 
-  using RequestResult = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::RequestResult;
-  using ResultCode = typename dunedaq::readout::RequestHandlerConcept<RawType, LatencyBufferType>::ResultCode;
+  using RequestResult = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::RequestResult;
+  using ResultCode = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::ResultCode;
 
   void conf(const nlohmann::json& args)
   {
@@ -78,7 +81,7 @@ public:
     m_pop_limit_pct = conf.pop_limit_pct;
     m_pop_size_pct = conf.pop_size_pct;
     m_buffer_capacity = conf.latency_buffer_size;
-    m_thread_pool = std::make_unique<boost::asio::thread_pool>(conf.num_request_handling_threads);
+    m_num_request_handling_threads = conf.num_request_handling_threads;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -90,7 +93,7 @@ public:
 
     m_geoid.element_id = conf.link_number;
     m_geoid.region_id = conf.apa_number;
-    m_geoid.system_type = RawType::system_type;
+    m_geoid.system_type = ReadoutType::system_type;
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
@@ -98,15 +101,15 @@ public:
         << "auto-pop size: " << m_pop_size_pct * 100.0f << "% "
         << "max requested elements: " << m_max_requested_elements;
     TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
-    TLOG() << "size: " << sizeof(dataformats::FragmentHeader) << std::endl;
   }
 
   void start(const nlohmann::json& /*args*/)
   {
     m_run_marker.store(true);
-    m_stats_thread = std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::run_stats, this);
+    m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
-      std::thread(&DefaultRequestHandlerModel<RawType, LatencyBufferType>::check_waiting_requests, this);
+      std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
+    m_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -209,8 +212,9 @@ protected:
     fh.window_begin = dr.window_begin;
     fh.window_end = dr.window_end;
     fh.run_number = dr.run_number;
+    fh.sequence_number = dr.sequence_number;
     fh.element_id = { m_geoid.system_type, m_geoid.region_id, m_geoid.element_id };
-    fh.fragment_type = static_cast<dataformats::fragment_type_t>(RawType::fragment_type);
+    fh.fragment_type = static_cast<dataformats::fragment_type_t>(ReadoutType::fragment_type);
     return std::move(fh);
   }
 
@@ -242,7 +246,7 @@ protected:
 
       // SNB handling
       if (m_recording) {
-        RawType element;
+        ReadoutType element;
         for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
           if (m_latency_buffer->read(element)) {
             try {
@@ -261,6 +265,7 @@ protected:
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count.store(m_pops_count.load() + to_pop);
+      m_error_registry->remove_errors_until(m_latency_buffer->front()->get_timestamp());
     }
     m_cleanups++;
   }
@@ -341,9 +346,10 @@ protected:
 
       // List of safe-extraction conditions
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
-        RawType request_element;
+        ReadoutType request_element;
         request_element.set_timestamp(start_win_ts);
-        auto start_iter = m_latency_buffer->lower_bound(request_element);
+        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true)
+                                                        : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
           ++m_retry_request;
@@ -354,10 +360,24 @@ protected:
 
           auto elements_handled = 0;
 
-          RawType* element = &(*start_iter);
-          while (start_iter.good() && element->get_timestamp() <= end_win_ts) {
-            frag_pieces.emplace_back(
-              std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)), std::size_t(RawType::element_size)));
+          ReadoutType* element = &(*start_iter);
+          while (start_iter.good() && element->get_timestamp() < end_win_ts) {
+            if (element->get_timestamp() < start_win_ts ||
+                element->get_timestamp() + (ReadoutType::frames_per_element - 1) * ReadoutType::tick_dist >=
+                  end_win_ts) {
+              // We don't need the whole superchunk
+              for (auto frame_iter = element->begin(); frame_iter != element->end(); frame_iter++) {
+                if ((*frame_iter).get_timestamp() >= start_win_ts && (*frame_iter).get_timestamp() < end_win_ts) {
+                  frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)),
+                                                                         std::size_t(ReadoutType::frame_size)));
+                }
+              }
+            } else {
+              // We are somewhere in the middle -> the whole superchunk can be copied
+              frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)),
+                                                                     std::size_t(ReadoutType::element_size)));
+            }
+
             elements_handled++;
             ++start_iter;
             element = &(*start_iter);
@@ -423,7 +443,7 @@ protected:
   std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
 
   // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<RawType>>& m_snb_sink;
+  std::unique_ptr<appfwk::DAQSink<ReadoutType>>& m_snb_sink;
 
   // Requests
   std::size_t m_max_requested_elements;
@@ -481,6 +501,9 @@ private:
   std::atomic<int> m_uncategorized_request{ 0 };
 
   std::unique_ptr<boost::asio::thread_pool> m_thread_pool;
+  size_t m_num_request_handling_threads = 0;
+
+  std::unique_ptr<FrameErrorRegistry>& m_error_registry;
 };
 
 } // namespace readout

@@ -27,7 +27,7 @@
 
 namespace dunedaq {
 namespace readout {
-template<class RawType>
+template<class ReadoutType>
 class RecorderImpl : public RecorderConcept
 {
 public:
@@ -93,7 +93,7 @@ private:
   {
     m_time_point_last_info = std::chrono::steady_clock::now();
 
-    RawType element;
+    ReadoutType element;
     while (m_run_marker) {
       try {
         m_input_queue->pop(element, std::chrono::milliseconds(100));
@@ -111,12 +111,12 @@ private:
   }
 
   // Queue
-  using source_t = dunedaq::appfwk::DAQSource<RawType>;
+  using source_t = dunedaq::appfwk::DAQSource<ReadoutType>;
   std::unique_ptr<source_t> m_input_queue;
 
   // Internal
   datarecorder::Conf m_conf;
-  BufferedFileWriter<RawType> m_buffered_writer;
+  BufferedFileWriter<ReadoutType> m_buffered_writer;
 
   // Threading
   ReusableThread m_work_thread;

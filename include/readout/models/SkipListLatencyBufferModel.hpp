@@ -12,7 +12,7 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
 
 #include "folly/ConcurrentSkipList.h"
@@ -25,19 +25,19 @@ using dunedaq::readout::logging::TLVL_WORK_STEPS;
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
-class SkipListLatencyBufferModel : public LatencyBufferConcept<RawType>
+template<class T>
+class SkipListLatencyBufferModel : public LatencyBufferConcept<T>
 {
 
 public:
   // Folly typenames
-  using SkipListT = typename folly::ConcurrentSkipList<RawType>;
+  using SkipListT = typename folly::ConcurrentSkipList<T>;
   using SkipListTIter = typename SkipListT::iterator;
-  using SkipListTAcc = typename folly::ConcurrentSkipList<RawType>::Accessor; // SKL Accessor
-  using SkipListTSkip = typename folly::ConcurrentSkipList<RawType>::Skipper; // Skipper accessor
+  using SkipListTAcc = typename folly::ConcurrentSkipList<T>::Accessor; // SKL Accessor
+  using SkipListTSkip = typename folly::ConcurrentSkipList<T>::Skipper; // Skipper accessor
 
   SkipListLatencyBufferModel()
-    : m_skip_list(folly::ConcurrentSkipList<RawType>::createInstance(unconfigured_head_height))
+    : m_skip_list(folly::ConcurrentSkipList<T>::createInstance(unconfigured_head_height))
   {
     TLOG(TLVL_WORK_STEPS) << "Initializing non configured latency buffer";
   }
@@ -46,9 +46,9 @@ public:
   {
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = RawType;
-    using pointer = RawType*;
-    using reference = RawType&;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
 
     Iterator(SkipListTAcc&& acc, SkipListTIter iter)
       : m_acc(std::move(acc))
@@ -87,9 +87,8 @@ public:
 
   std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
 
-
   // For the continous buffer, the data is moved into the Folly queue.
-  bool write(RawType&& new_element) override
+  bool write(T&& new_element) override
   {
     bool success = false;
     {
@@ -100,7 +99,7 @@ public:
     return success;
   }
 
-  bool put(RawType& new_element) override
+  bool put(T& new_element) override
   {
     bool success = false;
     {
@@ -111,7 +110,7 @@ public:
     return success;
   }
 
-  bool read(RawType& element) override
+  bool read(T& element) override
   {
     bool found = false;
     {
@@ -139,20 +138,20 @@ public:
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  Iterator lower_bound(RawType& element)
+  Iterator lower_bound(T& element, bool /*with_errors=false*/)
   {
     SkipListTAcc acc = SkipListTAcc(m_skip_list);
     SkipListTIter iter = acc.lower_bound(element);
     return std::move(Iterator(std::move(acc), iter));
   }
 
-  const RawType* front() override
+  const T* front() override
   {
     SkipListTAcc acc(m_skip_list);
     return acc.first();
   }
 
-  const RawType* back() override
+  const T* back() override
   {
     SkipListTAcc acc(m_skip_list);
     return acc.last();

@@ -8,12 +8,13 @@
 #ifndef READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 #define READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
@@ -45,11 +46,13 @@ public:
 
   DAPHNEListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>& latency_buffer,
                            std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                           std::unique_ptr<appfwk::DAQSink<types::DAPHNE_SUPERCHUNK_STRUCT>>& snb_sink)
+                           std::unique_ptr<appfwk::DAQSink<types::DAPHNE_SUPERCHUNK_STRUCT>>& snb_sink,
+                           std::unique_ptr<FrameErrorRegistry>& error_registry)
     : DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
                                  SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(latency_buffer,
                                                                                               fragment_sink,
-                                                                                              snb_sink)
+                                                                                              snb_sink,
+                                                                                              error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DAPHNEListRequestHandler created...";
   }

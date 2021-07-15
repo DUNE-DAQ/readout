@@ -27,7 +27,19 @@ ERS_DECLARE_ISSUE(readout, ConfigurationError, " Readout Configuration Error: " 
 
 ERS_DECLARE_ISSUE(readout, CannotOpenFile, " Couldn't open binary file: " << filename, ((std::string)filename))
 
+ERS_DECLARE_ISSUE_BASE(readout, 
+                       CannotReadFile,
+                       readout::ConfigurationError,
+                       " Couldn't read properly the binary file: " << filename << " Cause: " << errorstr, 
+                       ((std::string)filename),
+                       ((std::string)errorstr))
+
 ERS_DECLARE_ISSUE(readout, CannotWriteToFile, " Could not write to file: " << filename, ((std::string)filename))
+
+ERS_DECLARE_ISSUE(readout,
+                  PostprocessingNotKeepingUp,
+                  "Postprocessing has too much backlog, thread: " << i,
+                  ((size_t)i))
 
 ERS_DECLARE_ISSUE(readout,
                   EmptySourceBuffer,

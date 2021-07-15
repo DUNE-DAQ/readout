@@ -8,16 +8,18 @@
 #ifndef READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_DAPHNE_DAPHNEFRAMEPROCESSOR_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <string>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
@@ -34,10 +36,11 @@ public:
   using daphneframeptr = dunedaq::dataformats::DAPHNEFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  DAPHNEFrameProcessor()
-    : TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>()
+  explicit DAPHNEFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+    : TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>(error_registry)
   {
-    m_tasklist.push_back(std::bind(&DAPHNEFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>::add_preprocess_task(
+      std::bind(&DAPHNEFrameProcessor::timestamp_check, this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&DAPHNEFrameProcessor::frame_error_check, this, std::placeholders::_1) );
   }
 

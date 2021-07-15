@@ -29,6 +29,7 @@ namespace types {
 const constexpr std::size_t PACMAN_FRAME_SIZE = 1024 * 1024; 
 struct PACMAN_MESSAGE_STRUCT
 {
+  using FrameType = PACMAN_MESSAGE_STRUCT;
   // data
   char data[PACMAN_FRAME_SIZE];
   // comparable based on first timestamp

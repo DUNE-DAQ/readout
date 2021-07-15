@@ -13,7 +13,7 @@
 namespace dunedaq {
 namespace readout {
 
-template<class RawType>
+template<class ReadoutType>
 class RawDataProcessorConcept
 {
 public:
@@ -27,8 +27,14 @@ public:
   RawDataProcessorConcept& operator=(RawDataProcessorConcept&&) =
     delete; ///< RawDataProcessorConcept is not move-assignable
 
+  //! Start operation
+  virtual void start(const nlohmann::json& args) = 0;
+  //! Stop operation
+  virtual void stop(const nlohmann::json& args) = 0;
   //! Set the emulator mode, if active, timestamps of processed packets are overwritten with new ones
   virtual void conf(const nlohmann::json& cfg) { set_emulator_mode(cfg.get<datalinkhandler::Conf>().emulator_mode); }
+  //! Get info from the raw processor
+  virtual void get_info(datalinkhandlerinfo::Info& info) = 0;
   //! Get newest timestamp of last seen packet
   std::uint64_t get_last_daq_time() { return m_last_processed_daq_ts.load(); } // NOLINT(build/unsigned)
   //! Reset timestamp (useful in emulator mode)
@@ -37,8 +43,10 @@ public:
   void set_emulator_mode(bool do_emu) { m_emulator_mode = do_emu; }
   //! Get the emulator mode
   bool get_emulator_mode() { return m_emulator_mode; }
-  //! Process one element
-  virtual void process_item(RawType* item) = 0;
+  //! Preprocess one element
+  virtual void preprocess_item(ReadoutType* item) = 0;
+  //! Postprocess one element
+  virtual void postprocess_item(const ReadoutType* item) = 0;
 
 protected:
   bool m_emulator_mode{ false };

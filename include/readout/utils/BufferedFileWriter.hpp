@@ -11,7 +11,7 @@
 #ifndef READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_
 #define READOUT_INCLUDE_READOUT_UTILS_BUFFEREDFILEWRITER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"
@@ -39,11 +39,11 @@ namespace readout {
 /**
  * Class to buffer and write data of a specified type to a file using O_DIRECT. In addition, data can be compressed.
  * before being written.
- * @tparam RawType Type of the data that will be written to file
+ * @tparam ReadoutType Type of the data that will be written to file
  * @tparam Alignment The alignment used for allocations of buffers. It has to fulfil certain system specific
  * requirements such that file writing with O_DIRECT can work.
  */
-template<class RawType, size_t Alignment = 4096>
+template<class ReadoutType, size_t Alignment = 4096>
 class BufferedFileWriter
 {
   using io_sink_t = boost::iostreams::file_descriptor_sink;
@@ -150,7 +150,7 @@ public:
    * @param element The element to write.
    * @return true if the write was successful, false if the writer is not open or the write was not successful.
    */
-  bool write(const RawType& element)
+  bool write(const ReadoutType& element)
   {
     if (!m_is_open)
       return false;

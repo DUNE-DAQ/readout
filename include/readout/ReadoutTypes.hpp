@@ -52,6 +52,8 @@ class Timestamped
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 struct WIB_SUPERCHUNK_STRUCT
 {
+  using FrameType = dunedaq::dataformats::WIBFrame;
+
   // data
   char data[WIB_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -83,6 +85,16 @@ struct WIB_SUPERCHUNK_STRUCT
     }
   }
 
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
+  }
+
+  FrameType* end()
+  {
+    return reinterpret_cast<FrameType*>(data + WIB_SUPERCHUNK_SIZE); // NOLINT
+  }
+
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
   static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
@@ -91,6 +103,9 @@ struct WIB_SUPERCHUNK_STRUCT
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
+static_assert(sizeof(struct WIB_SUPERCHUNK_STRUCT) == WIB_SUPERCHUNK_SIZE,
+              "Check your assumptions on WIB_SUPERCHUNK_STRUCT");
+
 /**
  * @brief For WIB2 the numbers are different.
  * 12[WIB2 frames] x 468[Bytes] = 5616[Bytes]
@@ -98,6 +113,7 @@ struct WIB_SUPERCHUNK_STRUCT
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
 struct WIB2_SUPERCHUNK_STRUCT
 {
+  using FrameType = dunedaq::dataformats::WIB2Frame;
   // data
   char data[WIB2_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -131,6 +147,16 @@ struct WIB2_SUPERCHUNK_STRUCT
     }
   }
 
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
+  }
+
+  FrameType* end()
+  {
+    return reinterpret_cast<FrameType*>(data + WIB2_SUPERCHUNK_SIZE); // NOLINT
+  }
+
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
   static const constexpr uint64_t tick_dist = 32; // NOLINT(build/unsigned)
@@ -139,6 +165,9 @@ struct WIB2_SUPERCHUNK_STRUCT
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
+static_assert(sizeof(struct WIB2_SUPERCHUNK_STRUCT) == WIB2_SUPERCHUNK_SIZE,
+              "Check your assumptions on WIB2_SUPERCHUNK_STRUCT");
+
 /**
  * @brief For DAPHNE the numbers are different.
  * 12[DAPHNE frames] x 584[Bytes] = 7008[Bytes]
@@ -146,6 +175,7 @@ struct WIB2_SUPERCHUNK_STRUCT
 const constexpr std::size_t DAPHNE_SUPERCHUNK_SIZE = 7008; // for 12: 7008
 struct DAPHNE_SUPERCHUNK_STRUCT
 {
+  using FrameType = dunedaq::dataformats::DAPHNEFrame;
   // data
   char data[DAPHNE_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
@@ -179,6 +209,16 @@ struct DAPHNE_SUPERCHUNK_STRUCT
     }
   }
 
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
+  }
+
+  FrameType* end()
+  {
+    return reinterpret_cast<FrameType*>(data + DAPHNE_SUPERCHUNK_SIZE); // NOLINT
+  }
+
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
   static const constexpr uint64_t tick_dist = 16; // NOLINT(build/unsigned)
@@ -187,33 +227,8 @@ struct DAPHNE_SUPERCHUNK_STRUCT
   static const constexpr size_t element_size = frame_size * frames_per_element;
 };
 
-/**
- * Key finder for LBs.
- * */
-struct DAPHNETimestampGetter
-{
-  uint64_t operator()(DAPHNE_SUPERCHUNK_STRUCT& ds) // NOLINT(build/unsigned)
-  {
-    auto dsptr = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&ds); // NOLINT
-    return dsptr->get_timestamp();
-  }
-};
-
-struct WIBTimestampGetter
-{
-  uint64_t operator()(WIB_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
-  {
-    return chunk.get_timestamp();
-  }
-};
-
-struct WIB2TimestampGetter
-{
-  uint64_t operator()(WIB2_SUPERCHUNK_STRUCT& chunk) // NOLINT(build/unsigned)
-  {
-    return chunk.get_timestamp();
-  }
-};
+static_assert(sizeof(struct DAPHNE_SUPERCHUNK_STRUCT) == DAPHNE_SUPERCHUNK_SIZE,
+              "Check your assumptions on DAPHNE_SUPERCHUNK_STRUCT");
 
 /**
  * @brief Convencience wrapper to take ownership over char pointers with

@@ -13,20 +13,20 @@
 #include "appfwk/cmd/Nljs.hpp"
 #include "appfwk/cmd/Structs.hpp"
 
+#include "readout/NDReadoutTypes.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/NDReadoutTypes.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "../include/readout/ReadoutIssues.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/models/ReadoutModel.hpp"
 
 #include "daphne/DAPHNEFrameProcessor.hpp"
 #include "daphne/DAPHNEListRequestHandler.hpp"
-#include "wib/WIBFrameProcessor.hpp"
-#include "wib2/WIB2FrameProcessor.hpp"
 #include "pacman/PACMANFrameProcessor.hpp"
 #include "pacman/PACMANListRequestHandler.hpp"
+#include "wib/WIBFrameProcessor.hpp"
+#include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
@@ -79,12 +79,8 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         auto readout_model = std::make_unique<
           ReadoutModel<types::DAPHNE_SUPERCHUNK_STRUCT,
                        DefaultRequestHandlerModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                                  BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                                                         uint64_t, // NOLINT(build/unsigned)
-                                                                         types::DAPHNETimestampGetter>>,
-                       BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT,
-                                              uint64_t, // NOLINT(build/unsigned)
-                                              types::DAPHNETimestampGetter>,
+                                                  BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>>,
+                       BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                        DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);

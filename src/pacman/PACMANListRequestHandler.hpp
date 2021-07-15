@@ -8,14 +8,14 @@
 #ifndef READOUT_SRC_PACMAN_PACMANLISTREQUESTHANDLER_HPP_
 #define READOUT_SRC_PACMAN_PACMANLISTREQUESTHANDLER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 
 #include "dataformats/pacman/PACMANFrame.hpp"
 #include "logging/Logging.hpp"
-#include "readout/ReadoutLogging.hpp"
 #include "readout/NDReadoutTypes.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <atomic>
 #include <deque>
@@ -38,26 +38,26 @@ class PACMANListRequestHandler
                                       SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>
 {
 public:
-  using inherited = DefaultRequestHandlerModel<types::PACMAN_MESSAGE_STRUCT,
-                                               SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>;
+  using inherited =
+    DefaultRequestHandlerModel<types::PACMAN_MESSAGE_STRUCT, SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>;
   using SkipListAcc = typename folly::ConcurrentSkipList<types::PACMAN_MESSAGE_STRUCT>::Accessor;
   using SkipListSkip = typename folly::ConcurrentSkipList<types::PACMAN_MESSAGE_STRUCT>::Skipper;
 
   PACMANListRequestHandler(std::unique_ptr<SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>& latency_buffer,
                            std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-                           std::unique_ptr<appfwk::DAQSink<types::PACMAN_MESSAGE_STRUCT>>& snb_sink)
+                           std::unique_ptr<appfwk::DAQSink<types::PACMAN_MESSAGE_STRUCT>>& snb_sink,
+                           std::unique_ptr<FrameErrorRegistry>& error_registry)
     : DefaultRequestHandlerModel<types::PACMAN_MESSAGE_STRUCT,
                                  SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>>(latency_buffer,
-                                                                                              fragment_sink,
-                                                                                              snb_sink)
+                                                                                           fragment_sink,
+                                                                                           snb_sink,
+                                                                                           error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "PACMANistRequestHandler created...";
   }
 
 protected:
-
 private:
-
 };
 
 } // namespace readout

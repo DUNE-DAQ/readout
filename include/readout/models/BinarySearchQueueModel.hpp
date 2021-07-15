@@ -8,7 +8,7 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_BINARYSEARCHQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_BINARYSEARCHQUEUEMODEL_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"
@@ -18,7 +18,7 @@
 namespace dunedaq {
 namespace readout {
 
-template<class T, class Key, class KeyGetter>
+template<class T>
 class BinarySearchQueueModel : public IterableQueueModel<T>
 {
 public:
@@ -30,9 +30,8 @@ public:
     : IterableQueueModel<T>(size)
   {}
 
-  typename IterableQueueModel<T>::Iterator lower_bound(T& element)
+  typename IterableQueueModel<T>::Iterator lower_bound(T& element, bool /*with_errors=false*/)
   {
-    Key key = (m_key_getter)(element);
     unsigned int start_index =
       IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
     unsigned int end_index =
@@ -44,9 +43,9 @@ public:
     }
     end_index = end_index == 0 ? IterableQueueModel<T>::size_ - 1 : end_index - 1;
 
-    Key right_key = (m_key_getter)(IterableQueueModel<T>::records_[end_index]);
+    T& right_element = IterableQueueModel<T>::records_[end_index];
 
-    if (key > right_key) {
+    if (right_element < element) {
       TLOG() << "Could not find element" << std::endl;
       return IterableQueueModel<T>::end();
     }
@@ -57,23 +56,16 @@ public:
       unsigned int middle_index = start_index + ((diff + 1) / 2);
       if (middle_index >= IterableQueueModel<T>::size_)
         middle_index -= IterableQueueModel<T>::size_;
-      T* element_between = &IterableQueueModel<T>::records_[middle_index];
-      Key middle_key = (m_key_getter)(*element_between);
-      if (middle_key == key) {
+      T& element_between = IterableQueueModel<T>::records_[middle_index];
+      if (diff == 0) {
         return typename IterableQueueModel<T>::Iterator(*this, middle_index);
-      } else if (middle_key > key) {
+      } else if (element < element_between) {
         end_index = middle_index != 0 ? middle_index - 1 : IterableQueueModel<T>::size_ - 1;
       } else {
         start_index = middle_index;
       }
-      if (diff == 0) {
-        return typename IterableQueueModel<T>::Iterator(*this, middle_index);
-      }
     }
   }
-
-private:
-  KeyGetter m_key_getter;
 };
 
 } // namespace readout
