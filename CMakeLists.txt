@@ -10,6 +10,8 @@ find_package(logging REQUIRED)
 find_package(opmonlib REQUIRED)
 find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
+find_package(triggeralgs REQUIRED)
+find_package(trigger REQUIRED)
 find_package(folly REQUIRED)
 find_package(Boost COMPONENTS iostreams REQUIRED)
 set(BOOST_LIBS Boost::iostreams ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_LIBRARIES})
@@ -25,13 +27,17 @@ set(READOUT_DEPENDENCIES
   # system
   numa
  
-  # dunedaq
-  ers::ers 
+  # tools
+  Folly::folly
+  ers::ers
   logging::logging
+
+  # dunedaq
   opmonlib::opmonlib
   dataformats::dataformats
   dfmessages::dfmessages
-  Folly::folly
+  triggeralgs::triggeralgs
+  trigger::trigger
 )
 
 ##############################################################################
