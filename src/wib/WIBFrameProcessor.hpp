@@ -93,7 +93,6 @@ public:
     // new way:
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
       std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
    
