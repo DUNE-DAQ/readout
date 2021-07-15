@@ -26,7 +26,7 @@ namespace types {
  * @brief PACMAN frame
  * Size = 816[Bytes] (12*64+1*32+2*8)
  * */
-const constexpr std::size_t PACMAN_FRAME_SIZE = 816; // FIX ME - check this
+const constexpr std::size_t PACMAN_FRAME_SIZE = 1024 * 1024; 
 struct PACMAN_MESSAGE_STRUCT
 {
   // data
@@ -93,8 +93,8 @@ struct PACMAN_MESSAGE_STRUCT
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
-  static const constexpr size_t frame_size = 816;
-  static const constexpr size_t element_size = frame_size;
+  static const constexpr size_t frame_size = PACMAN_FRAME_SIZE;
+  static const constexpr size_t element_size = PACMAN_FRAME_SIZE;
 };
 
 /**

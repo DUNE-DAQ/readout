@@ -65,12 +65,12 @@ protected:
 
     // Check timestamp
     // RS warning : not fixed rate!
-    /*if (m_current_ts - m_previous_ts <= 0) {
+    if (m_current_ts - m_previous_ts <= 0) {
       ++m_ts_error_ctr;
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "Timestamp continuity MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
                                      << " current: " + std::to_string(m_current_ts);
       }
-*/
+
     if (m_ts_error_ctr > 1000) {
       if (!m_problem_reported) {
         TLOG() << "*** Data Integrity ERROR *** Timestamp continuity is completely broken! "
@@ -81,7 +81,6 @@ protected:
 
     m_previous_ts = m_current_ts;
     m_last_processed_daq_ts = m_current_ts;
-    //std::cout << "Last Processed DAQ TS: " << m_last_processed_daq_ts << std::endl;
   }
 
   /**
