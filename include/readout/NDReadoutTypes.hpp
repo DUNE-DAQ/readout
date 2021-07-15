@@ -92,6 +92,16 @@ struct PACMAN_MESSAGE_STRUCT
     }
   }
 
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&data[0]);
+  }
+
+  FrameType* end()
+  {
+    return reinterpret_cast<FrameType*>(data+PACMAN_FRAME_SIZE);
+  }
+
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
   static const constexpr size_t frames_per_element = 1;
