@@ -192,15 +192,12 @@ private:
     size_t index = 0;
     while (queue_index.find("data_requests_" + std::to_string(index)) != queue_index.end()) {
       m_data_request_queues.push_back(std::make_unique<request_source_qt>(queue_index["data_requests_" + std::to_string(index)].inst));
-      if (queue_index.find("fragment_response_" + std::to_string(index)) == queue_index.end()) {
-        throw ResourceQueueError(ERS_HERE, "Queue not found: ", "fragment_response_" + std::to_string(index), "");
+      if (queue_index.find("data_response_" + std::to_string(index)) == queue_index.end()) {
+        throw InitializationError(ERS_HERE, "Queue not found: ", "data_response_" + std::to_string(index));
       } else {
-        m_fragment_response_queues.push_back(std::make_unique<fragment_sink_qt>(queue_index["fragment_response_" + std::to_string(index)].inst));
+        m_data_response_queues.push_back(std::make_unique<fragment_sink_qt>(queue_index["data_response_" + std::to_string(index)].inst));
       }
       index++;
-    }
-    if (index == 0) {
-      throw ResourceQueueError(ERS_HERE, "Queue not found (need at least one request queue): ", "data_requests_0", "");
     }
   }
 
@@ -262,8 +259,10 @@ private:
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
                                         << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                                         << " window_end=" << dr.window_end;
-            m_request_handler_impl->issue_request(dr, *m_fragment_response_queues[0]);
-            ++m_request_count;
+            for (size_t i = 0; i < m_data_response_queues.size(); ++i) {
+	      m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
+            }
+	    ++m_request_count;
             ++m_request_count_tot;
           }
         } else {
@@ -291,7 +290,7 @@ private:
     while (m_run_marker.load()) {
       for (size_t i = 0; i < m_data_request_queues.size(); ++i) {
         auto& request_source = *m_data_request_queues[i];
-        auto& response_sink = *m_fragment_response_queues[i];
+        auto& response_sink = *m_data_response_queues[i];
         try {
           request_source.pop(data_request, m_source_queue_timeout_ms);
           m_request_handler_impl->issue_request(data_request, response_sink);
@@ -375,7 +374,7 @@ private:
   // FRAGMENT SINK
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
   using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
-  std::vector<std::unique_ptr<fragment_sink_qt>> m_fragment_response_queues;
+  std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
 
 
   // LATENCY BUFFER:
