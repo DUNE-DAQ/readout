@@ -75,8 +75,8 @@ def generate(
                 mspec(f"datahandler_{idx}", "DataLinkHandler", [
                             app.QueueInfo(name="raw_input", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="input"),
                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
-                            app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
-                            app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
+                            app.QueueInfo(name="data_requests_0", inst=f"data_requests_{idx}", dir="input"),
+                            app.QueueInfo(name="data_response_0", inst="data_fragments_q", dir="output"),
                             app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
