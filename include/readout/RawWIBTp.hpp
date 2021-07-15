@@ -275,22 +275,22 @@ public:
   uint16_t get_tp_flags(const TpData& tp) const { return tp.m_tp_flags; }        // NOLINT(build/unsigned)
   uint8_t get_hit_continue(const TpData& tp) const { return tp.m_hit_continue; } // NOLINT(build/unsigned)
   // TP data mutators
-  void set_start_time(TpData& tp, const uint16_t new_start_time)
+  void set_start_time(TpData& tp, const uint16_t new_start_time) // NOLINT(build/unsigned)
   {
     tp.m_start_time = new_start_time;
-  }                                                                                            // NOLINT(build/unsigned)
+  }
   void set_end_time(TpData& tp, const uint16_t new_end_time) { tp.m_end_time = new_end_time; } // NOLINT(build/unsigned)
   void set_peak_adc(TpData& tp, const uint16_t new_peak_adc) { tp.m_peak_adc = new_peak_adc; } // NOLINT(build/unsigned)
-  void set_peak_time(TpData& tp, const uint16_t new_peak_time)
+  void set_peak_time(TpData& tp, const uint16_t new_peak_time)                                 // NOLINT(build/unsigned)
   {
     tp.m_peak_time = new_peak_time;
-  }                                                                                            // NOLINT(build/unsigned)
+  }
   void set_sum_adc(TpData& tp, const uint16_t new_sum_adc) { tp.m_sum_adc = new_sum_adc; }     // NOLINT(build/unsigned)
   void set_tp_flags(TpData& tp, const uint16_t new_tp_flags) { tp.m_tp_flags = new_tp_flags; } // NOLINT(build/unsigned)
-  void set_hit_continue(TpData& tp, const uint8_t new_hit_continue)
+  void set_hit_continue(TpData& tp, const uint8_t new_hit_continue)                            // NOLINT(build/unsigned)
   {
     tp.m_hit_continue = new_hit_continue;
-  } // NOLINT(build/unsigned)
+  }
   // Pedinfo accessors
   uint16_t get_accumulator() const { return m_pedinfo.m_accumulator; } // NOLINT(build/unsigned)
   uint16_t get_median() const { return m_pedinfo.m_median; }           // NOLINT(build/unsigned)
@@ -299,10 +299,10 @@ public:
   uint16_t get_padding_3() const { return m_pedinfo.m_padding_3; }     // NOLINT(build/unsigned)
   uint16_t get_padding_4() const { return m_pedinfo.m_padding_4; }     // NOLINT(build/unsigned)
   // Pedinfo mutators
-  void set_accumulator(const uint16_t new_accumulator)
+  void set_accumulator(const uint16_t new_accumulator) // NOLINT(build/unsigned)
   {
     m_pedinfo.m_accumulator = new_accumulator;
-  }                                                                                           // NOLINT(build/unsigned)
+  }
   void set_median(const uint16_t new_median) { m_pedinfo.m_median = new_median; }             // NOLINT(build/unsigned)
   void set_padding_1(const uint16_t new_padding_1) { m_pedinfo.m_padding_1 = new_padding_1; } // NOLINT(build/unsigned)
   void set_padding_2(const uint16_t new_padding_2) { m_pedinfo.m_padding_2 = new_padding_2; } // NOLINT(build/unsigned)

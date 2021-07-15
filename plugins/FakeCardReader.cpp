@@ -7,13 +7,12 @@
  */
 #include "readout/ReadoutLogging.hpp"
 #include "readout/fakecardreader/Nljs.hpp"
-#include "readout/fakecardreaderinfo/Nljs.hpp"
+#include "readout/fakecardreaderinfo/InfoNljs.hpp"
 
 #include "CreateSourceEmulator.hpp"
 #include "FakeCardReader.hpp"
-#include "ReadoutConstants.hpp"
-#include "ReadoutIssues.hpp"
-#include "SourceEmulatorModel.hpp"
+#include "readout/ReadoutIssues.hpp"
+#include "readout/models/SourceEmulatorModel.hpp"
 
 #include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"

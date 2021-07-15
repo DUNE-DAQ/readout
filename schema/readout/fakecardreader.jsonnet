@@ -53,7 +53,9 @@ local fakecardreader = {
         s.field("data_filename", self.string, "/tmp/frames.bin",
             doc="Data file that contains user payloads"),
         s.field("queue_name", self.string,
-            doc="Name of the output queue")
+            doc="Name of the output queue"),
+        s.field("random_population_size", self.uint4, 10000,
+            doc="Size of the random population")
         ], doc="Configuration for one link"),
 
     link_conf_list : s.sequence("link_conf_list", self.link_conf, doc="Link configuration list"),
@@ -66,7 +68,7 @@ local fakecardreader = {
                 doc="Queue timeout in milliseconds"),
         
         s.field("set_t0_to", self.int8, -1,
-                doc="The first DAQ timestamp. If -1, t0 from file is used."),
+                doc="The first DAQ timestamp. If -1, t0 from file is used.")
 
     ], doc="Fake Elink reader module configuration"),
 

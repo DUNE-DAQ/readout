@@ -14,14 +14,13 @@
 #define READOUT_PLUGINS_FAKECARDREADER_HPP_
 
 // package
-#include "SourceEmulatorConcept.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/ReusableThread.hpp"
+#include "readout/concepts/SourceEmulatorConcept.hpp"
 #include "readout/fakecardreader/Structs.hpp"
+#include "readout/utils/ReusableThread.hpp"
 //#include "CreateSourceEmulator.hpp"
-#include "FileSourceBuffer.hpp"
-#include "RateLimiter.hpp"
-#include "ReadoutStatistics.hpp"
+#include "readout/utils/FileSourceBuffer.hpp"
+#include "readout/utils/RateLimiter.hpp"
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
@@ -83,8 +82,8 @@ private:
   std::atomic<bool> m_run_marker;
 
   // Opmon
-  stats::counter_t m_packet_count{ 0 };
-  stats::counter_t m_packet_count_tot{ 0 };
+  std::atomic<int> m_packet_count{ 0 };
+  std::atomic<int> m_packet_count_tot{ 0 };
 };
 
 } // namespace readout

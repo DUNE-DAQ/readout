@@ -51,8 +51,8 @@ def generate(
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            app.QueueSpec(inst=f"tp_fake_link_{idx}", kind='FollySPSCQueue', capacity=100000)
-                for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS) 
+            app.QueueSpec(inst=f"tp_link_{idx}", kind='FollySPSCQueue', capacity=100000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
         ] + [
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
@@ -67,8 +67,10 @@ def generate(
         mspec("fake_source", "FakeCardReader", [
                         app.QueueInfo(name=f"output_{idx}", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="output")
                             for idx in range(NUMBER_OF_DATA_PRODUCERS)
-                        ]),
-
+                        ] + [
+                        app.QueueInfo(name=f"output_{idx}", inst=f"tp_link_{idx}", dir="output")
+                            for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
+        ]),
         ] + [
                 mspec(f"datahandler_{idx}", "DataLinkHandler", [
                             app.QueueInfo(name="raw_input", inst=f"{FRONTEND_TYPE}_link_{idx}", dir="input"),
@@ -82,11 +84,11 @@ def generate(
                             app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="input")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-                mspec(f"timesync_consumer", "DummyConsumerTimeSync", [
+                mspec(f"timesync_consumer", "TimeSyncConsumer", [
                                             app.QueueInfo(name="input_queue", inst=f"time_sync_q", dir="input")
                                             ])
         ] + [
-                mspec(f"fragment_consumer", "DummyConsumerFragment", [
+                mspec(f"fragment_consumer", "FragmentConsumer", [
                                             app.QueueInfo(name="input_queue", inst=f"data_fragments_q", dir="input")
                                             ])
         ]
@@ -110,7 +112,13 @@ def generate(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}"
-                            ) for idx in range(NUMBER_OF_DATA_PRODUCERS)],
+                            ) for idx in range(NUMBER_OF_DATA_PRODUCERS)]
+                            + [fcr.LinkConfiguration(
+                                geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                                slowdown=DATA_RATE_SLOWDOWN_FACTOR,
+                                queue_name=f"output_{idx}",
+                                data_filename="/tmp/tp_frames.bin"
+                            ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
                             # input_limit=10485100, # default
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
 			                set_t0_to = 0

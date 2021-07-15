@@ -9,17 +9,17 @@
 
 #include "DummyConsumer.hpp"
 #include "appfwk/DAQModuleHelper.hpp"
-#include "readout/dummyconsumerinfo/Nljs.hpp"
+#include "readout/dummyconsumerinfo/InfoNljs.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
 #include <string>
 
-using namespace dunedaq::readout::logging;
-
 namespace dunedaq {
 namespace readout {
+
+using namespace logging;
 
 template<class T>
 DummyConsumer<T>::DummyConsumer(const std::string& name)
