@@ -26,7 +26,7 @@ namespace types {
  * @brief PACMAN frame
  * Size = 816[Bytes] (12*64+1*32+2*8)
  * */
-const constexpr std::size_t PACMAN_FRAME_SIZE = 816; // FIX ME - check this
+const constexpr std::size_t PACMAN_FRAME_SIZE = 1024 * 1024; 
 struct PACMAN_MESSAGE_STRUCT
 {
   using FrameType = PACMAN_MESSAGE_STRUCT;
@@ -54,11 +54,42 @@ struct PACMAN_MESSAGE_STRUCT
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
-    dunedaq::dataformats::PACMANFrame translator;
-    return *(translator.get_msg_type((void*)&data)); // NOLINT
-    // return *(reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_type()); // NOLINT
+    return reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void *) &data)->type;
   }
+  void inspect_message() const
+  {
 
+    std::cout << "Message timestamp: " << get_timestamp() << std::endl;
+
+    std::cout << "Message Type: " << (char)get_message_type() << std::endl;
+
+    uint16_t numWords = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void *) &data)->words;
+
+    std::cout << "Num words in message: " << numWords << std::endl;
+
+    for(unsigned int i = 0; i < numWords; i++)
+    {
+
+      std::cout << "Inspecting word " << i << std::endl;
+
+      dunedaq::dataformats::PACMANFrame::PACMANMessageWord* theWord = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_word((void *) &data, i);
+
+      
+      std::cout << "Word type: " << (char)theWord->data_word.type << std::endl;
+      std::cout << "PACMAN I/O Channel: " << (char)theWord->data_word.channel_id << std::endl;
+      std::cout << "Word receipt timestamp: " << theWord->data_word.receipt_timestamp << std::endl;
+      
+      dunedaq::dataformats::PACMANFrame::LArPixPacket* thePacket = &(theWord->data_word.larpix_word);
+
+      std::cout << "Inspecting packet" << std::endl;
+
+      std::cout << "Packet Type: " << thePacket->data_packet.type << std::endl;
+      std::cout << "Packet Chip ID: " << thePacket->data_packet.chipid << std::endl;  
+      std::cout << "Packet Channel ID: " << thePacket->data_packet.channelid << std::endl;
+
+      std::cout << "packet timestamp: " << thePacket->data_packet.timestamp<< std::endl;
+    }
+  }
   FrameType* begin()
   {
     return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
@@ -71,7 +102,7 @@ struct PACMAN_MESSAGE_STRUCT
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
-  static const constexpr size_t frame_size = 816;
+  static const constexpr size_t frame_size = PACMAN_FRAME_SIZE;
 
   // Set the right value for this field
   static const constexpr uint64_t tick_dist = 0; // NOLINT(build/unsigned)
