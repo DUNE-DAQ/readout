@@ -60,7 +60,7 @@ protected:
 private:
 };
 
-} // namespace readout
-} // namespace dunedaq
+}  // namespace readout
+}  // namespace dunedaq
 
-#endif // READOUT_SRC_PACMAN_PACMANLISTREQUESTHANDLER_HPP_
+#endif  // READOUT_SRC_PACMAN_PACMANLISTREQUESTHANDLER_HPP_
