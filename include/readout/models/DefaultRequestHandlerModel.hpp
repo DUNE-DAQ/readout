@@ -402,7 +402,6 @@ protected:
       // Requeue if needed
       if (rres.result_code == ResultCode::kNotYet) {
         if (m_run_marker.load()) {
-
           return rres; // If kNotYet, return immediately, don't check for fragment pieces.
         } else {
           frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
