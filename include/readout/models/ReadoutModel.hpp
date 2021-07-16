@@ -36,7 +36,7 @@
 #include "readout/concepts/RawDataProcessorConcept.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -150,6 +150,7 @@ public:
   void start(const nlohmann::json& args)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
+    m_raw_processor_impl->start(args);
     m_request_handler_impl->start(args);
     m_stats_thread.set_work(
       &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
@@ -179,6 +180,7 @@ public:
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
     m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
+    m_raw_processor_impl->stop(args);
     m_raw_processor_impl->reset_last_daq_time();
   }
 
@@ -194,6 +196,7 @@ public:
     dli.overwritten_packet_count = m_overwritten_packet_count.load();
 
     m_request_handler_impl->get_info(dli);
+    m_raw_processor_impl->get_info(dli);
 
     ci.add(dli);
   }
@@ -213,11 +216,12 @@ private:
       try {
         // m_raw_data_source->pop(payload_ptr, m_source_queue_timeout_ms);
         m_raw_data_source->pop(payload, m_source_queue_timeout_ms);
-        m_raw_processor_impl->process_item(&payload);
+        m_raw_processor_impl->preprocess_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
           m_overwritten_packet_count++;
         }
+        m_raw_processor_impl->postprocess_item(m_latency_buffer_impl->back());
         ++m_packet_count;
         ++m_packet_count_tot;
         ++m_stats_packet_count;

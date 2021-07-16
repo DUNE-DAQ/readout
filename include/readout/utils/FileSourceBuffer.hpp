@@ -8,7 +8,7 @@
 #ifndef READOUT_INCLUDE_READOUT_UTILS_FILESOURCEBUFFER_HPP_
 #define READOUT_INCLUDE_READOUT_UTILS_FILESOURCEBUFFER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"
@@ -41,36 +41,42 @@ public:
   void read(const std::string& sourcefile)
   {
     m_source_filename = sourcefile;
-    // Open file
-    m_rawdata_ifs.open(m_source_filename, std::ios::in | std::ios::binary);
-    if (!m_rawdata_ifs) {
-      throw CannotOpenFile(ERS_HERE, m_source_filename);
-    }
+    try {
 
-    // Check file size
-    m_rawdata_ifs.ignore(std::numeric_limits<std::streamsize>::max());
-    std::streamsize filesize = m_rawdata_ifs.gcount();
-    if (filesize > m_input_limit) { // bigger than configured limit
-      ers::error(ConfigurationError(ERS_HERE, "File size limit exceeded."));
-    }
-
-    // Check for exact match
-    if (m_chunk_size > 0) {
-      int remainder = filesize % m_chunk_size;
-      if (remainder > 0) {
-        ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+      // Open file
+      m_rawdata_ifs.open(m_source_filename, std::ios::in | std::ios::binary);
+      if (!m_rawdata_ifs) {
+        throw CannotOpenFile(ERS_HERE, m_source_filename);
       }
-      // Set usable element count
-      m_element_count = filesize / m_chunk_size;
-      TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available elements: " << std::to_string(m_element_count);
-    }
 
-    // Read file into input buffer
-    m_rawdata_ifs.seekg(0, std::ios::beg);
-    m_input_buffer.reserve(filesize);
-    m_input_buffer.insert(
-      m_input_buffer.begin(), std::istreambuf_iterator<char>(m_rawdata_ifs), std::istreambuf_iterator<char>());
-    TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available bytes " << std::to_string(m_input_buffer.size());
+      // Check file size
+      m_rawdata_ifs.ignore(std::numeric_limits<std::streamsize>::max());
+      std::streamsize filesize = m_rawdata_ifs.gcount();
+      if (filesize > m_input_limit) { // bigger than configured limit
+        ers::error(ConfigurationError(ERS_HERE, "File size limit exceeded."));
+      }
+
+      // Check for exact match
+      if (m_chunk_size > 0) {
+        int remainder = filesize % m_chunk_size;
+        if (remainder > 0) {
+          ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+        }
+        // Set usable element count
+        m_element_count = filesize / m_chunk_size;
+        TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available elements: " << std::to_string(m_element_count);
+      }
+
+      // Read file into input buffer
+      m_rawdata_ifs.seekg(0, std::ios::beg);
+      m_input_buffer.reserve(filesize);
+      m_input_buffer.insert(
+        m_input_buffer.begin(), std::istreambuf_iterator<char>(m_rawdata_ifs), std::istreambuf_iterator<char>());
+      TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available bytes " << std::to_string(m_input_buffer.size());
+
+    } catch (const std::exception& ex) {
+      throw CannotReadFile(ERS_HERE, m_source_filename, ex.what());
+    }
   }
 
   const int& num_elements() { return std::ref(m_element_count); }

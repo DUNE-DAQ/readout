@@ -8,15 +8,15 @@
 #ifndef READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 #define READOUT_SRC_DAPHNE_DAPHNELISTREQUESTHANDLER_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/FrameErrorRegistry.hpp"
 
 #include <atomic>
 #include <deque>

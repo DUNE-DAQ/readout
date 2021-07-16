@@ -8,7 +8,7 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_BINARYSEARCHQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_BINARYSEARCHQUEUEMODEL_HPP_
 
-#include "ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 
 #include "logging/Logging.hpp"
