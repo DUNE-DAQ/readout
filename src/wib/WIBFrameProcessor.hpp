@@ -259,6 +259,9 @@ protected:
 
     constexpr int clocksPerTPCTick=25;
 
+    uint64_t first_hit_begin = 0;
+    uint64_t first_hit_end = 0;
+
     // process_window_avx2 stores its output in the buffer pointed to
     // by m_coll_primfind_dest in a (necessarily) complicated way: for
     // every set of 16 channels (one AVX2 register) that has at least
@@ -302,7 +305,10 @@ protected:
             // hit_end is the end time of the hit in TPC clock
             // ticks after the start of the netio message in which
             // the hit ended
-            uint64_t hit_start=timestamp+clocksPerTPCTick*(int64_t(hit_end[i])-hit_tover[i]);
+            uint64_t tp_t_begin = timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);
+            uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);
+
+
 
             // May be needed for TPSet:
             //uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?
@@ -318,23 +324,28 @@ protected:
             //
               //triggeralgs::TriggerPrimitive trigprim;
               readout::types::TP_READOUT_TYPE trigprim;
-              trigprim.tp.time_start = hit_start;
-              //trigprim.time_peak = ???; 
+              trigprim.tp.time_start = tp_t_begin;
+              trigprim.tp.time_peak = (tp_t_begin + tp_t_end) / 2; 
               trigprim.tp.time_over_threshold = hit_tover[i];
               trigprim.tp.channel = online_channel;
-              trigprim.tp.adc_integral = hit_charge[i]; // ???
-              //trigprim.adc_peak = ???;
+              trigprim.tp.adc_integral = hit_charge[i];
+              trigprim.tp.adc_peak = hit_charge[i] / 20;
               trigprim.tp.detid = m_fiber_no; // RS TODO: convert crate/slot/fiber to GeoID
               trigprim.tp.type = triggeralgs::TriggerPrimitive::Type::kTPC;
               trigprim.tp.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
               trigprim.tp.version = 1;
 
-              try {
-                m_tp_sink->push(std::move(trigprim));
-                ++npushed;
-              } catch (...) {
-                // pass, no worries
-              }
+            if (m_first_coll) {
+              TLOG() << "TP makes sense? -> hit_t_begin:" << tp_t_begin 
+                     << " hit_t_end:" << tp_t_end << " time_peak:" << (tp_t_begin + tp_t_end) / 2;
+            }
+
+            try {
+              m_tp_sink->push(std::move(trigprim));
+              ++npushed;
+            } catch (...) {
+              // pass, no worries
+            }
 
             //} else {
 
