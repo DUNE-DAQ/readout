@@ -250,9 +250,10 @@ protected:
     //uint32_t offline_channel_base = (view_type == kInduction) ? m_offline_channel_base_induction : m_offline_channel_base;
 
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16];
-    unsigned int nhits=0;
-    size_t n_sent_hits=0; // The number of "sendable" hits we produced (ie, that weren't suppressed as bad/noisy)
-    size_t sent_adcsum=0; // The adc sum for "sendable" hits
+    unsigned int nhits = 0;
+    unsigned int npushed = 0;
+    size_t n_sent_hits = 0; // The number of "sendable" hits we produced (ie, that weren't suppressed as bad/noisy)
+    size_t sent_adcsum = 0; // The adc sum for "sendable" hits
 
     uint16_t* primfind_it=m_coll_primfind_dest;
 
@@ -303,11 +304,41 @@ protected:
             // the hit ended
             uint64_t hit_start=timestamp+clocksPerTPCTick*(int64_t(hit_end[i])-hit_tover[i]);
 
+            // May be needed for TPSet:
+            //uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?
+            //
+
             // For quick n' dirty debugging: print out time/channel of hits. Can then make a text file suitable for numpy plotting with, eg:
             //
             // sed -n -e 's/.*Hit: \(.*\) \(.*\).*/\1 \2/p' log.txt  > hits.txt
             //
             // TLOG() << "Hit: " << hit_start << " " << offline_channel;
+
+            //if (should_send) {
+            //
+              //triggeralgs::TriggerPrimitive trigprim;
+              readout::types::TP_READOUT_TYPE trigprim;
+              trigprim.tp.time_start = hit_start;
+              //trigprim.time_peak = ???; 
+              trigprim.tp.time_over_threshold = hit_tover[i];
+              trigprim.tp.channel = online_channel;
+              trigprim.tp.adc_integral = hit_charge[i]; // ???
+              //trigprim.adc_peak = ???;
+              trigprim.tp.detid = m_fiber_no; // RS TODO: convert crate/slot/fiber to GeoID
+              trigprim.tp.type = triggeralgs::TriggerPrimitive::Type::kTPC;
+              trigprim.tp.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
+              trigprim.tp.version = 1;
+
+              try {
+                m_tp_sink->push(std::move(trigprim));
+                ++npushed;
+              } catch (...) {
+                // pass, no worries
+              }
+
+            //} else {
+
+            //}
 
             ++nhits;
 
@@ -323,6 +354,7 @@ protected:
 
     m_num_hits_coll += nhits;
     m_coll_hits_count += nhits;
+    m_num_tps_pushed += npushed;
 
     if (m_first_coll) {
       TLOG() << "Total hits in first superchunk: " << nhits;
@@ -348,14 +380,16 @@ protected:
 
   void run_stats() {
     int new_hits = 0;
+    int new_tps = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
     while (true) {
       auto now = std::chrono::high_resolution_clock::now();
       new_hits = m_coll_hits_count.exchange(0);
+      new_tps = m_num_tps_pushed.exchange(0);
       double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.)
                                  << " [kHz]";
-      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits;
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
       for (int i = 0; i < 50; ++i) { // 100 x 100ms = 5s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -391,6 +425,7 @@ private:
 
   std::atomic<int> m_coll_hits_count{ 0 };
   std::atomic<int> m_indu_hits_count{ 0 };
+  std::atomic<int> m_num_tps_pushed{ 0 };
   ReusableThread m_stats_thread;
 
   bool m_first_coll = true;

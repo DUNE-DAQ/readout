@@ -57,7 +57,8 @@ def generate(
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            app.QueueSpec(inst="tp_queue", kind='FollyMPMCQueue', capacity=1000)
+            app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=1000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
             app.QueueSpec(inst=f"tp_data_requests", kind='FollySPSCQueue', capacity=1000)
         ] + [
@@ -84,7 +85,7 @@ def generate(
                             app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
                             app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output"),
-                            app.QueueInfo(name="tp_out", inst="tp_queue", dir="output")
+                            app.QueueInfo(name="tp_out", inst=f"tp_queue_{idx}", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
@@ -99,13 +100,13 @@ def generate(
                                             app.QueueInfo(name="input_queue", inst=f"data_fragments_q", dir="input")
                                             ])
         ] + [
-                mspec(f"tp_handler", "DataLinkHandler", [
-                                            app.QueueInfo(name="raw_input", inst=f"tp_queue", dir="input"),
+                mspec(f"tp_handler_{idx}", "DataLinkHandler", [
+                                            app.QueueInfo(name="raw_input", inst=f"tp_queue_{idx}", dir="input"),
                                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                                             app.QueueInfo(name="requests", inst="tp_data_requests", dir="input"),
                                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
                                             app.QueueInfo(name="raw_recording", inst="tp_recording_link", dir="output")
-                                            ])
+                                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
@@ -126,13 +127,14 @@ def generate(
                             link_confs=[fcr.LinkConfiguration(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
-                                queue_name=f"output_{idx}"
+                                queue_name=f"output_{idx}",
+                                data_filename=DATA_FILE
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS)]
                             + [fcr.LinkConfiguration(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
-                                data_filename="/tmp/tp_frames.bin"
+                                #data_filename=str(DATA_FILE) # RS FIXME -> This is not good!
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
                             # input_limit=10485100, # default
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
@@ -154,7 +156,7 @@ def generate(
                         stream_buffer_size = 8388608
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
-                (f"tp_handler", dlh.Conf(
+                (f"tp_handler_{idx}", dlh.Conf(
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
@@ -162,7 +164,7 @@ def generate(
                         pop_size_pct = 0.1,
                         apa_number = 0,
                         link_number = 0
-                        ))
+                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
     ])
     
     jstr = json.dumps(confcmd.pod(), indent=4, sort_keys=True)
@@ -175,7 +177,7 @@ def generate(
             ("data_recorder_.*", startpars),
             ("timesync_consumer", startpars),
             ("fragment_consumer", startpars),
-            ("tp_handler", startpars)
+            ("tp_handler_.*", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -188,7 +190,7 @@ def generate(
             ("data_recorder_.*", None),
             ("timesync_consumer", None),
             ("fragment_consumer", None),
-            ("tp_handler", None)
+            ("tp_handler_.*", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
@@ -232,6 +234,7 @@ if __name__ == '__main__':
     @click.option('-s', '--data-rate-slowdown-factor', default=10)
     @click.option('-r', '--run-number', default=333)
     @click.option('-d', '--data-file', type=click.Path(), default='./frames.bin')
+    # @click.option('--tp-data-file') TBA
     @click.argument('json_file', type=click.Path(), default='fake_readout.json')
     def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
         """
