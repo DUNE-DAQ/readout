@@ -86,15 +86,11 @@ public:
     m_ind_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, 10,
       m_ind_primfind_dest, m_ind_taps_p, (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
 
-    // old way: 
-    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1));
-    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
-    //m_tasklist.push_back(std::bind(&WIBFrameProcessor::find_induction_hits, this, std::placeholders::_1));
-
-    // new way:
+    // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
+
+    // Setup parallel post-processing
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
       std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
    
