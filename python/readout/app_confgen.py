@@ -56,6 +56,12 @@ def generate(
         ] + [
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
+        ] + [
+            app.QueueSpec(inst="tp_queue", kind='FollyMPMCQueue', capacity=1000)
+        ] + [
+            app.QueueSpec(inst=f"tp_data_requests", kind='FollySPSCQueue', capacity=1000)
+        ] + [
+            app.QueueSpec(inst="tp_recording_link", kind='FollySPSCQueue', capacity=1000)
         ]
     
 
@@ -77,7 +83,8 @@ def generate(
                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                             app.QueueInfo(name="requests", inst=f"data_requests_{idx}", dir="input"),
                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
-                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output")
+                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output"),
+                            app.QueueInfo(name="tp_out", inst="tp_queue", dir="output")
                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
@@ -90,6 +97,14 @@ def generate(
         ] + [
                 mspec(f"fragment_consumer", "FragmentConsumer", [
                                             app.QueueInfo(name="input_queue", inst=f"data_fragments_q", dir="input")
+                                            ])
+        ] + [
+                mspec(f"tp_handler", "DataLinkHandler", [
+                                            app.QueueInfo(name="raw_input", inst=f"tp_queue", dir="input"),
+                                            app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
+                                            app.QueueInfo(name="requests", inst="tp_data_requests", dir="input"),
+                                            app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
+                                            app.QueueInfo(name="raw_recording", inst="tp_recording_link", dir="output")
                                             ])
         ]
 
@@ -138,7 +153,17 @@ def generate(
                         output_file = f"output_{idx}.out",
                         stream_buffer_size = 8388608
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
-            ])
+            ] + [
+                (f"tp_handler", dlh.Conf(
+                        source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
+                        fake_trigger_flag=1,
+                        latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
+                        pop_limit_pct = 0.8,
+                        pop_size_pct = 0.1,
+                        apa_number = 0,
+                        link_number = 0
+                        ))
+    ])
     
     jstr = json.dumps(confcmd.pod(), indent=4, sort_keys=True)
     print(jstr)
@@ -149,7 +174,8 @@ def generate(
             ("fake_source", startpars),
             ("data_recorder_.*", startpars),
             ("timesync_consumer", startpars),
-            ("fragment_consumer", startpars)
+            ("fragment_consumer", startpars),
+            ("tp_handler", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -161,7 +187,8 @@ def generate(
             ("datahandler_.*", None),
             ("data_recorder_.*", None),
             ("timesync_consumer", None),
-            ("fragment_consumer", None)
+            ("fragment_consumer", None),
+            ("tp_handler", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)

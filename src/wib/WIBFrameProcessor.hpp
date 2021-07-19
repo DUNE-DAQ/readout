@@ -8,6 +8,7 @@
 #ifndef READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 
+#include "appfwk/DAQModuleHelper.hpp"
 #include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/models/IterableQueueModel.hpp"
@@ -17,6 +18,8 @@
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/ReadoutTypes.hpp"
+#include "triggeralgs/TriggerPrimitive.hpp"
 
 #include "tpg/PdspChannelMapService.h"
 #include "tpg/frame_expand.h"
@@ -54,7 +57,6 @@ public:
     , m_channel_map("/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
                     "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt")
   {
-
     m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
 
     m_coll_taps = firwin_int(7, 0.1, m_coll_multiplier);
@@ -138,6 +140,17 @@ public:
     return offline;
   }
 
+  void init(const nlohmann::json& args) override
+  {
+    try {
+      auto queue_index = appfwk::queue_index(args, {});
+      if (queue_index.find("tp_out") != queue_index.end()) {
+        m_tp_sink.reset(new appfwk::DAQSink<types::TP_READOUT_TYPE>(queue_index["tp_out"].inst));
+      }
+    } catch (const ers::Issue& excpt) {
+      throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "tp_out", excpt);
+    }
+  }
 
 protected:
   // Internals
@@ -414,6 +427,7 @@ private:
   int16_t* m_ind_taps_p;
   std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
+  std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
 
 };
 

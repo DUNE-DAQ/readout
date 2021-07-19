@@ -38,6 +38,7 @@ set(READOUT_DEPENDENCIES
   dfmessages::dfmessages
   triggeralgs::triggeralgs
   trigger::trigger
+  Folly::folly
 )
 
 ##############################################################################

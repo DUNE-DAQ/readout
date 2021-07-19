@@ -5,8 +5,8 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_READOUTISSUES_HPP_
-#define READOUT_SRC_READOUTISSUES_HPP_
+#ifndef READOUT_INCLUDE_READOUT_READOUTISSUES_HPP_
+#define READOUT_INCLUDE_READOUT_READOUTISSUES_HPP_
 
 #include <ers/Issue.hpp>
 
@@ -27,10 +27,10 @@ ERS_DECLARE_ISSUE(readout, ConfigurationError, " Readout Configuration Error: " 
 
 ERS_DECLARE_ISSUE(readout, CannotOpenFile, " Couldn't open binary file: " << filename, ((std::string)filename))
 
-ERS_DECLARE_ISSUE_BASE(readout, 
+ERS_DECLARE_ISSUE_BASE(readout,
                        CannotReadFile,
                        readout::ConfigurationError,
-                       " Couldn't read properly the binary file: " << filename << " Cause: " << errorstr, 
+                       " Couldn't read properly the binary file: " << filename << " Cause: " << errorstr,
                        ((std::string)filename),
                        ((std::string)errorstr))
 
@@ -91,4 +91,4 @@ ERS_DECLARE_ISSUE_BASE(readout,
 
 } // namespace dunedaq
 
-#endif // READOUT_SRC_READOUTISSUES_HPP_
+#endif // READOUT_INCLUDE_READOUT_READOUTISSUES_HPP_

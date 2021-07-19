@@ -18,6 +18,7 @@
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
+#include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
@@ -252,6 +253,45 @@ struct DAPHNE_SUPERCHUNK_STRUCT
 
 static_assert(sizeof(struct DAPHNE_SUPERCHUNK_STRUCT) == DAPHNE_SUPERCHUNK_SIZE,
               "Check your assumptions on DAPHNE_SUPERCHUNK_STRUCT");
+
+const constexpr std::size_t TP_SIZE = sizeof(triggeralgs::TriggerPrimitive);
+struct TP_READOUT_TYPE
+{
+  using FrameType = TP_READOUT_TYPE;
+  // data
+  triggeralgs::TriggerPrimitive tp;
+  // comparable based on start timestamp
+  bool operator<(const TP_READOUT_TYPE& other) const { return this->tp.time_start < other.tp.time_start; }
+
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
+    return tp.time_start;
+  }
+
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    tp.time_start = ts;
+  }
+
+  void fake_timestamp(uint64_t first_timestamp, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
+  {
+    tp.time_start = first_timestamp;
+  }
+
+  FrameType* begin() { return this; }
+
+  FrameType* end() { return (this + 1); } // NOLINT
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t tick_dist = 25; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = TP_SIZE;
+  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = TP_SIZE;
+};
+
+static_assert(sizeof(struct TP_READOUT_TYPE) == sizeof(triggeralgs::TriggerPrimitive),
+              "Check your assumptions on TP_READOUT_TYPE");
 
 /**
  * @brief Convencience wrapper to take ownership over char pointers with
