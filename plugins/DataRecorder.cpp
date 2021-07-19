@@ -7,6 +7,7 @@
  */
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
+#include "readout/NDReadoutTypes.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/InfoNljs.hpp"
@@ -60,6 +61,14 @@ DataRecorder::init(const data_t& args)
     if (inst.find("pds") != std::string::npos) {
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for pds";
       recorder.reset(new RecorderImpl<types::DAPHNE_SUPERCHUNK_STRUCT>(get_name()));
+      recorder->init(args);
+      return;
+    }
+
+    // IF PACMAN
+    if (inst.find("pacman") != std::string::npos) {
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating recorder for pacman";
+      recorder.reset(new RecorderImpl<types::PACMAN_MESSAGE_STRUCT>(get_name()));
       recorder->init(args);
       return;
     }
