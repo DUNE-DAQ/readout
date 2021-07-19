@@ -1,12 +1,12 @@
 /**
- * @file WIBFrameProcessor.hpp WIB TP specific Task based raw processor
+ * @file WIBTriggerPrimitiveProcessor.hpp WIB TP specific Task based raw processor
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef READOUT_SRC_WIB_TPFRAMEPROCESSOR_HPP_
-#define READOUT_SRC_WIB_TPFRAMEPROCESSOR_HPP_
+#ifndef READOUT_SRC_WIB_WIBTRIGGERPRIMITIVEPROCESSOR_HPP_
+#define READOUT_SRC_WIB_WIBTRIGGERPRIMITIVEPROCESSOR_HPP_
 
 #include "appfwk/DAQModuleHelper.hpp"
 #include "readout/ReadoutIssues.hpp"
@@ -29,7 +29,7 @@ using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 namespace dunedaq {
 namespace readout {
 
-class TPFrameProcessor : public TaskRawDataProcessorModel<types::TP_READOUT_TYPE>
+class WIBTriggerPrimitiveProcessor : public TaskRawDataProcessorModel<types::TP_READOUT_TYPE>
 {
 
 public:
@@ -38,7 +38,7 @@ public:
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-  explicit TPFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+  explicit WIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::TP_READOUT_TYPE>(error_registry)
   {}
 
