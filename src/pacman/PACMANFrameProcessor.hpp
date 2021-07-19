@@ -28,12 +28,11 @@ namespace readout {
 
 class PACMANFrameProcessor : public TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>
 {
-
 public:
   using inherited = TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>;
   using frameptr = types::PACMAN_MESSAGE_STRUCT*;
   using pacmanframeptr = dunedaq::dataformats::PACMANFrame*;
-  using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
+  using timestamp_t = std::uint64_t;  // NOLINT(build/unsigned)
 
   explicit PACMANFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>(error_registry)
@@ -58,7 +57,7 @@ protected:
   void timestamp_check(frameptr fp)
   {
     // If EMU data, emulate perfectly incrementing timestamp
-    if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
+    if (inherited::m_emulator_mode) {  // emulate perfectly incrementing timestamp
       // FIX ME - add fake timestamp to PACMAN message struct
     }
 
@@ -67,9 +66,12 @@ protected:
 
     // Check timestamp
     // RS warning : not fixed rate!
-    // if (m_current_ts - m_previous_ts != ???) {
-    //  ++m_ts_error_ctr;
-    //}
+    if (m_current_ts - m_previous_ts <= 0) {
+      ++m_ts_error_ctr;
+        TLOG_DEBUG(TLVL_BOOKKEEPING) << "Timestamp continuity MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
+                                     << " current: " + std::to_string(m_current_ts);
+      }
+
 
     if (m_ts_error_ctr > 1000) {
       if (!m_problem_reported) {
@@ -90,6 +92,8 @@ protected:
   {
     // check error fields
     // FIX ME - to be implemented
+
+    // fp->inspect_message();
   }
 
 private:
