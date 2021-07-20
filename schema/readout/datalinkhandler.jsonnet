@@ -50,7 +50,11 @@ local datalinkhandler = {
         s.field("num_request_handling_threads", self.count, 1,
                 doc="Number of threads to use for data request handling"),
         s.field("postprocess_queue_sizes", self.size, 10000,
-                doc="Size of the queues used for postprocessing")
+                doc="Size of the queues used for postprocessing"),
+        s.field("tp_timeout", self.size, 100000,
+                doc="Timeout after which ongoing TPs are discarded"),
+        s.field("tpset_window_size", self.size, 10000,
+                doc="Size of the TPSet windows")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [

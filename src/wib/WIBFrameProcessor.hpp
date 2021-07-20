@@ -54,9 +54,9 @@ public:
 
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
-    , m_stats_thread(0)
     , m_channel_map("/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
                     "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt")
+    , m_stats_thread(0)
   {
     m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
 
@@ -150,6 +150,28 @@ public:
     } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "", excpt);
     }
+  }
+
+  void conf(const nlohmann::json& cfg) override
+  {
+    auto config = cfg.get<datalinkhandler::Conf>();
+    m_geoid.element_id = config.link_number;
+    m_geoid.region_id = config.apa_number;
+    m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
+
+    m_tp_timeout = config.tp_timeout;
+    m_tpset_window_size = config.tpset_window_size;
+
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
+  }
+
+  void get_info(datalinkhandlerinfo::Info& info)
+  {
+    info.sent_tps = m_sent_tps;
+    info.sent_tpsets = m_sent_tpsets;
+    info.dropped_tps = m_dropped_tps;
+
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(info);
   }
 
 protected:
@@ -305,7 +327,7 @@ protected:
             // This channel had a hit ending here, so we can create and output the hit here
             const uint16_t online_channel = collection_index_to_channel(chan[i]);
             int multiplier = (m_fiber_no == 1) ? 1 : -1;
-            const uint32_t offline_channel = m_offline_channel_base + multiplier * collection_index_to_offline(chan[i]);
+            // const uint32_t offline_channel = m_offline_channel_base + multiplier * collection_index_to_offline(chan[i]);
             // hit_end is the end time of the hit in TPC clock
             // ticks after the start of the netio message in which
             // the hit ended
@@ -343,8 +365,10 @@ protected:
                      << " hit_t_end:" << tp_t_end << " time_peak:" << (tp_t_begin + tp_t_end) / 2;
             }
 
-            if (trigprim.time_start + m_tpset_timeout > timestamp + 300) {
+            if (trigprim.time_start + m_tp_timeout > timestamp + 300) {
               m_tp_buffer.push(trigprim);
+            } else {
+              m_dropped_tps++;
             }
 
             //} else {
@@ -373,7 +397,7 @@ protected:
     }
 
     // Check if we can send out a TPSet
-    if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tpset_timeout < timestamp + 300) {
+    if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tp_timeout < timestamp + 300) {
       trigger::TPSet tpset;
       tpset.start_time = (m_tp_buffer.top().time_start / m_tpset_window_size) * m_tpset_window_size;
       tpset.end_time = tpset.start_time + m_tpset_window_size;
@@ -388,9 +412,11 @@ protected:
         //std::cout << "Send out tp: " << tp.time_start << std::endl;
         tpset.objects.emplace_back(std::move(tp));
         m_tp_buffer.pop();
+        m_sent_tps++;
       }
 
       m_tpset_sink->push(std::move(tpset));
+      m_sent_tpsets++;
     }
 
   }
@@ -503,9 +529,14 @@ private:
   };
   std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator> m_tp_buffer;
 
-  uint64_t m_tpset_timeout = 10000;
+  dataformats::GeoID m_geoid;
+  uint64_t m_tp_timeout = 10000;
   uint64_t m_tpset_window_size = 1000;
   uint64_t m_next_tpset_seqno = 0;
+
+  std::atomic<uint64_t> m_sent_tps { 0 };
+  std::atomic<uint64_t> m_sent_tpsets { 0 };
+  std::atomic<uint64_t> m_dropped_tps { 0 };
 };
 
 } // namespace readout
