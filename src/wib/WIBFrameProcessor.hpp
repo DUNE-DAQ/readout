@@ -20,6 +20,7 @@
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
+#include "trigger/TPSet.hpp"
 
 #include "tpg/PdspChannelMapService.h"
 #include "tpg/frame_expand.h"
@@ -143,8 +144,11 @@ public:
       if (queue_index.find("tp_out") != queue_index.end()) {
         m_tp_sink.reset(new appfwk::DAQSink<types::TP_READOUT_TYPE>(queue_index["tp_out"].inst));
       }
+      if (queue_index.find("tpset_out") != queue_index.end()) {
+        m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
+      }
     } catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "tp_out", excpt);
+      throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "", excpt);
     }
   }
 
@@ -322,29 +326,25 @@ protected:
 
             //if (should_send) {
             //
-              //triggeralgs::TriggerPrimitive trigprim;
-              readout::types::TP_READOUT_TYPE trigprim;
-              trigprim.tp.time_start = tp_t_begin;
-              trigprim.tp.time_peak = (tp_t_begin + tp_t_end) / 2; 
-              trigprim.tp.time_over_threshold = hit_tover[i];
-              trigprim.tp.channel = online_channel;
-              trigprim.tp.adc_integral = hit_charge[i];
-              trigprim.tp.adc_peak = hit_charge[i] / 20;
-              trigprim.tp.detid = m_fiber_no; // RS TODO: convert crate/slot/fiber to GeoID
-              trigprim.tp.type = triggeralgs::TriggerPrimitive::Type::kTPC;
-              trigprim.tp.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
-              trigprim.tp.version = 1;
+              triggeralgs::TriggerPrimitive trigprim;
+              trigprim.time_start = tp_t_begin;
+              trigprim.time_peak = (tp_t_begin + tp_t_end) / 2;
+              trigprim.time_over_threshold = hit_tover[i];
+              trigprim.channel = online_channel;
+              trigprim.adc_integral = hit_charge[i];
+              trigprim.adc_peak = hit_charge[i] / 20;
+              trigprim.detid = m_fiber_no; // RS TODO: convert crate/slot/fiber to GeoID
+              trigprim.type = triggeralgs::TriggerPrimitive::Type::kTPC;
+              trigprim.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
+              trigprim.version = 1;
 
             if (m_first_coll) {
               TLOG() << "TP makes sense? -> hit_t_begin:" << tp_t_begin 
                      << " hit_t_end:" << tp_t_end << " time_peak:" << (tp_t_begin + tp_t_end) / 2;
             }
 
-            try {
-              m_tp_sink->push(std::move(trigprim));
-              ++npushed;
-            } catch (...) {
-              // pass, no worries
+            if (trigprim.time_start + m_tpset_timeout > timestamp + 300) {
+              m_tp_buffer.push(trigprim);
             }
 
             //} else {
@@ -370,6 +370,27 @@ protected:
     if (m_first_coll) {
       TLOG() << "Total hits in first superchunk: " << nhits;
       m_first_coll = false;
+    }
+
+    // Check if we can send out a TPSet
+    if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tpset_timeout < timestamp + 300) {
+      trigger::TPSet tpset;
+      tpset.start_time = (m_tp_buffer.top().time_start / m_tpset_window_size) * m_tpset_window_size;
+      tpset.end_time = tpset.start_time + m_tpset_window_size;
+      tpset.seqno = m_next_tpset_seqno++;
+      tpset.type = trigger::TPSet::Type::kPayload;
+
+      //std::cout << "Send out new tpset" << std::endl;
+      while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
+        triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
+        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp);
+        m_tp_sink->push(*tp_readout_type);
+        //std::cout << "Send out tp: " << tp.time_start << std::endl;
+        tpset.objects.emplace_back(std::move(tp));
+        m_tp_buffer.pop();
+      }
+
+      m_tpset_sink->push(std::move(tpset));
     }
 
   }
@@ -470,7 +491,21 @@ private:
   std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
   std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
+  std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
 
+  class Comparator
+  {
+  public:
+    bool operator()(triggeralgs::TriggerPrimitive& left, triggeralgs::TriggerPrimitive& right)
+    {
+      return left.time_start > right.time_start;
+    }
+  };
+  std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator> m_tp_buffer;
+
+  uint64_t m_tpset_timeout = 10000;
+  uint64_t m_tpset_window_size = 1000;
+  uint64_t m_next_tpset_seqno = 0;
 };
 
 } // namespace readout

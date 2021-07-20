@@ -43,20 +43,8 @@ public:
     : TaskRawDataProcessorModel<types::TP_READOUT_TYPE>(error_registry)
   {}
 
-  void init(const nlohmann::json& args) override
-  {
-    try {
-      auto queue_index = appfwk::queue_index(args, {});
-      if (queue_index.find("tpset_out") != queue_index.end()) {
-        m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
-      }
-    } catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "tpset_out", excpt);
-    }
-  }
 
 private:
-  std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
 };
 
 } // namespace readout
