@@ -17,7 +17,7 @@
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 
-#include "../include/readout/ReadoutIssues.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/models/ReadoutModel.hpp"
 
@@ -25,6 +25,7 @@
 #include "daphne/DAPHNEListRequestHandler.hpp"
 #include "pacman/PACMANFrameProcessor.hpp"
 #include "pacman/PACMANListRequestHandler.hpp"
+#include "wib/TPFrameProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
 
@@ -93,6 +94,17 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            DAPHNEListRequestHandler,
                                                            SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                                                            DAPHNEFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      if (inst.find("tp") != std::string::npos) {
+        TLOG(TLVL_WORK_STEPS) << "Creating readout for tp";
+        auto readout_model = std::make_unique<ReadoutModel<
+          types::TP_READOUT_TYPE,
+          DefaultRequestHandlerModel<types::TP_READOUT_TYPE, BinarySearchQueueModel<types::TP_READOUT_TYPE>>,
+          BinarySearchQueueModel<types::TP_READOUT_TYPE>,
+          TPFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

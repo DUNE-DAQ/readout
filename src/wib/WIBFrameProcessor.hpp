@@ -8,6 +8,7 @@
 #ifndef READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 #define READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 
+#include "appfwk/DAQModuleHelper.hpp"
 #include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
@@ -15,6 +16,8 @@
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/ReadoutTypes.hpp"
+#include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <atomic>
 #include <functional>
@@ -43,6 +46,18 @@ public:
     // TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(std::bind(&WIBFrameProcessor::postprocess_example,
     // this, std::placeholders::_1));
     // m_tasklist.push_back( std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1) );
+  }
+
+  void init(const nlohmann::json& args) override
+  {
+    try {
+      auto queue_index = appfwk::queue_index(args, {});
+      if (queue_index.find("tp_out") != queue_index.end()) {
+        m_tp_sink.reset(new appfwk::DAQSink<types::TP_READOUT_TYPE>(queue_index["tp_out"].inst));
+      }
+    } catch (const ers::Issue& excpt) {
+      throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "tp_out", excpt);
+    }
   }
 
 protected:
@@ -110,6 +125,7 @@ protected:
   }
 
 private:
+  std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
 };
 
 } // namespace readout
