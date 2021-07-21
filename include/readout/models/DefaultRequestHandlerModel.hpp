@@ -68,6 +68,8 @@ public:
     , m_pop_limit_size(0)
     , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
+    , m_response_time_log()
+    , m_response_time_log_lock()
     , m_error_registry(error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
@@ -110,7 +112,7 @@ public:
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
-    m_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
+    m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -121,7 +123,7 @@ public:
       m_future_recording_stopper.wait();
     m_stats_thread.join();
     m_waiting_queue_thread.join();
-    m_thread_pool->join();
+    m_request_handler_thread_pool->join();
   }
 
   void record(const nlohmann::json& args) override
@@ -162,7 +164,7 @@ public:
     std::unique_lock<std::mutex> lock(m_cv_mutex);
     m_cv.wait(lock, [&] { return !m_cleanup_requested; });
     m_requests_running++;
-    boost::asio::post(*m_thread_pool, [&, datarequest]() { // start a thread from pool
+    boost::asio::post(*m_request_handler_thread_pool, [&, datarequest]() { // start a thread from pool
       auto t_req_begin = std::chrono::high_resolution_clock::now();
       auto result = data_request(datarequest);
       {
@@ -185,12 +187,16 @@ public:
       } else if (result.result_code == ResultCode::kNotYet) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
                                     << "With timestamp=" << result.data_request.trigger_timestamp;
-        std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
+        std::lock_guard<std::mutex> wait_lock_guard(m_waiting_requests_lock);
         m_waiting_requests.push(datarequest);
       }
       auto t_req_end = std::chrono::high_resolution_clock::now();
       auto us_req_took = std::chrono::duration_cast<std::chrono::microseconds>(t_req_end - t_req_begin);
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Responding to data request took: " << us_req_took.count() << "[us]";
+      if (result.result_code == ResultCode::kFound) {
+        std::lock_guard<std::mutex> time_lock_guard(m_response_time_log_lock);
+        m_response_time_log.push_back( std::make_pair<int, int>(result.data_request.trigger_number, us_req_took.count()) );
+      }
     });
   }
 
@@ -308,6 +314,20 @@ protected:
       double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
       TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs / seconds / 1. << " [Hz]"
                                     << " Dropped: " << new_pop_count << " Occupancy: " << new_occupancy;
+
+      std::unique_lock<std::mutex> time_lock_guard(m_response_time_log_lock);
+      if (!m_response_time_log.empty()) {
+        std::ostringstream oss;
+        oss << "Completed data requests [trig id, took us]: ";
+        while (!m_response_time_log.empty()) {
+        //for (int i = 0; i < m_response_time_log.size(); ++i) {
+          auto& fr = m_response_time_log.front();
+          oss << fr.first << ". in " << fr.second << " | ";
+          m_response_time_log.pop_front();
+        }
+        TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+      }
+      time_lock_guard.unlock();
       for (int i = 0; i < 50 && m_run_marker.load(); ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -497,7 +517,12 @@ private:
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
 
-  std::unique_ptr<boost::asio::thread_pool> m_thread_pool;
+  // Request response time log
+  std::deque<std::pair<int, int>> m_response_time_log;
+  std::mutex m_response_time_log_lock;
+
+  // Data extractor threads pool 
+  std::unique_ptr<boost::asio::thread_pool> m_request_handler_thread_pool;
   size_t m_num_request_handling_threads = 0;
 
   std::unique_ptr<FrameErrorRegistry>& m_error_registry;

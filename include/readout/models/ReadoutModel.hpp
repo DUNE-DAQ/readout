@@ -65,6 +65,7 @@ public:
   explicit ReadoutModel(std::atomic<bool>& run_marker)
     : m_run_marker(run_marker)
     , m_fake_trigger(false)
+    , m_current_fake_trigger_id(0)
     , m_stats_thread(0)
     , m_consumer_thread(0)
     , m_source_queue_timeout_ms(0)
@@ -254,8 +255,10 @@ private:
 
           if (m_fake_trigger) {
             dfmessages::DataRequest dr;
+            ++m_current_fake_trigger_id;
+            dr.trigger_number = m_current_fake_trigger_id;
             dr.trigger_timestamp = timesyncmsg.daq_time > 500 * us ? timesyncmsg.daq_time - 500 * us : 0;
-            auto width = 10000;
+            auto width = 300000;
             uint offset = 100;
             dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
             dr.window_end = dr.window_begin + width;
@@ -334,6 +337,7 @@ private:
   // CONFIGURATION
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
+  uint64_t m_current_fake_trigger_id;
   uint32_t m_this_apa_number;  // NOLINT(build/unsigned)
   uint32_t m_this_link_number; // NOLINT(build/unsigned)
 
