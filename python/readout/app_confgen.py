@@ -61,14 +61,14 @@ def generate(
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=1000)
+            app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
             app.QueueSpec(inst=f"tp_data_requests", kind='FollySPSCQueue', capacity=1000)
         ] + [
             app.QueueSpec(inst="tp_recording_link", kind='FollySPSCQueue', capacity=1000)
         ] + [
-            app.QueueSpec(inst=f"tpset_link_{idx}", kind='FollySPSCQueue', capacity=1000)
+            app.QueueSpec(inst=f"tpset_link_{idx}", kind='FollySPSCQueue', capacity=10000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
     
