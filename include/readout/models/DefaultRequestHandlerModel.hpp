@@ -168,7 +168,7 @@ public:
       auto t_req_begin = std::chrono::high_resolution_clock::now();
       auto result = data_request(datarequest);
       {
-        std::unique_lock<std::mutex> lock(m_cv_mutex);
+        std::lock_guard<std::mutex> lock(m_cv_mutex);
         m_requests_running--;
       }
       m_cv.notify_all();
