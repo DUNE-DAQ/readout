@@ -37,6 +37,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -161,8 +162,8 @@ public:
     std::unique_lock<std::mutex> lock(m_cv_mutex);
     m_cv.wait(lock, [&] { return !m_cleanup_requested; });
     m_requests_running++;
-    // Start a new thread for now, use a thread pool in the future
-    boost::asio::post(*m_thread_pool, [&, datarequest]() {
+    boost::asio::post(*m_thread_pool, [&, datarequest]() { // start a thread from pool
+      auto t_req_begin = std::chrono::high_resolution_clock::now();
       auto result = data_request(datarequest);
       {
         std::unique_lock<std::mutex> lock(m_cv_mutex);
@@ -170,8 +171,7 @@ public:
       }
       m_cv.notify_all();
       if (result.result_code == ResultCode::kFound) {
-        // Push to Fragment queue
-        try {
+        try { // Push to Fragment queue
           TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
                                       << result.fragment->get_trigger_number() << ", run number "
                                       << result.fragment->get_run_number() << ", and GeoID "
@@ -188,6 +188,9 @@ public:
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
         m_waiting_requests.push(datarequest);
       }
+      auto t_req_end = std::chrono::high_resolution_clock::now();
+      auto us_req_took = std::chrono::duration_cast<std::chrono::microseconds>(t_req_end - t_req_begin);
+      TLOG_DEBUG(TLVL_WORK_STEPS) << "Responding to data request took: " << us_req_took.count() << "[us]";
     });
   }
 
@@ -332,11 +335,6 @@ protected:
 
       uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
       uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
-      // std::cout << start_idx << ", " << end_idx << std::endl;
-      // std::cout << "Timestamps: " << start_win_ts << ", " << end_win_ts << std::endl;
-      // std::cout << "Found timestamps: " << m_latency_buffer->at(start_idx)->get_timestamp() << ", " <<
-      // m_latency_buffer->at(end_idx)->get_timestamp() << std::endl;
-
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Data request for "
                                   << "Trigger TS=" << dr.trigger_timestamp << " "
                                   << "Oldest stored TS=" << last_ts << " "
