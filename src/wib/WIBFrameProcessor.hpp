@@ -56,42 +56,9 @@ public:
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
     , m_stats_thread(0)
   {
-    m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
-
-    m_coll_taps = firwin_int(7, 0.1, m_coll_multiplier);
-    m_coll_taps.push_back(0);
-    m_ind_taps = firwin_int(7, 0.1, m_ind_multiplier);
-    m_ind_taps.push_back(0);
-
-    m_coll_taps_p = new int16_t[m_coll_taps.size()];
-    for (size_t i=0; i<m_coll_taps.size(); ++i) {
-      m_coll_taps_p[i] = m_coll_taps[i];
-    }
-
-    m_ind_taps_p = new int16_t[m_ind_taps.size()];
-    for (size_t i=0; i<m_ind_taps.size(); ++i) {
-      m_ind_taps_p[i] = m_ind_taps[i];
-    }
-
-    // Temporary place to stash the hits
-    m_coll_primfind_dest = new uint16_t[100000];
-    m_ind_primfind_dest = new uint16_t[100000];
-
-    TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold << " exponent:" << m_coll_tap_exponent;
-
-    m_coll_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME,
-      m_coll_primfind_dest, m_coll_taps_p, (uint8_t)m_coll_taps.size(), m_coll_tap_exponent, m_coll_threshold, 0, 0);
-
-    m_ind_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, 10,
-      m_ind_primfind_dest, m_ind_taps_p, (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
-
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-
-    // Setup parallel post-processing
-    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
-      std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
    
     // To be removed: 
     m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
@@ -160,7 +127,42 @@ public:
     m_tp_timeout = config.tp_timeout;
     m_tpset_window_size = config.tpset_window_size;
 
-    m_channel_map.reset(new PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
+    if (config.activate_wib_software_tpg) {
+      m_channel_map.reset(new PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
+
+      m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
+
+      m_coll_taps = firwin_int(7, 0.1, m_coll_multiplier);
+      m_coll_taps.push_back(0);
+      m_ind_taps = firwin_int(7, 0.1, m_ind_multiplier);
+      m_ind_taps.push_back(0);
+
+      m_coll_taps_p = new int16_t[m_coll_taps.size()];
+      for (size_t i=0; i<m_coll_taps.size(); ++i) {
+        m_coll_taps_p[i] = m_coll_taps[i];
+      }
+
+      m_ind_taps_p = new int16_t[m_ind_taps.size()];
+      for (size_t i=0; i<m_ind_taps.size(); ++i) {
+        m_ind_taps_p[i] = m_ind_taps[i];
+      }
+
+      // Temporary place to stash the hits
+      m_coll_primfind_dest = new uint16_t[100000];
+      m_ind_primfind_dest = new uint16_t[100000];
+
+      TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold << " exponent:" << m_coll_tap_exponent;
+
+      m_coll_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME,
+                                                                            m_coll_primfind_dest, m_coll_taps_p, (uint8_t)m_coll_taps.size(), m_coll_tap_exponent, m_coll_threshold, 0, 0);
+
+      m_ind_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, 10,
+                                                                           m_ind_primfind_dest, m_ind_taps_p, (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
+
+      // Setup parallel post-processing
+      TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
+          std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+    }
 
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
   }

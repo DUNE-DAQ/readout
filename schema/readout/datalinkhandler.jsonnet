@@ -61,7 +61,9 @@ local datalinkhandler = {
         s.field("channel_map_rce", self.file_name, "/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
                 doc="Channel map rce file for software TPG"),
         s.field("channel_map_felix", self.file_name, "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt",
-                        doc="Channel map felix file for software TPG")
+                        doc="Channel map felix file for software TPG"),
+        s.field("activate_wib_software_tpg", self.choice, true,
+                doc="Activate the software TPG for wib")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [
