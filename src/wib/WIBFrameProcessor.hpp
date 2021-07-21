@@ -404,18 +404,24 @@ protected:
       tpset.seqno = m_next_tpset_seqno++;
       tpset.type = trigger::TPSet::Type::kPayload;
 
-      //std::cout << "Send out new tpset" << std::endl;
       while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
         triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
         types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp);
-        m_tp_sink->push(*tp_readout_type);
-        //std::cout << "Send out tp: " << tp.time_start << std::endl;
+        try {
+          m_tp_sink->push(*tp_readout_type);
+        } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+          ers::error(CannotWriteToQueue(ERS_HERE, "m_tp_sink"));
+        }
         tpset.objects.emplace_back(std::move(tp));
         m_tp_buffer.pop();
         m_sent_tps++;
       }
 
-      m_tpset_sink->push(std::move(tpset));
+      try {
+        m_tpset_sink->push(std::move(tpset));
+      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        ers::error(CannotWriteToQueue(ERS_HERE, "m_tpset_sink"));
+      }
       m_sent_tpsets++;
     }
 
