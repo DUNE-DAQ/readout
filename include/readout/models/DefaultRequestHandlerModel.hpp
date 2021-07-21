@@ -305,12 +305,16 @@ protected:
     int new_pop_reqs = 0;
     int new_pop_count = 0;
     int new_occupancy = 0;
+    int new_request_times = 0;
+    int new_request_count = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
     while (m_run_marker.load()) {
       auto now = std::chrono::high_resolution_clock::now();
       new_pop_reqs = m_pop_reqs.exchange(0);
       new_pop_count = m_pops_count.exchange(0);
       new_occupancy = m_occupancy;
+      new_request_times = 0;
+      new_request_count = 0;
       double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
       TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs / seconds / 1. << " [Hz]"
                                     << " Dropped: " << new_pop_count << " Occupancy: " << new_occupancy;
@@ -318,14 +322,18 @@ protected:
       std::unique_lock<std::mutex> time_lock_guard(m_response_time_log_lock);
       if (!m_response_time_log.empty()) {
         std::ostringstream oss;
-        oss << "Completed data requests [trig id, took us]: ";
+        //oss << "Completed data requests [trig id, took us]: ";
         while (!m_response_time_log.empty()) {
         //for (int i = 0; i < m_response_time_log.size(); ++i) {
           auto& fr = m_response_time_log.front();
-          oss << fr.first << ". in " << fr.second << " | ";
+          ++new_request_count;
+          new_request_times += fr.second;
+          //oss << fr.first << ". in " << fr.second << " | ";
           m_response_time_log.pop_front();
         }
-        TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+        //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+        TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << new_request_count
+                                      << " | Avarage response time: " << new_request_times / new_request_count << "[us]"; 
       }
       time_lock_guard.unlock();
       for (int i = 0; i < 50 && m_run_marker.load(); ++i) {
@@ -383,7 +391,7 @@ protected:
             if (element->get_timestamp() < start_win_ts ||
                 element->get_timestamp() + (ReadoutType::frames_per_element - 1) * ReadoutType::tick_dist >=
                   end_win_ts) {
-              // We don't need the whole superchunk
+              // We don't need the whole aggregated object (e.g.: superchunk)
               for (auto frame_iter = element->begin(); frame_iter != element->end(); frame_iter++) {
                 if ((*frame_iter).get_timestamp() >= start_win_ts && (*frame_iter).get_timestamp() < end_win_ts) {
                   frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)),
@@ -391,7 +399,7 @@ protected:
                 }
               }
             } else {
-              // We are somewhere in the middle -> the whole superchunk can be copied
+              // We are somewhere in the middle -> the whole aggregated object (e.g.: superchunk) can be copied
               frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)),
                                                                      std::size_t(ReadoutType::element_size)));
             }
@@ -516,6 +524,8 @@ private:
   std::atomic<int> m_request_gone{ 0 };
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
+  //std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
+  //std::atomic<int> m_avg_resp_time{ 0 };
 
   // Request response time log
   std::deque<std::pair<int, int>> m_response_time_log;
