@@ -54,8 +54,6 @@ public:
 
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
-    , m_channel_map("/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
-                    "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt")
     , m_stats_thread(0)
   {
     m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
@@ -162,6 +160,8 @@ public:
     m_tp_timeout = config.tp_timeout;
     m_tpset_window_size = config.tpset_window_size;
 
+    m_channel_map.reset(new PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
+
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
   }
 
@@ -263,8 +263,8 @@ protected:
       m_crate_no = wfptr->get_wib_header()->crate_no;
       m_slot_no = wfptr->get_wib_header()->slot_no;
 
-      m_offline_channel_base = getOfflineChannel(m_channel_map, wfptr, 48);
-      m_offline_channel_base_induction = getOfflineChannel(m_channel_map, wfptr, 248);
+      m_offline_channel_base = getOfflineChannel(*m_channel_map, wfptr, 48);
+      m_offline_channel_base_induction = getOfflineChannel(*m_channel_map, wfptr, 248);
 
       TLOG() << "Got first item, fiber/crate/slot=" << (int)m_fiber_no << "/" << (int)m_crate_no << "/" << (int)m_slot_no;
     }
@@ -479,7 +479,7 @@ private:
 
   std::unique_ptr<IterableQueueModel<InductionItemToProcess>> m_induction_items_to_process;
 
-  PdspChannelMapService m_channel_map;
+  std::unique_ptr<PdspChannelMapService> m_channel_map;
 
   size_t m_num_msg = 0;
   size_t m_num_push_fail = 0;
