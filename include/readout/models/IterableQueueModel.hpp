@@ -299,7 +299,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
     int currentLast = currentWrite;
     if (currentLast == 0) {
-      currentLast = size_;
+      currentLast = size_ - 1;
     } else {
       currentLast--;
     }
