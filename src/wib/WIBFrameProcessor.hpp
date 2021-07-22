@@ -405,6 +405,7 @@ protected:
       tpset.end_time = tpset.start_time + m_tpset_window_size;
       tpset.seqno = m_next_tpset_seqno++;
       tpset.type = trigger::TPSet::Type::kPayload;
+      tpset.origin = m_geoid;
 
       while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
         triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
