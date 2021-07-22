@@ -33,6 +33,7 @@
 #include <iomanip>
 #include <memory>
 #include <queue>
+#include <deque>
 #include <string>
 #include <thread>
 #include <utility>

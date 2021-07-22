@@ -106,7 +106,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     , writeIndex_(0)
   {
     assert(size >= 2);
-    // TODO: check for valid alignment sizes!
+    // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
     records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
 
     if (!records_) {

@@ -337,7 +337,7 @@ private:
   // CONFIGURATION
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
-  uint64_t m_current_fake_trigger_id;
+  int m_current_fake_trigger_id;
   uint32_t m_this_apa_number;  // NOLINT(build/unsigned)
   uint32_t m_this_link_number; // NOLINT(build/unsigned)
 
