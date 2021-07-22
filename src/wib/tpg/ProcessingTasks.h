@@ -22,26 +22,28 @@
 
 namespace ProcessingTasks {
 
-    // The details of a netio message to be processed
-    struct ItemToProcess
-    {
-        uint64_t timestamp;          // The timestamp of the first frame in the
-                                     // netio message
-        SUPERCHUNK_CHAR_STRUCT scs;  // The raw message to be
-                                     // processed
-        uint64_t timeQueued;         // The time this item was queued
-                                     // so receivers can detect
-                                     // whether they're getting behind
-    };
+// The details of a netio message to be processed
+struct ItemToProcess
+{
+  uint64_t timestamp;         // The timestamp of the first frame in the
+                              // netio message
+  SUPERCHUNK_CHAR_STRUCT scs; // The raw message to be
+                              // processed
+  uint64_t timeQueued;        // The time this item was queued
+                              // so receivers can detect
+                              // whether they're getting behind
+};
 
-    constexpr uint64_t END_OF_MESSAGES=0xffffffffffffffff;
+constexpr uint64_t END_OF_MESSAGES = 0xffffffffffffffff;
 
-    // Return the current steady clock in microseconds
-    inline uint64_t now_us()
-    {
-        // std::chrono is the worst
-        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    }
+// Return the current steady clock in microseconds
+inline uint64_t
+now_us()
+{
+  // std::chrono is the worst
+  return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch())
+    .count();
+}
 
 } // end namespace ProcessingTasks
 

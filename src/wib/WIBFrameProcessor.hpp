@@ -10,8 +10,8 @@
 
 #include "appfwk/DAQModuleHelper.hpp"
 #include "readout/ReadoutIssues.hpp"
-#include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/models/IterableQueueModel.hpp"
+#include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
@@ -19,20 +19,23 @@
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "triggeralgs/TriggerPrimitive.hpp"
 #include "trigger/TPSet.hpp"
+#include "triggeralgs/TriggerPrimitive.hpp"
 
-#include "tpg/PdspChannelMapService.h"
+#include "tpg/DesignFIR.hpp"
 #include "tpg/FrameExpand.hpp"
-#include "tpg/ProcessingInfo.hpp"
-#include "tpg/design_fir.h"
-#include "tpg/TPGConstants.hpp"
+#include "tpg/PdspChannelMapService.hpp"
 #include "tpg/ProcessAVX2.hpp"
+#include "tpg/ProcessingInfo.hpp"
+#include "tpg/TPGConstants.hpp"
 
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <queue>
 #include <string>
+#include <utility>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -59,18 +62,20 @@ public:
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-   
-    // To be removed: 
-    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
 
+    // To be removed:
+    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
   }
 
-  ~WIBFrameProcessor() {
+  ~WIBFrameProcessor()
+  {
     delete[] m_coll_taps_p;
     delete[] m_coll_primfind_dest;
   }
 
-  unsigned int getOfflineChannel(PdspChannelMapService& channelMap, const dunedaq::dataformats::WIBFrame* frame, unsigned int ch)
+  unsigned int getOfflineChannel(PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
+                                 const dunedaq::dataformats::WIBFrame* frame,
+                                 unsigned int ch) // NOLINT(build/unsigned)
   {
     // handle 256 channels on two fibers -- use the channel
     // map that assumes 128 chans per fiber (=FEMB) (Copied
@@ -79,26 +84,27 @@ public:
     int slot = frame->get_wib_header()->slot_no;
     int fiber = frame->get_wib_header()->fiber_no;
 
-    unsigned int fiberloc = 0;
+    unsigned int fiberloc = 0; // NOLINT(build/unsigned)
     if (fiber == 1) {
       fiberloc = 1;
     } else if (fiber == 2) {
       fiberloc = 3;
     } else {
-      TLOG() << " Fiber number " << (int)fiber << " is expected to be 1 or 2 -- revisit logic";
+      TLOG() << " Fiber number " << fiber << " is expected to be 1 or 2 -- revisit logic";
       fiberloc = 1;
     }
 
-    unsigned int chloc = ch;
+    unsigned int chloc = ch; // NOLINT(build/unsigned)
     if (chloc > 127) {
       chloc -= 128;
       fiberloc++;
     }
 
-    unsigned int crateloc = crate;
-    unsigned int offline = channelMap.GetOfflineNumberFromDetectorElements(crateloc, slot, fiberloc, chloc, PdspChannelMapService::kFELIX);
-    /* printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n", */
-    /*        crate, slot, fiber, fiberloc, chloc, offline); */
+    unsigned int crateloc = crate; // NOLINT(build/unsigned)
+    unsigned int offline =         // NOLINT(build/unsigned)
+      channelMap.GetOfflineNumberFromDetectorElements(crateloc, slot, fiberloc, chloc, PdspChannelMapService::kFELIX);
+    // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
+    //        crate, slot, fiber, fiberloc, chloc, offline);
     return offline;
   }
 
@@ -130,40 +136,60 @@ public:
     if (config.activate_wib_software_tpg) {
       m_channel_map.reset(new PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
 
-      m_induction_items_to_process = std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
+      m_induction_items_to_process =
+        std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
 
-      m_coll_taps = firwin_int(7, 0.1, m_coll_multiplier);
+      m_coll_taps = swtpg::firwin_int(7, 0.1, m_coll_multiplier);
       m_coll_taps.push_back(0);
-      m_ind_taps = firwin_int(7, 0.1, m_ind_multiplier);
+      m_ind_taps = swtpg::firwin_int(7, 0.1, m_ind_multiplier);
       m_ind_taps.push_back(0);
 
       m_coll_taps_p = new int16_t[m_coll_taps.size()];
-      for (size_t i=0; i<m_coll_taps.size(); ++i) {
+      for (size_t i = 0; i < m_coll_taps.size(); ++i) {
         m_coll_taps_p[i] = m_coll_taps[i];
       }
 
       m_ind_taps_p = new int16_t[m_ind_taps.size()];
-      for (size_t i=0; i<m_ind_taps.size(); ++i) {
+      for (size_t i = 0; i < m_ind_taps.size(); ++i) {
         m_ind_taps_p[i] = m_ind_taps[i];
       }
 
       // Temporary place to stash the hits
-      m_coll_primfind_dest = new uint16_t[100000];
-      m_ind_primfind_dest = new uint16_t[100000];
+      m_coll_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
+      m_ind_primfind_dest = new uint16_t[100000];  // NOLINT(build/unsigned)
 
-      TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold << " exponent:" << m_coll_tap_exponent;
+      TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold
+             << " exponent:" << m_coll_tap_exponent;
 
       m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
-        nullptr, swtpg::FRAMES_PER_MSG, 0, swtpg::REGISTERS_PER_FRAME, m_coll_primfind_dest, m_coll_taps_p, 
-        (uint8_t)m_coll_taps.size(), m_coll_tap_exponent, m_coll_threshold, 0, 0);
+        nullptr,
+        swtpg::FRAMES_PER_MSG,
+        0,
+        swtpg::REGISTERS_PER_FRAME,
+        m_coll_primfind_dest,
+        m_coll_taps_p,
+        (uint8_t)m_coll_taps.size(), // NOLINT(build/unsigned)
+        m_coll_tap_exponent,
+        m_coll_threshold,
+        0,
+        0);
 
       m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
-        nullptr, swtpg::FRAMES_PER_MSG, 0, 10, m_ind_primfind_dest, m_ind_taps_p, 
-        (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
+        nullptr,
+        swtpg::FRAMES_PER_MSG,
+        0,
+        10,
+        m_ind_primfind_dest,
+        m_ind_taps_p,
+        (uint8_t)m_ind_taps.size(), // NOLINT(build/unsigned)
+        m_ind_tap_exponent,
+        m_ind_threshold,
+        0,
+        0);
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
-          std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+        std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
     }
 
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
@@ -245,17 +271,17 @@ protected:
   /**
    * Pipeline Stage 3.: Do software TPG
    * */
-  void find_collection_hits(constframeptr fp) {
+  void find_collection_hits(constframeptr fp)
+  {
     if (!fp)
       return;
 
     auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
-    uint64_t timestamp=wfptr->get_wib_header()->get_timestamp();
+    uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                // NOLINT(build/unsigned)
 
     swtpg::MessageRegistersCollection collection_registers;
 
-
-    //InductionItemToProcess* ind_item = &m_dummy_induction_item;
+    // InductionItemToProcess* ind_item = &m_dummy_induction_item;
     InductionItemToProcess ind_item;
     expand_message_adcs_inplace(fp, &collection_registers, &ind_item.registers);
     m_induction_items_to_process->write(std::move(ind_item));
@@ -270,27 +296,28 @@ protected:
       m_offline_channel_base = getOfflineChannel(*m_channel_map, wfptr, 48);
       m_offline_channel_base_induction = getOfflineChannel(*m_channel_map, wfptr, 248);
 
-      TLOG() << "Got first item, fiber/crate/slot=" << (int)m_fiber_no << "/" << (int)m_crate_no << "/" << (int)m_slot_no;
+      TLOG() << "Got first item, fiber/crate/slot=" << m_fiber_no << "/" << m_crate_no << "/" << m_slot_no;
     }
 
     m_coll_tpg_pi->input = &collection_registers;
-    *m_coll_primfind_dest = swtpg::magic;
+    *m_coll_primfind_dest = swtpg::MAGIC;
     swtpg::process_window_avx2(*m_coll_tpg_pi);
 
-    //uint32_t offline_channel_base = (view_type == kInduction) ? m_offline_channel_base_induction : m_offline_channel_base;
+    // uint32_t offline_channel_base = (view_type == kInduction) ? m_offline_channel_base_induction :
+    // m_offline_channel_base;
 
-    uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16];
+    uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
     unsigned int npushed = 0;
     size_t n_sent_hits = 0; // The number of "sendable" hits we produced (ie, that weren't suppressed as bad/noisy)
     size_t sent_adcsum = 0; // The adc sum for "sendable" hits
 
-    uint16_t* primfind_it=m_coll_primfind_dest;
+    uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
 
-    constexpr int clocksPerTPCTick=25;
+    constexpr int clocksPerTPCTick = 25;
 
-    uint64_t first_hit_begin = 0;
-    uint64_t first_hit_end = 0;
+    uint64_t first_hit_begin = 0; // NOLINT(build/unsigned)
+    uint64_t first_hit_end = 0;   // NOLINT(build/unsigned)
 
     // process_window_avx2 stores its output in the buffer pointed to
     // by m_coll_primfind_dest in a (necessarily) complicated way: for
@@ -299,7 +326,7 @@ protected:
     // of channel number, hit end time, hit charge and hit t-o-t are
     // stored. This is done for each of the (6 collection registers
     // per tick) x (12 ticks per superchunk), and the end of valid
-    // hits is indicated by the presence of the value "magic" (defined
+    // hits is indicated by the presence of the value "MAGIC" (defined
     // in TPGConstants.h).
     //
     // Since not all channels in a register will have hits ending at
@@ -307,89 +334,86 @@ protected:
     // whether this channel in the register actually had a hit ending
     // in it: for channels which *did* have a hit ending, the value of
     // hit_charge is nonzero.
-    while (*primfind_it != swtpg::magic) {
-        // First, get all of the register values (including those with no hit) into local variables
-        for (int i = 0; i < 16; ++i) {
-          chan[i] = *primfind_it++;
-        }
-        for (int i = 0; i < 16; ++i) {
-          hit_end[i] = *primfind_it++;
-        }
-        for (int i = 0; i < 16; ++i) {
-          hit_charge[i] = *primfind_it++;
-        }
-        for (int i = 0; i < 16; ++i) {
-          hit_tover[i] = *primfind_it++;
-        }
+    while (*primfind_it != swtpg::MAGIC) {
+      // First, get all of the register values (including those with no hit) into local variables
+      for (int i = 0; i < 16; ++i) {
+        chan[i] = *primfind_it++; // NOLINT(runtime/increment_decrement)
+      }
+      for (int i = 0; i < 16; ++i) {
+        hit_end[i] = *primfind_it++; // NOLINT(runtime/increment_decrement)
+      }
+      for (int i = 0; i < 16; ++i) {
+        hit_charge[i] = *primfind_it++; // NOLINT(runtime/increment_decrement)
+      }
+      for (int i = 0; i < 16; ++i) {
+        hit_tover[i] = *primfind_it++; // NOLINT(runtime/increment_decrement)
+      }
 
-        // Now that we have all the register values in local
-        // variables, loop over the register index (ie, channel) and
-        // find the channels which actually had a hit, as indicated by
-        // nonzero value of hit_charge
-        for (int i = 0; i < 16; ++i) {
-          if (hit_charge[i] && chan[i] != swtpg::magic) {
-            // This channel had a hit ending here, so we can create and output the hit here
-            const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]);
-            int multiplier = (m_fiber_no == 1) ? 1 : -1;
-            // const uint32_t offline_channel = m_offline_channel_base + multiplier * collection_index_to_offline(chan[i]);
-            // hit_end is the end time of the hit in TPC clock
-            // ticks after the start of the netio message in which
-            // the hit ended
-            uint64_t tp_t_begin = timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);
-            uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);
+      // Now that we have all the register values in local
+      // variables, loop over the register index (ie, channel) and
+      // find the channels which actually had a hit, as indicated by
+      // nonzero value of hit_charge
+      for (int i = 0; i < 16; ++i) {
+        if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
+          // This channel had a hit ending here, so we can create and output the hit here
+          const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
+          int multiplier = (m_fiber_no == 1) ? 1 : -1;
+          // const uint32_t offline_channel = m_offline_channel_base + multiplier *
+          // collection_index_to_offline(chan[i]); hit_end is the end time of the hit in TPC clock ticks after the start
+          // of the netio message in which the hit ended
+          uint64_t tp_t_begin = // NOLINT(build/unsigned)
+            timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);  // NOLINT(build/unsigned)
+          uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]); // NOLINT(build/unsigned)
 
+          // May be needed for TPSet:
+          // uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?
+          //
 
+          // For quick n' dirty debugging: print out time/channel of hits.
+          // Can then make a text file suitable for numpy plotting with, eg:
+          //
+          // sed -n -e 's/.*Hit: \(.*\) \(.*\).*/\1 \2/p' log.txt  > hits.txt
+          //
+          // TLOG() << "Hit: " << hit_start << " " << offline_channel;
 
-            // May be needed for TPSet:
-            //uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?
-            //
+          // if (should_send) {
+          //
+          triggeralgs::TriggerPrimitive trigprim;
+          trigprim.time_start = tp_t_begin;
+          trigprim.time_peak = (tp_t_begin + tp_t_end) / 2;
+          trigprim.time_over_threshold = hit_tover[i];
+          trigprim.channel = online_channel;
+          trigprim.adc_integral = hit_charge[i];
+          trigprim.adc_peak = hit_charge[i] / 20;
+          trigprim.detid =
+            m_fiber_no; // TODO: convert crate/slot/fiber to GeoID Roland Sipos rsipos@cern.ch July-22-2021
+          trigprim.type = triggeralgs::TriggerPrimitive::Type::kTPC;
+          trigprim.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
+          trigprim.version = 1;
 
-            // For quick n' dirty debugging: print out time/channel of hits. 
-            // Can then make a text file suitable for numpy plotting with, eg:
-            //
-            // sed -n -e 's/.*Hit: \(.*\) \(.*\).*/\1 \2/p' log.txt  > hits.txt
-            //
-            // TLOG() << "Hit: " << hit_start << " " << offline_channel;
-
-            //if (should_send) {
-            //
-              triggeralgs::TriggerPrimitive trigprim;
-              trigprim.time_start = tp_t_begin;
-              trigprim.time_peak = (tp_t_begin + tp_t_end) / 2;
-              trigprim.time_over_threshold = hit_tover[i];
-              trigprim.channel = online_channel;
-              trigprim.adc_integral = hit_charge[i];
-              trigprim.adc_peak = hit_charge[i] / 20;
-              trigprim.detid = m_fiber_no; // RS TODO: convert crate/slot/fiber to GeoID
-              trigprim.type = triggeralgs::TriggerPrimitive::Type::kTPC;
-              trigprim.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
-              trigprim.version = 1;
-
-            if (m_first_coll) {
-              TLOG() << "TP makes sense? -> hit_t_begin:" << tp_t_begin 
-                     << " hit_t_end:" << tp_t_end << " time_peak:" << (tp_t_begin + tp_t_end) / 2;
-            }
-
-            if (trigprim.time_start + m_tp_timeout > timestamp + 300) {
-              m_tp_buffer.push(trigprim);
-            } else {
-              m_dropped_tps++;
-            }
-
-            //} else {
-
-            //}
-
-            ++nhits;
-
+          if (m_first_coll) {
+            TLOG() << "TP makes sense? -> hit_t_begin:" << tp_t_begin << " hit_t_end:" << tp_t_end
+                   << " time_peak:" << (tp_t_begin + tp_t_end) / 2;
           }
 
+          if (trigprim.time_start + m_tp_timeout > timestamp + 300) {
+            m_tp_buffer.push(trigprim);
+          } else {
+            m_dropped_tps++;
+          }
+
+          //} else {
+
+          //}
+
+          ++nhits;
         }
+      }
     }
 
-    //if (nhits > 0) {
-      //TLOG() << "NON null hits: " << nhits << " for ts: " << timestamp;
-      //TLOG() << *wfptr;
+    // if (nhits > 0) {
+    // TLOG() << "NON null hits: " << nhits << " for ts: " << timestamp;
+    // TLOG() << *wfptr;
     //}
 
     m_num_hits_coll += nhits;
@@ -406,13 +430,13 @@ protected:
       trigger::TPSet tpset;
       tpset.start_time = (m_tp_buffer.top().time_start / m_tpset_window_size) * m_tpset_window_size;
       tpset.end_time = tpset.start_time + m_tpset_window_size;
-      tpset.seqno = m_next_tpset_seqno++;
+      tpset.seqno = m_next_tpset_seqno++; // NOLINT(runtime/increment_decrement)
       tpset.type = trigger::TPSet::Type::kPayload;
       tpset.origin = m_geoid;
 
       while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
         triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
-        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp);
+        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp); // NOLINT
         try {
           m_tp_sink->push(*tp_readout_type);
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
@@ -430,25 +454,24 @@ protected:
       }
       m_sent_tpsets++;
     }
-
   }
-
 
   // Stage: induction hit finding port
-  void find_induction_hits(frameptr fp) {
-    m_induction_items_to_process->popFront(); 
+  void find_induction_hits(frameptr fp)
+  {
+    m_induction_items_to_process->popFront();
 
-  // while (m_running()) { // if spawned as thread.
+    // while (m_running()) { // if spawned as thread.
 
-    //InductionItemToProcess item = nullptr;
-    
-    //if (m_first_ind) { 
+    // InductionItemToProcess item = nullptr;
+
+    // if (m_first_ind) {
     //  m_ind_tpg_pi->setState(
     //}
-
   }
 
-  void run_stats() {
+  void run_stats()
+  {
     int new_hits = 0;
     int new_tps = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -457,8 +480,7 @@ protected:
       new_hits = m_coll_hits_count.exchange(0);
       new_tps = m_num_tps_pushed.exchange(0);
       double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
-      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.)
-                                 << " [kHz]";
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
       for (int i = 0; i < 50; ++i) { // 100 x 100ms = 5s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -468,7 +490,6 @@ protected:
   }
 
 private:
-
   struct InductionItemToProcess
   {
     // Horribly, `registers` has to be the first item in the
@@ -478,9 +499,9 @@ private:
     // the contained objects to 64-byte boundaries, not any later
     // items
     swtpg::MessageRegistersInduction registers;
-    uint64_t timestamp;
+    uint64_t timestamp; // NOLINT(build/unsigned)
 
-    static constexpr uint64_t END_OF_MESSAGES=UINT64_MAX;
+    static constexpr uint64_t END_OF_MESSAGES = UINT64_MAX; // NOLINT(build/unsigned)
   };
 
   std::unique_ptr<IterableQueueModel<InductionItemToProcess>> m_induction_items_to_process;
@@ -503,28 +524,28 @@ private:
 
   InductionItemToProcess m_dummy_induction_item;
 
-  uint8_t m_fiber_no;
-  uint8_t m_slot_no;
-  uint8_t m_crate_no;
+  uint8_t m_fiber_no; // NOLINT(build/unsigned)
+  uint8_t m_slot_no;  // NOLINT(build/unsigned)
+  uint8_t m_crate_no; // NOLINT(build/unsigned)
 
-  uint32_t m_offline_channel_base;
-  uint32_t m_offline_channel_base_induction;
+  uint32_t m_offline_channel_base;           // NOLINT(build/unsigned)
+  uint32_t m_offline_channel_base_induction; // NOLINT(build/unsigned)
 
   // Collection
-  const uint16_t m_coll_threshold = 5; // units of sigma
-  const uint8_t m_coll_tap_exponent = 6;
+  const uint16_t m_coll_threshold = 5;                    // units of sigma // NOLINT(build/unsigned)
+  const uint8_t m_coll_tap_exponent = 6;                  // NOLINT(build/unsigned)
   const int m_coll_multiplier = 1 << m_coll_tap_exponent; // 64
-  std::vector<int16_t> m_coll_taps; // firwin_int(7, 0.1, multiplier);
-  uint16_t* m_coll_primfind_dest;
+  std::vector<int16_t> m_coll_taps;                       // firwin_int(7, 0.1, multiplier);
+  uint16_t* m_coll_primfind_dest;                         // NOLINT(build/unsigned)
   int16_t* m_coll_taps_p;
   std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_coll_tpg_pi;
 
   // Induction
-  const uint16_t m_ind_threshold = 3; // units of sigma
-  const uint8_t m_ind_tap_exponent = 6;
+  const uint16_t m_ind_threshold = 3;                   // units of sigma // NOLINT(build/unsigned)
+  const uint8_t m_ind_tap_exponent = 6;                 // NOLINT(build/unsigned)
   const int m_ind_multiplier = 1 << m_ind_tap_exponent; // 64
-  std::vector<int16_t> m_ind_taps; // firwin_int(7, 0.1, multiplier);
-  uint16_t* m_ind_primfind_dest;
+  std::vector<int16_t> m_ind_taps;                      // firwin_int(7, 0.1, multiplier);
+  uint16_t* m_ind_primfind_dest;                        // NOLINT(build/unsigned)
   int16_t* m_ind_taps_p;
   std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
@@ -539,16 +560,17 @@ private:
       return left.time_start > right.time_start;
     }
   };
-  std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator> m_tp_buffer;
+  std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator>
+    m_tp_buffer;
 
   dataformats::GeoID m_geoid;
-  uint64_t m_tp_timeout = 10000;
-  uint64_t m_tpset_window_size = 1000;
-  uint64_t m_next_tpset_seqno = 0;
+  uint64_t m_tp_timeout = 10000;       // NOLINT(build/unsigned)
+  uint64_t m_tpset_window_size = 1000; // NOLINT(build/unsigned)
+  uint64_t m_next_tpset_seqno = 0;     // NOLINT(build/unsigned)
 
-  std::atomic<uint64_t> m_sent_tps { 0 };
-  std::atomic<uint64_t> m_sent_tpsets { 0 };
-  std::atomic<uint64_t> m_dropped_tps { 0 };
+  std::atomic<uint64_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_sent_tpsets{ 0 }; // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
 };
 
 } // namespace readout
