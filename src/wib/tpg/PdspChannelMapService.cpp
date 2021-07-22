@@ -1,3 +1,11 @@
+/**
+ * @file PdspChannelMapService.cpp PDSP Channel Map
+ * Inherited from Offline. Further details of author below.
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ * */
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Class:       PdspChannelMapService
 // Module type: service
@@ -7,9 +15,16 @@
 // Implementation of hardware-offline channel mapping reading from a file.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "logging/Logging.hpp"
+
 #include "PdspChannelMapService.hpp"
+
 #include <sstream>
 #include <stdexcept>
+#include <limits>
+#include <string>
+
+namespace swtpg {
 
 // Bad channel value
 unsigned int
@@ -147,7 +162,8 @@ PdspChannelMapService::PdspChannelMapService(std::string rcename, std::string fe
   for (size_t i = 0; i < 6; ++i) {
     fvTPCSet_VsInstalledAPA[fvInstalledAPA[i] - 1] = i;
   }
-}
+
+} // NOLINT(readability/fn_size)
 
 // assumes crate goes from 1-6, in "installed crate ordering"
 // assumes slot goes from 0-5.
@@ -169,9 +185,9 @@ PdspChannelMapService::GetOfflineNumberFromDetectorElements(unsigned int crate,
 
   if (crate > fNCrates || crate == 0) {
     if (count_bits(fBadCrateNumberWarningsIssued) == 1) {
-      std::cout << "PdspChannelMapService: Bad Crate Number, expecting a number between 1 and 6.  Falling back to 1.  "
-                   "Ununderstood crate number="
-                << crate << std::endl;
+      TLOG() << "PdspChannelMapService: Bad Crate Number, expecting a number between 1 and 6. "
+             << "Falling back to 1. Ununderstood crate number=" 
+             << crate;
     }
     fBadCrateNumberWarningsIssued++;
     lcrate = 1;
@@ -179,9 +195,9 @@ PdspChannelMapService::GetOfflineNumberFromDetectorElements(unsigned int crate,
 
   if (slot >= fNSlots) {
     if (count_bits(fBadSlotNumberWarningsIssued) == 1) {
-      std::cout
-        << "PdspChannelMapService: Bad slot number, using slot number zero as a fallback.  Ununderstood slot number: "
-        << slot << std::endl;
+      TLOG() << "PdspChannelMapService: Bad slot number, using slot number zero as a fallback. "
+             << "Ununderstood slot number: "
+             << slot;
     }
     fBadSlotNumberWarningsIssued++;
     lslot = 0;
@@ -189,14 +205,16 @@ PdspChannelMapService::GetOfflineNumberFromDetectorElements(unsigned int crate,
 
   if (fiber > fNFibers || fiber == 0) {
     if (count_bits(fBadFiberNumberWarningsIssued) == 1) {
-      std::cout << "PdspChannelMapService: Bad fiber number, falling back to 1.  Ununderstood fiber number: " << fiber;
+      TLOG() << "PdspChannelMapService: Bad fiber number, falling back to 1. " 
+             << "Ununderstood fiber number: " 
+             << fiber;
     }
     fBadFiberNumberWarningsIssued++;
     lfiber = 1;
   }
 
   if (streamchannel >= fNFEMBChans) {
-    std::cout << streamchannel << " >= " << fNFEMBChans << std::endl;
+    TLOG() << streamchannel << " >= " << fNFEMBChans;
     throw std::logic_error("Ununderstood Stream (FEMB) chan");
   }
 
@@ -333,8 +351,8 @@ unsigned int
 PdspChannelMapService::ASICFromOfflineChannel(unsigned int offlineChannel)
 {
   if (count_bits(fASICWarningsIssued) == 1) {
-    std::cout << "PdspChannelMapService: Deprecated call to ASICFromOfflineChannel.  Use AsicLinkFromOfflineChannel"
-              << std::endl;
+    TLOG() << "PdspChannelMapService: Deprecated call to ASICFromOfflineChannel. " 
+           << "Use AsicLinkFromOfflineChannel";
   }
   fASICWarningsIssued++;
   check_offline_channel(offlineChannel);
@@ -352,9 +370,8 @@ unsigned int
 PdspChannelMapService::ASICChannelFromOfflineChannel(unsigned int offlineChannel)
 {
   if (count_bits(fASICChanWarningsIssued) == 1) {
-    std::cout << "PdspChannelMapService: Deprecated call to ASICChannelFromOfflineChannel.  Not a meaningful number -- "
-                 "channels are grouped by 16's not 8's"
-              << std::endl;
+    TLOG() << "PdspChannelMapService: Deprecated call to ASICChannelFromOfflineChannel. "
+           << "Not a meaningful number -- channels are grouped by 16's not 8's";
   }
   fASICChanWarningsIssued++;
   check_offline_channel(offlineChannel);
@@ -388,8 +405,7 @@ PdspChannelMapService::SSPOfflineChannelFromOnlineChannel(unsigned int onlineCha
 
   if (onlineChannel > fNSSPChans) {
     if (count_bits(fSSPBadChannelNumberWarningsIssued) == 1) {
-      std::cout << "PdspChannelMapService: Online Channel Number too high, using zero as a fallback: " << onlineChannel
-                << std::endl;
+      TLOG() << "PdspChannelMapService: Online Channel Number too high, using zero as a fallback: " << onlineChannel;
     }
     fSSPBadChannelNumberWarningsIssued++;
     lchannel = 0;
@@ -438,3 +454,5 @@ PdspChannelMapService::OpDetNoFromOfflineChannel(unsigned int offlineChannel) co
   SSP_check_offline_channel(offlineChannel);
   return fvOpDetNoMap[offlineChannel];
 }
+
+} // namespace swtpg

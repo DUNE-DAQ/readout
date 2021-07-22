@@ -73,7 +73,7 @@ public:
     delete[] m_coll_primfind_dest;
   }
 
-  unsigned int getOfflineChannel(PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
+  unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
                                  const dunedaq::dataformats::WIBFrame* frame,
                                  unsigned int ch) // NOLINT(build/unsigned)
   {
@@ -102,7 +102,7 @@ public:
 
     unsigned int crateloc = crate; // NOLINT(build/unsigned)
     unsigned int offline =         // NOLINT(build/unsigned)
-      channelMap.GetOfflineNumberFromDetectorElements(crateloc, slot, fiberloc, chloc, PdspChannelMapService::kFELIX);
+      channelMap.GetOfflineNumberFromDetectorElements(crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
     // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
     //        crate, slot, fiber, fiberloc, chloc, offline);
     return offline;
@@ -134,7 +134,7 @@ public:
     m_tpset_window_size = config.tpset_window_size;
 
     if (config.activate_wib_software_tpg) {
-      m_channel_map.reset(new PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
+      m_channel_map.reset(new swtpg::PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
 
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
@@ -506,7 +506,7 @@ private:
 
   std::unique_ptr<IterableQueueModel<InductionItemToProcess>> m_induction_items_to_process;
 
-  std::unique_ptr<PdspChannelMapService> m_channel_map;
+  std::unique_ptr<swtpg::PdspChannelMapService> m_channel_map;
 
   size_t m_num_msg = 0;
   size_t m_num_push_fail = 0;

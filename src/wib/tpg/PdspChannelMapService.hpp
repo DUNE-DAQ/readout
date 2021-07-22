@@ -1,3 +1,11 @@
+/**
+ * @file PdspChannelMapService.hpp PDSP Channel Map
+ * Inherited from Offline. Further details of author below.
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ * */
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Class:       PdspChannelMapService
 // Module type: service
@@ -8,14 +16,17 @@
 // Separate files for TPC wires and SSP modules
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef PdspChannelMapService_H
-#define PdspChannelMapService_H
+#ifndef READOUT_SRC_WIB_TPG_PDSPCHANNELMAPSERVICE_HPP_
+#define READOUT_SRC_WIB_TPG_PDSPCHANNELMAPSERVICE_HPP_
 
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <vector>
+#include <string>
+
+namespace swtpg {
 
 class PdspChannelMapService
 {
@@ -200,4 +211,6 @@ private:
   };
 };
 
-#endif
+} // namespace swtpg
+
+#endif // READOUT_SRC_WIB_TPG_PDSPCHANNELMAPSERVICE_HPP_
