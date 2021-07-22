@@ -96,8 +96,8 @@ public:
     m_raw_processor_impl.reset(new RawDataProcessorType(m_error_registry));
     m_request_handler_impl.reset(
       new RequestHandlerType(m_latency_buffer_impl, m_error_registry));
-
     m_request_handler_impl->init(args);
+    m_raw_processor_impl->init(args);
   }
 
   void conf(const nlohmann::json& args)
@@ -371,11 +371,10 @@ private:
   using request_source_qt = appfwk::DAQSource<dfmessages::DataRequest>;
   std::vector<std::unique_ptr<request_source_qt>> m_data_request_queues;
 
-  // FRAGMENT SINK
+  // FRAGMENT SINKS
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
   using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
   std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
-
 
   // LATENCY BUFFER:
   size_t m_latency_buffer_size;
