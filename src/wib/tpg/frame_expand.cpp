@@ -1,3 +1,11 @@
+/**
+ * @file WIBFrameProcessor.hpp WIB specific Task based raw processor
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ */
+
 #include "frame_expand.h"
 
 //==============================================================================
@@ -38,7 +46,7 @@ void print256_as16_dec(__m256i var)
 // ones.
 RegisterArray<2> expand_segment_collection(const dunedaq::dataformats::ColdataBlock& __restrict__ block)
 {
-    const __m256i* __restrict__ coldata_start=reinterpret_cast<const __m256i*>(&block.segments[0]);
+    const __m256i* __restrict__ coldata_start=reinterpret_cast<const __m256i*>(&block.segments[0]); // NOLINT
     __m256i raw0=_mm256_lddqu_si256(coldata_start+0);
     __m256i raw1=_mm256_lddqu_si256(coldata_start+1);
     __m256i raw2=_mm256_lddqu_si256(coldata_start+2);

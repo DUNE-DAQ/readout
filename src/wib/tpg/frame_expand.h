@@ -1,14 +1,18 @@
+/**
+ * @file frame_expand.h WIB specific frame expansion
+ *
+ * This is part of the DUNE DAQ , copyright 2020.
+ * Licensing/copyright details are in the COPYING file that you should have
+ * received with this code.
+ */
 #ifndef FRAME_EXPAND_H
 #define FRAME_EXPAND_H
-#include <array>
 
 #include "dataformats/wib/WIBFrame.hpp"
-
 #include "readout/ReadoutTypes.hpp"
 
-//#include "NetioWIBRecords.hh"
-
-#include "immintrin.h"
+#include <array>
+#include <immintrin.h>
 
 static const size_t SUPERCHUNK_FRAME_SIZE = 5568; // for 12: 5568  for 6: 2784
 struct SUPERCHUNK_CHAR_STRUCT {
@@ -46,8 +50,8 @@ struct WindowCollectionADCs {
     {
             const size_t msg_index=itime/12;
             const size_t msg_time_offset=itime%12;
-            const size_t index=msg_index*NREGISTERS*FRAMES_PER_MSG+FRAMES_PER_MSG*ireg+msg_time_offset;
-            const __m256i* rawp=reinterpret_cast<const __m256i*>(fragments)+index;
+            const size_t index = msg_index*NREGISTERS*FRAMES_PER_MSG+FRAMES_PER_MSG*ireg+msg_time_offset;
+            const __m256i* rawp = reinterpret_cast<const __m256i*>(fragments)+index; // NOLINT
             return rawp;
     }
 
@@ -62,7 +66,7 @@ struct WindowCollectionADCs {
         const size_t msg_start_index=msg_index*sizeof(MessageCollectionADCs)/sizeof(uint16_t);
         const size_t offset_within_msg=register_t0_start+SAMPLES_PER_REGISTER*msg_time_offset+register_offset;
         const size_t index=msg_start_index+offset_within_msg;
-        return *(reinterpret_cast<uint16_t*>(fragments)+index);
+        return *(reinterpret_cast<uint16_t*>(fragments)+index); // NOLINT
     }
 
     size_t numMessages;
@@ -87,9 +91,12 @@ public:
     // RegisterArray(RegisterArray&& other) = default;
 
     // Get the value at the ith position as a 256-bit register
-    inline __m256i ymm(size_t i) const { return _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(m_array)+i); }
-    inline void set_ymm(size_t i, __m256i val) { _mm256_storeu_si256(reinterpret_cast<__m256i*>(m_array)+i, val); }
-
+    inline __m256i ymm(size_t i) const { 
+      return _mm256_lddqu_si256(reinterpret_cast<const __m256i*>(m_array)+i); // NOLINT 
+    }  
+    inline void set_ymm(size_t i, __m256i val) { 
+      _mm256_storeu_si256(reinterpret_cast<__m256i*>(m_array)+i, val); // NOLINT
+    }
     inline uint16_t uint16(size_t i) const { return m_array[i]; }
     inline void set_uint16(size_t i, uint16_t val) { m_array[i]=val; }
 
@@ -148,7 +155,7 @@ RegisterArray<2> expand_segment_collection(const dunedaq::dataformats::ColdataBl
 // them into 16-bit values
 inline __m256i expand_two_segments(const dunedaq::dataformats::ColdataSegment* __restrict__ first_segment)
 {
-    const __m256i* __restrict__ segments_start=reinterpret_cast<const __m256i*>(first_segment);
+    const __m256i* __restrict__ segments_start=reinterpret_cast<const __m256i*>(first_segment); // NOLINT
     __m256i raw=_mm256_lddqu_si256(segments_start);
 
     // First: the ADCs are arranged in a repeating pattern of 3 32-bit
@@ -495,7 +502,8 @@ inline MessageRegisters expand_message_adcs(const SUPERCHUNK_CHAR_STRUCT& __rest
 {
     MessageRegisters adcs;
     for(size_t iframe=0; iframe<FRAMES_PER_MSG; ++iframe){
-        const dunedaq::dataformats::WIBFrame* frame=reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&ucs) + iframe;
+        const dunedaq::dataformats::WIBFrame* frame = 
+          reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&ucs) + iframe; // NOLINT
         FrameRegisters frame_regs=get_frame_divided_adcs(frame);
         for(size_t iblock=0; iblock<REGISTERS_PER_FRAME; ++iblock){
             // Arrange it so that adjacent times are adjacent in
@@ -523,7 +531,8 @@ inline void expand_message_adcs_inplace(const dunedaq::readout::types::WIB_SUPER
                                         MessageRegistersInduction* __restrict__ induction_registers)
 {
     for(size_t iframe=0; iframe<FRAMES_PER_MSG; ++iframe){
-        const dunedaq::dataformats::WIBFrame* frame=reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(ucs) + iframe;
+        const dunedaq::dataformats::WIBFrame* frame = 
+          reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(ucs) + iframe; // NOLINT
         FrameRegisters frame_regs=get_frame_divided_adcs(frame);
         for(size_t iblock=0; iblock<REGISTERS_PER_FRAME; ++iblock){
             // Arrange it so that adjacent times are adjacent in
