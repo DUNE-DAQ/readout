@@ -23,11 +23,11 @@
 #include "trigger/TPSet.hpp"
 
 #include "tpg/PdspChannelMapService.h"
-#include "tpg/frame_expand.h"
-#include "tpg/ProcessingInfo.h"
+#include "tpg/FrameExpand.hpp"
+#include "tpg/ProcessingInfo.hpp"
 #include "tpg/design_fir.h"
-#include "tpg/constants.h"
-#include "tpg/process_avx2.h"
+#include "tpg/TPGConstants.hpp"
+#include "tpg/ProcessAVX2.hpp"
 
 #include <atomic>
 #include <functional>
@@ -153,11 +153,13 @@ public:
 
       TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold << " exponent:" << m_coll_tap_exponent;
 
-      m_coll_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, REGISTERS_PER_FRAME,
-                                                                            m_coll_primfind_dest, m_coll_taps_p, (uint8_t)m_coll_taps.size(), m_coll_tap_exponent, m_coll_threshold, 0, 0);
+      m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
+        nullptr, swtpg::FRAMES_PER_MSG, 0, swtpg::REGISTERS_PER_FRAME, m_coll_primfind_dest, m_coll_taps_p, 
+        (uint8_t)m_coll_taps.size(), m_coll_tap_exponent, m_coll_threshold, 0, 0);
 
-      m_ind_tpg_pi = std::make_unique<ProcessingInfo<REGISTERS_PER_FRAME>>(nullptr, FRAMES_PER_MSG, 0, 10,
-                                                                           m_ind_primfind_dest, m_ind_taps_p, (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
+      m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
+        nullptr, swtpg::FRAMES_PER_MSG, 0, 10, m_ind_primfind_dest, m_ind_taps_p, 
+        (uint8_t)m_ind_taps.size(), m_ind_tap_exponent, m_ind_threshold, 0, 0);
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
@@ -250,7 +252,7 @@ protected:
     auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
     uint64_t timestamp=wfptr->get_wib_header()->get_timestamp();
 
-    MessageRegistersCollection collection_registers;
+    swtpg::MessageRegistersCollection collection_registers;
 
 
     //InductionItemToProcess* ind_item = &m_dummy_induction_item;
@@ -272,8 +274,8 @@ protected:
     }
 
     m_coll_tpg_pi->input = &collection_registers;
-    *m_coll_primfind_dest = MAGIC;
-    process_window_avx2(*m_coll_tpg_pi);
+    *m_coll_primfind_dest = swtpg::magic;
+    swtpg::process_window_avx2(*m_coll_tpg_pi);
 
     //uint32_t offline_channel_base = (view_type == kInduction) ? m_offline_channel_base_induction : m_offline_channel_base;
 
@@ -297,26 +299,26 @@ protected:
     // of channel number, hit end time, hit charge and hit t-o-t are
     // stored. This is done for each of the (6 collection registers
     // per tick) x (12 ticks per superchunk), and the end of valid
-    // hits is indicated by the presence of the value MAGIC (defined
-    // in constants.h).
+    // hits is indicated by the presence of the value "magic" (defined
+    // in TPGConstants.h).
     //
     // Since not all channels in a register will have hits ending at
     // this tick, we look at the stored hit_charge to determine
     // whether this channel in the register actually had a hit ending
     // in it: for channels which *did* have a hit ending, the value of
     // hit_charge is nonzero.
-    while (*primfind_it != MAGIC) {
+    while (*primfind_it != swtpg::magic) {
         // First, get all of the register values (including those with no hit) into local variables
-        for (int i=0; i<16; ++i) {
+        for (int i = 0; i < 16; ++i) {
           chan[i] = *primfind_it++;
         }
-        for (int i=0; i<16; ++i) {
+        for (int i = 0; i < 16; ++i) {
           hit_end[i] = *primfind_it++;
         }
-        for (int i=0; i<16; ++i) {
+        for (int i = 0; i < 16; ++i) {
           hit_charge[i] = *primfind_it++;
         }
-        for (int i=0; i<16; ++i) {
+        for (int i = 0; i < 16; ++i) {
           hit_tover[i] = *primfind_it++;
         }
 
@@ -324,10 +326,10 @@ protected:
         // variables, loop over the register index (ie, channel) and
         // find the channels which actually had a hit, as indicated by
         // nonzero value of hit_charge
-        for (int i=0; i<16; ++i) {
-          if (hit_charge[i] && chan[i] != MAGIC) {
+        for (int i = 0; i < 16; ++i) {
+          if (hit_charge[i] && chan[i] != swtpg::magic) {
             // This channel had a hit ending here, so we can create and output the hit here
-            const uint16_t online_channel = collection_index_to_channel(chan[i]);
+            const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]);
             int multiplier = (m_fiber_no == 1) ? 1 : -1;
             // const uint32_t offline_channel = m_offline_channel_base + multiplier * collection_index_to_offline(chan[i]);
             // hit_end is the end time of the hit in TPC clock
@@ -342,7 +344,8 @@ protected:
             //uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?
             //
 
-            // For quick n' dirty debugging: print out time/channel of hits. Can then make a text file suitable for numpy plotting with, eg:
+            // For quick n' dirty debugging: print out time/channel of hits. 
+            // Can then make a text file suitable for numpy plotting with, eg:
             //
             // sed -n -e 's/.*Hit: \(.*\) \(.*\).*/\1 \2/p' log.txt  > hits.txt
             //
@@ -474,7 +477,7 @@ private:
     // AlignedProducerConsumerQueue, which aligns the *starts* of
     // the contained objects to 64-byte boundaries, not any later
     // items
-    MessageRegistersInduction registers;
+    swtpg::MessageRegistersInduction registers;
     uint64_t timestamp;
 
     static constexpr uint64_t END_OF_MESSAGES=UINT64_MAX;
@@ -514,7 +517,7 @@ private:
   std::vector<int16_t> m_coll_taps; // firwin_int(7, 0.1, multiplier);
   uint16_t* m_coll_primfind_dest;
   int16_t* m_coll_taps_p;
-  std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_coll_tpg_pi;
+  std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_coll_tpg_pi;
 
   // Induction
   const uint16_t m_ind_threshold = 3; // units of sigma
@@ -523,7 +526,7 @@ private:
   std::vector<int16_t> m_ind_taps; // firwin_int(7, 0.1, multiplier);
   uint16_t* m_ind_primfind_dest;
   int16_t* m_ind_taps_p;
-  std::unique_ptr<ProcessingInfo<REGISTERS_PER_FRAME>> m_ind_tpg_pi;
+  std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
   std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;

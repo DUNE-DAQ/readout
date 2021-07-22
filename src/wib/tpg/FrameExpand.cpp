@@ -6,7 +6,9 @@
  * received with this code.
  */
 
-#include "frame_expand.h"
+#include "FrameExpand.hpp"
+
+namespace swtpg {
 
 //==============================================================================
 // Print a 256-bit register interpreting it as packed 8-bit values
@@ -214,4 +216,6 @@ int induction_index_to_channel(int index)
     if(index<0 || index>159) return -1;
     else                     return induction_index_to_chan[index];
 }
+
+} // namespace swtpg
 

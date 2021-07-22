@@ -1,39 +1,27 @@
 /**
  * @file frame_expand.h WIB specific frame expansion
+ * @author Philip Rodrigues (rodriges@fnal.gov)
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#ifndef FRAME_EXPAND_H
-#define FRAME_EXPAND_H
+#ifndef READOUT_SRC_WIB_TPG_FRAMEEXPAND_HPP_
+#define READOUT_SRC_WIB_TPG_FRAMEEXPAND_HPP_
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "readout/ReadoutTypes.hpp"
+#include "TPGConstants.hpp"
 
 #include <array>
 #include <immintrin.h>
 
-static const size_t SUPERCHUNK_FRAME_SIZE = 5568; // for 12: 5568  for 6: 2784
-struct SUPERCHUNK_CHAR_STRUCT {
-    char fragments[SUPERCHUNK_FRAME_SIZE];
-};
-static_assert(sizeof(struct SUPERCHUNK_CHAR_STRUCT) == 5568, "Check your assumptions on SUPERCHUNK_CHAR_STRUCT");
-
-// How many frames are concatenated in one netio message
-static constexpr size_t FRAMES_PER_MSG=12;
-// How many collection-wire AVX2 registers are returned per
-// frame.
-static constexpr size_t REGISTERS_PER_FRAME=6;
-// How many bytes are in an AVX2 register
-static constexpr size_t BYTES_PER_REGISTER=32;
-// How many samples are in a register
-static constexpr size_t SAMPLES_PER_REGISTER=16;
+namespace swtpg {
 
 // One netio message's worth of collection channel ADCs after
 // expansion: 12 frames per message times 8 registers per frame times
 // 32 bytes (256 bits) per register
-static const size_t collection_adcs_size=BYTES_PER_REGISTER*REGISTERS_PER_FRAME*FRAMES_PER_MSG;
+static const size_t collection_adcs_size = BYTES_PER_REGISTER*REGISTERS_PER_FRAME*FRAMES_PER_MSG;
 struct MessageCollectionADCs {
   char fragments[collection_adcs_size];
 };
@@ -602,9 +590,6 @@ int induction_index_to_channel(int index);
 //======================================================================
 // MessageRegisters expand_message_adcs(const SUPERCHUNK_CHAR_STRUCT& __restrict__ ucs);
 
-#endif // include guard
+} // namespace swtpg
 
-/* Local Variables:  */
-/* mode: c++         */
-/* c-basic-offset: 4 */
-/* End:              */
+#endif // READOUT_SRC_WIB_TPG_FRAMEEXPAND_HPP_
