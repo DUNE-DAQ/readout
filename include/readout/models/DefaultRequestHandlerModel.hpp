@@ -51,12 +51,8 @@ class DefaultRequestHandlerModel : public RequestHandlerConcept<ReadoutType, Lat
 public:
   explicit DefaultRequestHandlerModel(
     std::unique_ptr<LatencyBufferType>& latency_buffer,
-    std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& fragment_sink,
-    std::unique_ptr<appfwk::DAQSink<ReadoutType>>& snb_sink,
     std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
-    , m_fragment_sink(fragment_sink)
-    , m_snb_sink(snb_sink)
     , m_waiting_requests()
     , m_waiting_requests_lock()
     , m_pop_reqs(0)
@@ -74,6 +70,15 @@ public:
 
   using RequestResult = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::RequestResult;
   using ResultCode = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::ResultCode;
+
+  void init(const nlohmann::json& args) override {
+    try {
+      auto queue_index = appfwk::queue_index(args, {"raw_recording"});
+      m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
+    } catch (const ers::Issue& excpt) {
+      ers::error(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
+    }
+  }
 
   void conf(const nlohmann::json& args)
   {
@@ -164,7 +169,7 @@ public:
     }
   }
 
-  void issue_request(dfmessages::DataRequest datarequest) override
+  void issue_request(dfmessages::DataRequest datarequest, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
   {
     std::unique_lock<std::mutex> lock(m_cv_mutex);
     m_cv.wait(lock, [&] { return !m_cleanup_requested; });
@@ -184,7 +189,7 @@ public:
                                       << result.fragment->get_trigger_number() << ", run number "
                                       << result.fragment->get_run_number() << ", and GeoID "
                                       << result.fragment->get_element_id();
-          m_fragment_sink->push(std::move(result.fragment));
+          fragment_queue.push(std::move(result.fragment));
         } catch (const ers::Issue& excpt) {
           std::ostringstream oss;
           oss << "fragments output queue for link " << m_geoid.element_id;
@@ -194,7 +199,7 @@ public:
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
                                     << "With timestamp=" << result.data_request.trigger_timestamp;
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        m_waiting_requests.push(datarequest);
+        m_waiting_requests.push(RequestElement(datarequest, &fragment_queue));
       }
     });
   }
@@ -286,9 +291,9 @@ protected:
         if (m_latency_buffer->occupancy() != 0) {
           auto last_frame = m_latency_buffer->back();       // NOLINT
           uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
-          while (!m_waiting_requests.empty() && m_waiting_requests.top().window_end < newest_ts) {
-            dfmessages::DataRequest request = m_waiting_requests.top();
-            issue_request(request);
+          while (!m_waiting_requests.empty() && m_waiting_requests.top().request.window_end < newest_ts) {
+            auto request = m_waiting_requests.top();
+            issue_request(request.request, *request.fragment_sink);
             m_waiting_requests.pop();
           }
         }
@@ -446,11 +451,8 @@ protected:
   // Data access (LB)
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
-  // Request source and Fragment sink
-  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>>& m_fragment_sink;
-
   // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<ReadoutType>>& m_snb_sink;
+  std::unique_ptr<appfwk::DAQSink<ReadoutType>> m_snb_sink;
 
   // Requests
   std::size_t m_max_requested_elements;
@@ -461,16 +463,24 @@ protected:
   std::atomic<bool> m_cleanup_requested = false;
   std::atomic<int> m_requests_running = 0;
 
+  struct RequestElement {
+    RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink) : request(data_request), fragment_sink(sink) {
+
+    }
+    dfmessages::DataRequest request;
+    appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
+  };
+
   // Priority queue for waiting requests
   class Comparator
   {
   public:
-    bool operator()(dfmessages::DataRequest& left, dfmessages::DataRequest& right)
+    bool operator()(RequestElement& left, RequestElement& right)
     {
-      return left.window_end > right.window_end;
+      return left.request.window_end > right.request.window_end;
     }
   };
-  std::priority_queue<dfmessages::DataRequest, std::vector<dfmessages::DataRequest>, Comparator> m_waiting_requests;
+  std::priority_queue<RequestElement, std::vector<RequestElement>, Comparator> m_waiting_requests;
   std::mutex m_waiting_requests_lock;
 
   // The run marker
