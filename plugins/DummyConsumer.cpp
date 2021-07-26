@@ -56,6 +56,7 @@ template<class T>
 void
 DummyConsumer<T>::do_start(const data_t& /* args */)
 {
+  m_packets_processed = 0;
   m_run_marker.store(true);
   m_work_thread.set_work(&DummyConsumer::do_work, this);
 }

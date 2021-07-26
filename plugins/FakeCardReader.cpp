@@ -144,6 +144,7 @@ FakeCardReader::do_scrap(const data_t& args)
 void
 FakeCardReader::do_start(const data_t& args)
 {
+  m_packet_count_tot = 0;
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
 
   m_run_marker.store(true);

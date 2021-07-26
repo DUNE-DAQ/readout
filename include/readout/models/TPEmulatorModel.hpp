@@ -94,6 +94,7 @@ public:
 
   void start(const nlohmann::json& /*args*/)
   {
+    m_packet_count_tot = 0;
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_rate_limiter = std::make_unique<RateLimiter>(m_rate_khz / m_link_conf.slowdown);
     m_producer_thread.set_work(&TPEmulatorModel::run_produce, this);

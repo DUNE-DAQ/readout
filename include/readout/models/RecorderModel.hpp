@@ -76,6 +76,7 @@ public:
 
   void do_start(const nlohmann::json& /* args */) override
   {
+    m_packets_processed_total = 0;
     m_run_marker.store(true);
     m_work_thread.set_work(&RecorderImpl::do_work, this);
   }
