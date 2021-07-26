@@ -62,9 +62,6 @@ public:
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
-
-    // To be removed:
-    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
   }
 
   ~WIBFrameProcessor()
@@ -72,6 +69,13 @@ public:
     delete[] m_coll_taps_p;
     delete[] m_coll_primfind_dest;
   }
+
+  void start(const nlohmann::json& args) override
+  {
+    inherited::start(args);
+    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
+  }
+  
 
   unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
                                  const dunedaq::dataformats::WIBFrame* frame,
@@ -357,7 +361,7 @@ protected:
         if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
           // This channel had a hit ending here, so we can create and output the hit here
           const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
-          int multiplier = (m_fiber_no == 1) ? 1 : -1;
+          //int multiplier = (m_fiber_no == 1) ? 1 : -1;
           // const uint32_t offline_channel = m_offline_channel_base + multiplier *
           // collection_index_to_offline(chan[i]); hit_end is the end time of the hit in TPC clock ticks after the start
           // of the netio message in which the hit ended
@@ -475,7 +479,7 @@ protected:
     int new_hits = 0;
     int new_tps = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
-    while (true) {
+    while (inherited::m_run_marker.load()) {
       auto now = std::chrono::high_resolution_clock::now();
       new_hits = m_coll_hits_count.exchange(0);
       new_tps = m_num_tps_pushed.exchange(0);
