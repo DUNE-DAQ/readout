@@ -40,6 +40,7 @@ def generate(
         NUMBER_OF_DATA_PRODUCERS=1,          
         NUMBER_OF_TP_PRODUCERS=1,          
         DATA_RATE_SLOWDOWN_FACTOR = 1,
+        ENABLE_SOFTWARE_TPG=False,
         RUN_NUMBER = 333, 
         DATA_FILE="./frames.bin"
     ):
@@ -146,7 +147,6 @@ def generate(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
-                                #data_filename=str(DATA_FILE) # RS FIXME -> This is not good!
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
                             # input_limit=10485100, # default
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
@@ -160,7 +160,8 @@ def generate(
                         pop_limit_pct = 0.8,
                         pop_size_pct = 0.1,
                         apa_number = 0,
-                        link_number = idx
+                        link_number = idx,
+                        enable_software_tpg = ENABLE_SOFTWARE_TPG,
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"data_recorder_{idx}", bfs.Conf(
@@ -255,11 +256,12 @@ if __name__ == '__main__':
     @click.option('-n', '--number-of-data-producers', default=1)
     @click.option('-t', '--number-of-tp-producers', default=0)
     @click.option('-s', '--data-rate-slowdown-factor', default=10)
+    @click.option('-g', '--enable-software-tpg', is_flag=True)
     @click.option('-r', '--run-number', default=333)
     @click.option('-d', '--data-file', type=click.Path(), default='./frames.bin')
     # @click.option('--tp-data-file') TBA
     @click.argument('json_file', type=click.Path(), default='fake_readout.json')
-    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
+    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, enable_software_tpg, run_number, data_file, json_file):
         """
           JSON_FILE: Input raw data file.
           JSON_FILE: Output json configuration file.
@@ -271,6 +273,7 @@ if __name__ == '__main__':
                     NUMBER_OF_DATA_PRODUCERS = number_of_data_producers,
                     NUMBER_OF_TP_PRODUCERS = number_of_tp_producers,
                     DATA_RATE_SLOWDOWN_FACTOR = data_rate_slowdown_factor,
+                    ENABLE_SOFTWARE_TPG = enable_software_tpg,
                     RUN_NUMBER = run_number, 
                     DATA_FILE = data_file,
                 ))

@@ -57,6 +57,7 @@ public:
 
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
+    , m_sw_tpg_enabled(false)
     , m_stats_thread(0)
   {
     // Setup pre-processing pipeline
@@ -137,7 +138,9 @@ public:
     m_tp_timeout = config.tp_timeout;
     m_tpset_window_size = config.tpset_window_size;
 
-    if (config.activate_wib_software_tpg) {
+    if (config.enable_software_tpg) {
+      m_sw_tpg_enabled = true;
+
       m_channel_map.reset(new swtpg::PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
 
       m_induction_items_to_process =
@@ -472,11 +475,13 @@ protected:
     auto t0 = std::chrono::high_resolution_clock::now();
     while (inherited::m_run_marker.load()) {
       auto now = std::chrono::high_resolution_clock::now();
-      new_hits = m_coll_hits_count.exchange(0);
-      new_tps = m_num_tps_pushed.exchange(0);
-      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
-      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
-      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
+      if (m_sw_tpg_enabled) {
+        new_hits = m_coll_hits_count.exchange(0);
+        new_tps = m_num_tps_pushed.exchange(0);
+        double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
+        TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
+        TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
+      }
       for (int i = 0; i < 50; ++i) { // 100 x 100ms = 5s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
@@ -485,6 +490,8 @@ protected:
   }
 
 private:
+  bool m_sw_tpg_enabled;
+
   struct InductionItemToProcess
   {
     // Horribly, `registers` has to be the first item in the
