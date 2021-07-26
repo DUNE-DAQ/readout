@@ -11,6 +11,7 @@ find_package(opmonlib REQUIRED)
 find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(triggeralgs REQUIRED)
+find_package(timinglibs REQUIRED)
 find_package(trigger REQUIRED)
 find_package(folly REQUIRED)
 find_package(Boost COMPONENTS iostreams REQUIRED)
@@ -25,7 +26,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
 # Dependency sets
 set(READOUT_DEPENDENCIES 
   # system
-  numa
+  #numa
  
   # tools
   Folly::folly
@@ -38,7 +39,6 @@ set(READOUT_DEPENDENCIES
   dfmessages::dfmessages
   triggeralgs::triggeralgs
   trigger::trigger
-  Folly::folly
 )
 
 ##############################################################################
