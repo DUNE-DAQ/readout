@@ -152,6 +152,13 @@ public:
 
   void start(const nlohmann::json& args)
   {
+    // Reset opmon variables
+    m_packet_count_tot = 0;
+    m_packet_count = 0;
+    m_request_count_tot = 0;
+    m_request_count = 0;
+    m_overwritten_packet_count = 0;
+
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_raw_processor_impl->start(args);
     m_request_handler_impl->start(args);

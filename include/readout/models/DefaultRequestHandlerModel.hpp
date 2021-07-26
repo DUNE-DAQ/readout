@@ -109,6 +109,14 @@ public:
 
   void start(const nlohmann::json& /*args*/)
   {
+    // Reset opmon variables
+    m_found_requested_count = 0;
+    m_bad_requested_count = 0;
+    m_request_gone = 0;
+    m_retry_request = 0;
+    m_uncategorized_request = 0;
+    m_cleanups = 0;
+
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
