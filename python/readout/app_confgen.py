@@ -12,6 +12,8 @@ moo.otypes.load_types('appfwk/app.jsonnet')
 moo.otypes.load_types('readout/fakecardreader.jsonnet')
 moo.otypes.load_types('readout/datalinkhandler.jsonnet')
 moo.otypes.load_types('readout/datarecorder.jsonnet')
+moo.otypes.load_types('nwqueueadapters/queuetonetwork.jsonnet')
+moo.otypes.load_types('nwqueueadapters/networkobjectsender.jsonnet')
 
 # Import new types
 import dunedaq.cmdlib.cmd as basecmd # AddressedCmd, 
@@ -21,6 +23,8 @@ import dunedaq.appfwk.cmd as cmd # AddressedCmd,
 import dunedaq.readout.fakecardreader as fcr
 import dunedaq.readout.datalinkhandler as dlh
 import dunedaq.readout.datarecorder as bfs
+import dunedaq.nwqueueadapters.queuetonetwork as qton
+import dunedaq.nwqueueadapters.networkobjectsender as nos
 
 from appfwk.utils import mcmd, mrccmd, mspec
 
@@ -36,6 +40,7 @@ def generate(
         NUMBER_OF_DATA_PRODUCERS=1,          
         NUMBER_OF_TP_PRODUCERS=1,          
         DATA_RATE_SLOWDOWN_FACTOR = 1,
+        ENABLE_SOFTWARE_TPG=False,
         RUN_NUMBER = 333, 
         DATA_FILE="./frames.bin"
     ):
@@ -57,11 +62,15 @@ def generate(
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-            app.QueueSpec(inst="tp_queue", kind='FollyMPMCQueue', capacity=1000)
+            app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=100000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
             app.QueueSpec(inst=f"tp_data_requests", kind='FollySPSCQueue', capacity=1000)
         ] + [
             app.QueueSpec(inst="tp_recording_link", kind='FollySPSCQueue', capacity=1000)
+        ] + [
+            app.QueueSpec(inst=f"tpset_link_{idx}", kind='FollySPSCQueue', capacity=10000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
     
 
@@ -84,8 +93,9 @@ def generate(
                             app.QueueInfo(name="data_requests_0", inst=f"data_requests_{idx}", dir="input"),
                             app.QueueInfo(name="data_response_0", inst="data_fragments_q", dir="output"),
                             app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output"),
-                            app.QueueInfo(name="tp_out", inst="tp_queue", dir="output")
-                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+                            app.QueueInfo(name="tp_out", inst=f"tp_queue_{idx}", dir="output"),
+                            app.QueueInfo(name="tpset_out", inst=f"tpset_link_{idx}", dir="output")
+                ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
                             app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="input")
@@ -99,13 +109,17 @@ def generate(
                                             app.QueueInfo(name="input_queue", inst=f"data_fragments_q", dir="input")
                                             ])
         ] + [
-                mspec(f"tp_handler", "DataLinkHandler", [
-                                            app.QueueInfo(name="raw_input", inst=f"tp_queue", dir="input"),
+                mspec(f"tp_handler_{idx}", "DataLinkHandler", [
+                                            app.QueueInfo(name="raw_input", inst=f"tp_queue_{idx}", dir="input"),
                                             app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
                                             app.QueueInfo(name="requests", inst="tp_data_requests", dir="input"),
                                             app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
                                             app.QueueInfo(name="raw_recording", inst="tp_recording_link", dir="output")
-                                            ])
+                                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+        ] + [
+                mspec(f"tpset_publisher_{idx}", "QueueToNetwork", [
+                                            app.QueueInfo(name="input", inst=f"tpset_link_{idx}", dir="input")
+                                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
@@ -126,13 +140,13 @@ def generate(
                             link_confs=[fcr.LinkConfiguration(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
-                                queue_name=f"output_{idx}"
+                                queue_name=f"output_{idx}",
+                                data_filename=DATA_FILE
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS)]
                             + [fcr.LinkConfiguration(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
-                                data_filename="/tmp/tp_frames.bin"
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
                             # input_limit=10485100, # default
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
@@ -146,7 +160,8 @@ def generate(
                         pop_limit_pct = 0.8,
                         pop_size_pct = 0.1,
                         apa_number = 0,
-                        link_number = idx
+                        link_number = idx,
+                        enable_software_tpg = ENABLE_SOFTWARE_TPG,
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"data_recorder_{idx}", bfs.Conf(
@@ -154,7 +169,7 @@ def generate(
                         stream_buffer_size = 8388608
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
-                (f"tp_handler", dlh.Conf(
+                (f"tp_handler_{idx}", dlh.Conf(
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
@@ -162,7 +177,16 @@ def generate(
                         pop_size_pct = 0.1,
                         apa_number = 0,
                         link_number = 0
-                        ))
+                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+            ] + [
+                (f"tpset_publisher_{idx}", qton.Conf(msg_type="dunedaq::trigger::TPSet",
+                           msg_module_name="TPSetNQ",
+                           sender_config=nos.Conf(ipm_plugin_type="ZmqPublisher",
+                                                  address='tcp://127.0.0.1:' + str(5000 + idx),
+                                                  topic="foo",
+                                                  stype="msgpack")
+                           )
+         ) for idx in range(NUMBER_OF_DATA_PRODUCERS)
     ])
     
     jstr = json.dumps(confcmd.pod(), indent=4, sort_keys=True)
@@ -175,7 +199,8 @@ def generate(
             ("data_recorder_.*", startpars),
             ("timesync_consumer", startpars),
             ("fragment_consumer", startpars),
-            ("tp_handler", startpars)
+            ("tp_handler_.*", startpars),
+            ("tpset_publisher_.*", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -188,7 +213,8 @@ def generate(
             ("data_recorder_.*", None),
             ("timesync_consumer", None),
             ("fragment_consumer", None),
-            ("tp_handler", None)
+            ("tp_handler_.*", None),
+            ("tpset_publisher_.*", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
@@ -230,10 +256,12 @@ if __name__ == '__main__':
     @click.option('-n', '--number-of-data-producers', default=1)
     @click.option('-t', '--number-of-tp-producers', default=0)
     @click.option('-s', '--data-rate-slowdown-factor', default=10)
+    @click.option('-g', '--enable-software-tpg', is_flag=True)
     @click.option('-r', '--run-number', default=333)
     @click.option('-d', '--data-file', type=click.Path(), default='./frames.bin')
+    # @click.option('--tp-data-file') TBA
     @click.argument('json_file', type=click.Path(), default='fake_readout.json')
-    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, run_number, data_file, json_file):
+    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, enable_software_tpg, run_number, data_file, json_file):
         """
           JSON_FILE: Input raw data file.
           JSON_FILE: Output json configuration file.
@@ -245,6 +273,7 @@ if __name__ == '__main__':
                     NUMBER_OF_DATA_PRODUCERS = number_of_data_producers,
                     NUMBER_OF_TP_PRODUCERS = number_of_tp_producers,
                     DATA_RATE_SLOWDOWN_FACTOR = data_rate_slowdown_factor,
+                    ENABLE_SOFTWARE_TPG = enable_software_tpg,
                     RUN_NUMBER = run_number, 
                     DATA_FILE = data_file,
                 ))

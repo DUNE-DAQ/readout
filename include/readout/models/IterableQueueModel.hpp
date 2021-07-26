@@ -18,7 +18,8 @@
 // @author Bo Hu (bhu@fb.com)
 // @author Jordan DeLong (delong.j@fb.com)
 
-// Modification by Roland Sipos for DUNE-DAQ software framework
+// Modification by Roland Sipos and Florian Till Groetschla 
+// for DUNE-DAQ software framework
 
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
@@ -57,6 +58,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   IterableQueueModel()
     : LatencyBufferConcept<T>()
+    , aligned_allocator_(false)
     , size_(2)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
     , readIndex_(0)
@@ -70,12 +72,43 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   // isFull() will return true after size-1 insertions.
   explicit IterableQueueModel(size_t size)
     : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
+    , aligned_allocator_(false)
     , size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
     , writeIndex_(0)
   {
     assert(size >= 2);
+    if (!records_) {
+      throw std::bad_alloc();
+    }
+#if 0
+        ptrlogger = std::thread([&](){
+          while(true) {
+            auto const currentRead = readIndex_.load(std::memory_order_relaxed);
+            auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+            TLOG() << "BEG:" << std::hex << &records_[0] << " END:" << &records_[size] << std::dec
+                      << " R:" << currentRead << " - W:" << currentWrite
+                      << " OFLOW:" << overflow_ctr;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          }
+        });
+#endif
+  }
+
+  // size must be >= 2.
+  // Aligned strategies
+  IterableQueueModel(size_t size, size_t alignment_size)
+    : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
+    , aligned_allocator_(true)
+    , size_(size)
+    , readIndex_(0)
+    , writeIndex_(0)
+  {
+    assert(size >= 2);
+    // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
+    records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
+
     if (!records_) {
       throw std::bad_alloc();
     }
@@ -336,6 +369,8 @@ protected:
   // hardware_destructive_interference_size is set to 128.
   // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
   std::atomic<int> overflow_ctr{ 0 };
+
+  bool aligned_allocator_;
 
   std::thread ptrlogger;
 

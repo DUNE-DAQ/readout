@@ -21,7 +21,10 @@ local info = {
        s.field("uncategorized_request", self.uint8, 0, doc="Request is uncategorized"),
        s.field("cleanups", self.uint8, 0, doc="Cleanups issued on the latency buffer"),
        s.field("overwritten_packet_count", self.uint8, 0, doc="Overwritten packets due to the latency buffer being full"),
-       s.field("num_waiting_requests", self.uint8, 0, doc="Number of requests that are waiting to be processed")
+       s.field("num_waiting_requests", self.uint8, 0, doc="Number of requests that are waiting to be processed"),
+       s.field("sent_tps", self.uint8, 0, doc="Number of sent TPs"),
+       s.field("sent_tpsets", self.uint8, 0, doc="Number of sent TPSets"),
+       s.field("dropped_tps", self.uint8, 0, doc="Number of dropped TPs (because they were too old)")
    ], doc="Data link handler information information")
 };
 

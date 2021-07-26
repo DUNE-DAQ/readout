@@ -30,6 +30,9 @@ local datalinkhandler = {
 
     choice : s.boolean("Choice"),
 
+    file_name : s.string("FileName", moo.re.ident,
+                      doc="A string field"),
+
     conf: s.record("Conf", [
         s.field("emulator_mode", self.choice, false,
                 doc="If the input data is from an emulator."),
@@ -50,7 +53,17 @@ local datalinkhandler = {
         s.field("num_request_handling_threads", self.count, 1,
                 doc="Number of threads to use for data request handling"),
         s.field("postprocess_queue_sizes", self.size, 10000,
-                doc="Size of the queues used for postprocessing")
+                doc="Size of the queues used for postprocessing"),
+        s.field("tp_timeout", self.size, 100000,
+                doc="Timeout after which ongoing TPs are discarded"),
+        s.field("tpset_window_size", self.size, 10000,
+                doc="Size of the TPSet windows"),
+        s.field("channel_map_rce", self.file_name, "/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
+                doc="Channel map rce file for software TPG"),
+        s.field("channel_map_felix", self.file_name, "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt",
+                        doc="Channel map felix file for software TPG"),
+        s.field("enable_software_tpg", self.choice, false,
+                doc="Enable software TPG")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [
