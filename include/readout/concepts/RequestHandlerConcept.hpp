@@ -10,6 +10,7 @@
 
 #include "dataformats/Fragment.hpp"
 #include "dfmessages/DataRequest.hpp"
+#include "appfwk/DAQSink.hpp"
 
 #include <map>
 #include <memory>
@@ -31,6 +32,7 @@ public:
   RequestHandlerConcept(RequestHandlerConcept&&) = delete; ///< RequestHandlerConcept is not move-constructible
   RequestHandlerConcept& operator=(RequestHandlerConcept&&) = delete; ///< RequestHandlerConcept is not move-assignable
 
+  virtual void init(const nlohmann::json& args) = 0;
   virtual void conf(const nlohmann::json& args) = 0;
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
@@ -40,7 +42,7 @@ public:
   //! Check if cleanup is necessary and execute it if necessary
   virtual void cleanup_check() = 0;
   //! Issue a data request to the request handler
-  virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
+  virtual void issue_request(dfmessages::DataRequest /*dr*/, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& /*fragment_queue*/) = 0;
 
 protected:
   // Result code of requests

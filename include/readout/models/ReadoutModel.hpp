@@ -15,6 +15,7 @@
 
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
+#include "appfwk/DAQModuleHelper.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -79,32 +80,14 @@ public:
 
   void init(const nlohmann::json& args)
   {
-    m_queue_config = args.get<appfwk::app::ModInit>();
-    // Reset queues
-    for (const auto& qi : m_queue_config.qinfos) {
-      try {
-        if (qi.name == "raw_input") {
-          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
-          m_raw_data_source.reset(new raw_source_qt(qi.inst));
-        } else if (qi.name == "requests") {
-          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
-          m_request_source.reset(new request_source_qt(qi.inst));
-        } else if (qi.name == "timesync") {
-          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
-          m_timesync_sink.reset(new timesync_sink_qt(qi.inst));
-        } else if (qi.name == "fragments") {
-          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
-          m_fragment_sink.reset(new fragment_sink_qt(qi.inst));
-        } else if (qi.name == "raw_recording") {
-          TLOG(TLVL_WORK_STEPS) << "Setup queue " << qi.name;
-          m_snb_sink.reset(new snb_sink_qt(qi.inst));
-        } else {
-          // throw error
-          ers::error(ResourceQueueError(ERS_HERE, "Unknown queue requested!", qi.name, ""));
-        }
-      } catch (const ers::Issue& excpt) {
-        ers::error(ResourceQueueError(ERS_HERE, "ReadoutModel", qi.name, excpt));
-      }
+    setup_request_response_queues(args);
+
+    try {
+      auto queue_index = appfwk::queue_index(args, {"raw_input", "timesync"});
+      m_raw_data_source.reset(new raw_source_qt(queue_index["raw_input"].inst));
+      m_timesync_sink.reset(new timesync_sink_qt(queue_index["timesync"].inst));
+    } catch (const ers::Issue& excpt) {
+      throw ResourceQueueError(ERS_HERE, "ReadoutModel", "", excpt);
     }
 
     // Instantiate functionalities
@@ -112,8 +95,8 @@ public:
     m_latency_buffer_impl.reset(new LatencyBufferType());
     m_raw_processor_impl.reset(new RawDataProcessorType(m_error_registry));
     m_request_handler_impl.reset(
-      new RequestHandlerType(m_latency_buffer_impl, m_fragment_sink, m_snb_sink, m_error_registry));
-
+      new RequestHandlerType(m_latency_buffer_impl, m_error_registry));
+    m_request_handler_impl->init(args);
     m_raw_processor_impl->init(args);
   }
 
@@ -211,6 +194,20 @@ public:
   }
 
 private:
+  void setup_request_response_queues(const nlohmann::json& args) {
+    auto queue_index = appfwk::queue_index(args, {});
+    size_t index = 0;
+    while (queue_index.find("data_requests_" + std::to_string(index)) != queue_index.end()) {
+      m_data_request_queues.push_back(std::make_unique<request_source_qt>(queue_index["data_requests_" + std::to_string(index)].inst));
+      if (queue_index.find("data_response_" + std::to_string(index)) == queue_index.end()) {
+        throw InitializationError(ERS_HERE, "Queue not found: ", "data_response_" + std::to_string(index));
+      } else {
+        m_data_response_queues.push_back(std::make_unique<fragment_sink_qt>(queue_index["data_response_" + std::to_string(index)].inst));
+      }
+      index++;
+    }
+  }
+
   void run_consume()
   {
     m_rawq_timeout_count = 0;
@@ -269,8 +266,10 @@ private:
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
                                         << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                                         << " window_end=" << dr.window_end;
-            m_request_handler_impl->issue_request(dr);
-            ++m_request_count;
+            for (size_t i = 0; i < m_data_response_queues.size(); ++i) {
+	      m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
+            }
+	    ++m_request_count;
             ++m_request_count_tot;
           }
         } else {
@@ -293,18 +292,30 @@ private:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread started...";
     m_request_count = 0;
     m_request_count_tot = 0;
-    while (m_run_marker.load() || m_request_source->can_pop()) {
-      dfmessages::DataRequest data_request;
-      try {
-        m_request_source->pop(data_request, m_source_queue_timeout_ms);
-        m_request_handler_impl->issue_request(data_request);
-        ++m_request_count;
-        ++m_request_count_tot;
-        TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
-                                   << ", run number " << data_request.run_number << " (APA number " << m_this_apa_number
-                                   << ", link number " << m_this_link_number << ")";
-      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        // not an error, safe to continue
+    dfmessages::DataRequest data_request;
+
+    while (m_run_marker.load()) {
+      for (size_t i = 0; i < m_data_request_queues.size(); ++i) {
+        auto& request_source = *m_data_request_queues[i];
+        auto& response_sink = *m_data_response_queues[i];
+        try {
+          request_source.pop(data_request, m_source_queue_timeout_ms);
+          m_request_handler_impl->issue_request(data_request, response_sink);
+          ++m_request_count;
+          ++m_request_count_tot;
+          TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
+                                     << ", run number " << data_request.run_number << " (APA number " << m_this_apa_number
+                                     << ", link number " << m_this_link_number << ")";
+        } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+          // not an error, safe to continue
+        }
+      }
+    }
+
+    // Clear queues
+    for (auto& queue : m_data_request_queues) {
+      while (queue->can_pop()) {
+        queue->pop(data_request, m_source_queue_timeout_ms);
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread joins... ";
@@ -365,17 +376,12 @@ private:
   // REQUEST SOURCE
   std::chrono::milliseconds m_request_queue_timeout_ms;
   using request_source_qt = appfwk::DAQSource<dfmessages::DataRequest>;
-  std::unique_ptr<request_source_qt> m_request_source;
+  std::vector<std::unique_ptr<request_source_qt>> m_data_request_queues;
 
-  // FRAGMENT SINK
+  // FRAGMENT SINKS
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
   using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
-  std::unique_ptr<fragment_sink_qt> m_fragment_sink;
-
-  // SNB SINK
-  std::chrono::milliseconds m_snb_queue_timeout_ms;
-  using snb_sink_qt = appfwk::DAQSink<ReadoutType>;
-  std::unique_ptr<snb_sink_qt> m_snb_sink;
+  std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
 
   // LATENCY BUFFER:
   size_t m_latency_buffer_size;
@@ -395,6 +401,7 @@ private:
   using timesync_sink_qt = appfwk::DAQSink<dfmessages::TimeSync>;
   std::unique_ptr<timesync_sink_qt> m_timesync_sink;
   ReusableThread m_timesync_thread;
+
 };
 
 } // namespace readout
