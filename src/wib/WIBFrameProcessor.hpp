@@ -313,15 +313,10 @@ protected:
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
     unsigned int npushed = 0;
-    size_t n_sent_hits = 0; // The number of "sendable" hits we produced (ie, that weren't suppressed as bad/noisy)
-    size_t sent_adcsum = 0; // The adc sum for "sendable" hits
 
     uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
 
     constexpr int clocksPerTPCTick = 25;
-
-    uint64_t first_hit_begin = 0; // NOLINT(build/unsigned)
-    uint64_t first_hit_end = 0;   // NOLINT(build/unsigned)
 
     // process_window_avx2 stores its output in the buffer pointed to
     // by m_coll_primfind_dest in a (necessarily) complicated way: for
@@ -361,10 +356,6 @@ protected:
         if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
           // This channel had a hit ending here, so we can create and output the hit here
           const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
-          //int multiplier = (m_fiber_no == 1) ? 1 : -1;
-          // const uint32_t offline_channel = m_offline_channel_base + multiplier *
-          // collection_index_to_offline(chan[i]); hit_end is the end time of the hit in TPC clock ticks after the start
-          // of the netio message in which the hit ended
           uint64_t tp_t_begin = // NOLINT(build/unsigned)
             timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);  // NOLINT(build/unsigned)
           uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]); // NOLINT(build/unsigned)
@@ -461,7 +452,7 @@ protected:
   }
 
   // Stage: induction hit finding port
-  void find_induction_hits(frameptr fp)
+  void find_induction_hits(frameptr /*fp*/)
   {
     m_induction_items_to_process->popFront();
 
