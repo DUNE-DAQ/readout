@@ -314,22 +314,6 @@ struct VariableSizePayloadWrapper
   std::unique_ptr<char> data = nullptr;
 };
 
-typedef dunedaq::appfwk::DAQSink<std::uint64_t> BlockPtrSink; // NOLINT(build/unsigned)
-typedef std::unique_ptr<BlockPtrSink> UniqueBlockPtrSink;
-
-typedef dunedaq::appfwk::DAQSource<std::uint64_t> BlockPtrSource; // NOLINT(build/unsigned)
-typedef std::unique_ptr<BlockPtrSource> UniqueBlockPtrSource;
-
-typedef dunedaq::appfwk::DAQSink<WIB_SUPERCHUNK_STRUCT> WIBFrameSink;
-typedef std::unique_ptr<WIBFrameSink> UniqueWIBFrameSink;
-using WIBFramePtrSink = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
-using UniqueWIBFramePtrSink = std::unique_ptr<WIBFramePtrSink>;
-
-typedef dunedaq::appfwk::DAQSource<WIB_SUPERCHUNK_STRUCT> WIBFrameSource;
-typedef std::unique_ptr<WIBFrameSource> UniqueWIBFrameSource;
-using WIBFramePtrSource = appfwk::DAQSource<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
-using UniqueWIBFramePtrSource = std::unique_ptr<WIBFramePtrSource>;
-
 // raw WIB TP
 struct RAW_WIB_TP_STRUCT
 {
