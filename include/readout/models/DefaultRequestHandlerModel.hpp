@@ -80,7 +80,7 @@ public:
       auto queue_index = appfwk::queue_index(args, {"raw_recording"});
       m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
     } catch (const ers::Issue& excpt) {
-      ers::error(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
+      ers::warning(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
     }
   }
 
