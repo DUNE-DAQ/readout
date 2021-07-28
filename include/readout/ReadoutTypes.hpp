@@ -288,7 +288,7 @@ struct TP_READOUT_TYPE
   FrameType* end() { return (this + 1); } // NOLINT
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTriggerPrimitives;
   static const constexpr uint64_t tick_dist = 25; // NOLINT(build/unsigned)
   static const constexpr size_t frame_size = TP_SIZE;
   static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
