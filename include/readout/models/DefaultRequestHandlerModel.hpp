@@ -80,14 +80,13 @@ public:
     try {
       auto queue_index = appfwk::queue_index(args, {"raw_recording"});
       m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
-    } catch (const dunedaq::appfwk::InvalidSchema& excpt) {
-      // 28-Jul-2021, KAB: I have split out the handling of the InvalidSchema exception from other exceptions.
-      // At the moment, this 'InvalidSchema' exception seems to be the one that is used to indicate that no
+    } catch (const dunedaq::appfwk::QueueNotFound& excpt) {
+      // 28-Jul-2021, KAB: I have split out the handling of the QueueNotFound exception from other exceptions.
+      // This exception seems to be the one that is used to indicate that no
       // "raw_recording" queue was specified in the system configuration. The absence of this queue is not a
       // problem, per se, but rather an indication that raw recording is disabled. We've included the reporting
       // of an Info message in this case in the hope that it might be helpful if/when someone needs to debug why
       // recording doesn't work later in the life cycle of a particular DAQ instance.
-      // (An aside: I wonder if there might be a better exception to use to indicate the absence of the queue than InvalidSchema.)
       //
       // A couple of notes on the particular ERS Issue that I used for the Info message:
       // * I chose to *not* use a 'severity level' in the name of the message (e.g. I didn't use "Info" in the
