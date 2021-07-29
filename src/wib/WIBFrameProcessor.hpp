@@ -141,7 +141,20 @@ public:
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
 
-      m_channel_map.reset(new swtpg::PdspChannelMapService(config.channel_map_rce, config.channel_map_felix));
+      const char* readout_share_cstr=getenv("READOUT_SHARE");
+      if(!readout_share_cstr){
+        throw ConfigurationError(ERS_HERE, "Environment variable READOUT_SHARE is not set");
+      }
+      std::string readout_share(readout_share_cstr);
+      std::string channel_map_rce(config.channel_map_rce);
+      std::string channel_map_felix(config.channel_map_felix);
+      if (channel_map_rce == "") {
+        channel_map_rce = readout_share + "/config/protoDUNETPCChannelMap_RCE_v4.txt";
+      }
+      if (channel_map_felix == "") {
+        channel_map_felix = readout_share + "/config/protoDUNETPCChannelMap_FELIX_v4.txt";
+      }
+      m_channel_map.reset(new swtpg::PdspChannelMapService(channel_map_rce, channel_map_felix));
 
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
