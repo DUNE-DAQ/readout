@@ -15,6 +15,7 @@
 
 #include "readout/datalinkhandler/Structs.hpp"
 
+#include "appfwk/Issues.hpp"
 #include "dataformats/Fragment.hpp"
 #include "dataformats/Types.hpp"
 #include "dfmessages/DataRequest.hpp"
@@ -79,8 +80,25 @@ public:
     try {
       auto queue_index = appfwk::queue_index(args, {"raw_recording"});
       m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
+    } catch (const dunedaq::appfwk::QueueNotFound& excpt) {
+      // 28-Jul-2021, KAB: I have split out the handling of the QueueNotFound exception from other exceptions.
+      // This exception seems to be the one that is used to indicate that no
+      // "raw_recording" queue was specified in the system configuration. The absence of this queue is not a
+      // problem, per se, but rather an indication that raw recording is disabled. We've included the reporting
+      // of an Info message in this case in the hope that it might be helpful if/when someone needs to debug why
+      // recording doesn't work later in the life cycle of a particular DAQ instance.
+      //
+      // A couple of notes on the particular ERS Issue that I used for the Info message:
+      // * I chose to *not* use a 'severity level' in the name of the message (e.g. I didn't use "Info" in the
+      //   name). This is in keeping with the guidance that we received when ERS Issues were first described, and
+      //   this choice allows the Issue to be reported with whatever severity is appropriate at the time.
+      // * The "module name" that I've specified in this message is not terribly helpful. (There is probably sufficient
+      //   other information in the log that indicates that this message came from the DefaultRequestHandlerModel class.)
+      //   It would be really cool if this class could somehow obtain the name of the DAQModule that it is part of,
+      //   and report the module name.  That might be an enhancement for another time.
+      ers::info(ConfigurationNote(ERS_HERE, "DefaultRequestHandlerModel", "Raw data recording is configured OFF, as indicated by the absence of the raw_recording queue in the initialization of this module."));
     } catch (const ers::Issue& excpt) {
-      ers::warning(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
+      ers::error(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
     }
   }
 
@@ -143,7 +161,14 @@ public:
   void record(const nlohmann::json& args) override
   {
     if (m_snb_sink.get() == nullptr) {
-      TLOG() << "Recording could not be started because output queue is not set up";
+      // 28-Jul-2021, KAB: I've updated the logging of this problem to be an ERS error, since this seems
+      // like a rather severe problem. If someone has tried to send a "record" command to this class and
+      // not provided a suitable queue to send the data on, we definitely should report that problem.
+      //
+      // Another option for the text of this report: "Recording could not be started because the appropriate
+      // output queue (name=\"raw_recording\") was not provided in the initialization of this module."
+      ers::error(ConfigurationProblem(ERS_HERE, "DefaultRequestHandlerModel",
+                                      "Recording could not be started because output queue is not set up."));
       return;
     }
     auto conf = args.get<datalinkhandler::RecordingParams>();
