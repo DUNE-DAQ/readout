@@ -30,7 +30,7 @@ local datalinkhandler = {
 
     choice : s.boolean("Choice"),
 
-    file_name : s.string("FileName", moo.re.ident,
+    file_name : s.string("FileName",
                       doc="A string field"),
 
     conf: s.record("Conf", [
@@ -58,10 +58,10 @@ local datalinkhandler = {
                 doc="Timeout after which ongoing TPs are discarded"),
         s.field("tpset_window_size", self.size, 10000,
                 doc="Size of the TPSet windows"),
-        s.field("channel_map_rce", self.file_name, "/tmp/protoDUNETPCChannelMap_RCE_v4.txt",
-                doc="Channel map rce file for software TPG"),
-        s.field("channel_map_felix", self.file_name, "/tmp/protoDUNETPCChannelMap_FELIX_v4.txt",
-                        doc="Channel map felix file for software TPG"),
+        s.field("channel_map_rce", self.file_name, "",
+                doc="Channel map rce file for software TPG. If empty string, look in $READOUT_SHARE"),
+        s.field("channel_map_felix", self.file_name, "",
+                        doc="Channel map felix file for software TPG. If empty string, look in $READOUT_SHARE"),
         s.field("enable_software_tpg", self.choice, false,
                 doc="Enable software TPG")
     ], doc="Generic readout element configuration"),
