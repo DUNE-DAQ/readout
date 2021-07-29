@@ -29,6 +29,12 @@ To enable the SIMD accelerated software hit finding, one needs to download the c
 In order to generate meaningful hits, one can use raw data recorded from ProtoDUNE-SP. A subset of these raw files can be found under:
 
     /eos/experiment/neutplatform/protodune/rawdata/np04/protodune-sp/raw/2020/detector/test/None/02/00/00/01/
+    
+For single link tests, a good link file can be:
+
+    /eos/experiment/neutplatform/protodune/rawdata/np04/protodune-sp/raw/2020/detector/test/None/02/00/00/01/felix-2020-06-02-093338.0.0.0.bin
+
+The produced hit rate should be around 100kHz.
 
 ## Enabling the fake TP source
 
