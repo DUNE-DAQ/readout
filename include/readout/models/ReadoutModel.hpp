@@ -44,6 +44,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_QUEUE_POP;
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;

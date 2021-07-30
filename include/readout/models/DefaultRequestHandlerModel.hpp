@@ -40,6 +40,7 @@
 #include <utility>
 #include <vector>
 #include <chrono>
+#include <limits>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -109,6 +110,7 @@ public:
     m_pop_size_pct = conf.pop_size_pct;
     m_buffer_capacity = conf.latency_buffer_size;
     m_num_request_handling_threads = conf.num_request_handling_threads;
+    m_retry_count = conf.retry_count;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -139,6 +141,7 @@ public:
     m_retry_request = 0;
     m_uncategorized_request = 0;
     m_cleanups = 0;
+    m_requests_timed_out = 0;
 
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
@@ -227,7 +230,7 @@ public:
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
                                     << "With timestamp=" << result.data_request.trigger_timestamp;
         std::lock_guard<std::mutex> wait_lock_guard(m_waiting_requests_lock);
-        m_waiting_requests.push(RequestElement(datarequest, &fragment_queue));
+        m_waiting_requests.push_back(RequestElement(datarequest, &fragment_queue, 0));
       }
       auto t_req_end = std::chrono::high_resolution_clock::now();
       auto us_req_took = std::chrono::duration_cast<std::chrono::microseconds>(t_req_end - t_req_begin);
@@ -248,6 +251,7 @@ public:
     info.uncategorized_request = m_uncategorized_request;
     info.cleanups = m_cleanups;
     info.num_waiting_requests = m_waiting_requests.size();
+    info.requests_timed_out = m_requests_timed_out;
   }
 
 protected:
@@ -323,19 +327,49 @@ protected:
     while (m_run_marker.load()) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        if (m_latency_buffer->occupancy() != 0) {
-          auto last_frame = m_latency_buffer->back();       // NOLINT
-          uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
-          while (!m_waiting_requests.empty() && m_waiting_requests.top().request.window_end < newest_ts) {
-            auto request = m_waiting_requests.top();
-            issue_request(request.request, *request.fragment_sink);
-            m_waiting_requests.pop();
+        auto last_frame = m_latency_buffer->back();       // NOLINT
+        uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::max() : last_frame->get_timestamp(); // NOLINT(build/unsigned)
+
+        size_t size = m_waiting_requests.size();
+        for (size_t i = 0; i < size;) {
+          if (m_waiting_requests[i].request.window_end < newest_ts) {
+            issue_request(m_waiting_requests[i].request, *(m_waiting_requests[i].fragment_sink));
+            std::swap(m_waiting_requests[i], m_waiting_requests.back());
+            m_waiting_requests.pop_back();
+            size--;
+          } else if (m_waiting_requests[i].retry_count >= m_retry_count) {
+            auto frag_header = create_fragment_header(m_waiting_requests[i].request);
+            frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+            auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
+            fragment->set_header_fields(frag_header);
+
+            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "Request timed out"));
+            m_bad_requested_count++;
+            m_requests_timed_out++;
+            try { // Push to Fragment queue
+              TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
+                                          << fragment->get_trigger_number() << ", run number "
+                                          << fragment->get_run_number() << ", and GeoID "
+                                          << fragment->get_element_id();
+              m_waiting_requests[i].fragment_sink->push(std::move(fragment));
+            } catch (const ers::Issue& excpt) {
+              std::ostringstream oss;
+              oss << "fragments output queue for link " << m_geoid.element_id;
+              ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+            }
+            std::swap(m_waiting_requests[i], m_waiting_requests.back());
+            m_waiting_requests.pop_back();
+            size--;
+          } else {
+            m_waiting_requests[i].retry_count++;
+            i++;
           }
         }
       }
       cleanup_check();
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+
   }
 
   void run_stats()
@@ -516,23 +550,32 @@ protected:
   std::atomic<int> m_requests_running = 0;
 
   struct RequestElement {
-    RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink) : request(data_request), fragment_sink(sink) {
+    RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,  size_t retries) : request(data_request), fragment_sink(sink),  retry_count(retries) {
 
     }
+
     dfmessages::DataRequest request;
     appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
-  };
+    size_t retry_count;
 
-  // Priority queue for waiting requests
-  class Comparator
-  {
-  public:
-    bool operator()(RequestElement& left, RequestElement& right)
+    bool operator==(const RequestElement& other)
     {
-      return left.request.window_end > right.request.window_end;
+      return this->request.request_number == other.request.request_number;
+    }
+
+    bool operator<(const RequestElement& other) const
+    {
+      return this->request.window_end > other.request.window_end;
     }
   };
-  std::priority_queue<RequestElement, std::vector<RequestElement>, Comparator> m_waiting_requests;
+
+  struct RequestElementKey {
+    std::size_t operator()(const RequestElement& re) const {
+      return re.request.request_number;
+    }
+  };
+
+  std::vector<RequestElement> m_waiting_requests;
   std::mutex m_waiting_requests_lock;
 
   // The run marker
@@ -557,6 +600,7 @@ private:
   float m_pop_limit_pct;     // buffer occupancy percentage to issue a pop request
   float m_pop_size_pct;      // buffer percentage to pop
   unsigned m_pop_limit_size; // pop_limit_pct * buffer_capacity
+  size_t m_retry_count;
   std::atomic<int> m_pop_counter;
   size_t m_buffer_capacity;
   dataformats::GeoID m_geoid;
@@ -568,6 +612,7 @@ private:
   std::atomic<int> m_request_gone{ 0 };
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
+  std::atomic<int> m_requests_timed_out{ 0 };
   //std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
   //std::atomic<int> m_avg_resp_time{ 0 };
 
