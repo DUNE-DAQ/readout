@@ -50,7 +50,7 @@ local datalinkhandler = {
                 doc="The APA number of this link"),
         s.field("link_number", self.link_number, 0,
                 doc="The link number of this link"),
-        s.field("num_request_handling_threads", self.count, 1,
+        s.field("num_request_handling_threads", self.count, 4,
                 doc="Number of threads to use for data request handling"),
         s.field("postprocess_queue_sizes", self.size, 10000,
                 doc="Size of the queues used for postprocessing"),
@@ -63,7 +63,9 @@ local datalinkhandler = {
         s.field("channel_map_felix", self.file_name, "",
                         doc="Channel map felix file for software TPG. If empty string, look in $READOUT_SHARE"),
         s.field("enable_software_tpg", self.choice, false,
-                doc="Enable software TPG")
+                doc="Enable software TPG"),
+        s.field("retry_count", self.count, 100,
+                doc="Number of times to recheck a request before sending an empty fragment")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [

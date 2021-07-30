@@ -44,6 +44,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 using dunedaq::readout::logging::TLVL_QUEUE_POP;
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;
@@ -298,11 +299,13 @@ private:
     dfmessages::DataRequest data_request;
 
     while (m_run_marker.load()) {
+      bool popped_element = false;
       for (size_t i = 0; i < m_data_request_queues.size(); ++i) {
         auto& request_source = *m_data_request_queues[i];
         auto& response_sink = *m_data_response_queues[i];
         try {
-          request_source.pop(data_request, m_source_queue_timeout_ms);
+          request_source.pop(data_request, std::chrono::milliseconds(0));
+          popped_element = true;
           m_request_handler_impl->issue_request(data_request, response_sink);
           ++m_request_count;
           ++m_request_count_tot;
@@ -312,6 +315,9 @@ private:
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
           // not an error, safe to continue
         }
+      }
+      if (!popped_element) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
     }
 
