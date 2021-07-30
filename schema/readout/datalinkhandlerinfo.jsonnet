@@ -19,6 +19,7 @@ local info = {
        s.field("request_window_too_old", self.uint8, 0, doc="Request data is already gone"),
        s.field("retry_request", self.uint8, 0, doc="Data is not completely there yet and request can be retried"),
        s.field("uncategorized_request", self.uint8, 0, doc="Request is uncategorized"),
+       s.field("requests_timed_out", self.uint8, 0, doc="Timed out requests"),
        s.field("cleanups", self.uint8, 0, doc="Cleanups issued on the latency buffer"),
        s.field("overwritten_packet_count", self.uint8, 0, doc="Overwritten packets due to the latency buffer being full"),
        s.field("num_waiting_requests", self.uint8, 0, doc="Number of requests that are waiting to be processed"),
