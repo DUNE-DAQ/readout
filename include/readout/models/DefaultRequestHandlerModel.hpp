@@ -590,7 +590,6 @@ protected:
 
   std::atomic<int> m_cleanups{ 0 };
 
-private:
   // For recording
   std::atomic<bool> m_recording = false;
   std::future<void> m_future_recording_stopper;

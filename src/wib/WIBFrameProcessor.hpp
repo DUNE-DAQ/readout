@@ -73,6 +73,10 @@ public:
 
   void start(const nlohmann::json& args) override
   {
+    while (!m_tp_buffer.empty()) {
+      m_tp_buffer.pop();
+    }
+    m_next_tpset_seqno = 0;
     inherited::start(args);
     m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
   }
