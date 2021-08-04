@@ -30,7 +30,8 @@ local info = {
        s.field("dropped_tps", self.uint8, 0, doc="Number of dropped TPs (because they were too old)"),
        s.field("tp_hit_rate", self.float8, 0, doc="TP hit rate in kHz"),
        s.field("consumed_packet_rate", self.float8, 0, doc="Rate of consumed packets"),
-       s.field("raw_queue_timeouts", self.uint8, 0, doc="Raw queue timeouts")
+       s.field("raw_queue_timeouts", self.uint8, 0, doc="Raw queue timeouts"),
+       s.field("average_response_time", self.uint8, 0, doc="Average response time")
    ], doc="Data link handler information information")
 };
 

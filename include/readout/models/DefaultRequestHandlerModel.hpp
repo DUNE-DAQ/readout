@@ -67,8 +67,8 @@ public:
     , m_pop_limit_size(0)
     , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
-    , m_response_time_log()
-    , m_response_time_log_lock()
+    //, m_response_time_log()
+    //, m_response_time_log_lock()
     , m_error_registry(error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
@@ -142,9 +142,14 @@ public:
     m_uncategorized_request = 0;
     m_cleanups = 0;
     m_requests_timed_out = 0;
+    m_handled_requests = 0;
+    m_response_time_acc = 0;
+    m_pop_reqs = 0;
+    m_pops_count = 0;
+
+    m_t0 = std::chrono::high_resolution_clock::now();
 
     m_run_marker.store(true);
-    m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
     m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
@@ -156,7 +161,6 @@ public:
     // if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
     if (m_future_recording_stopper.valid())
       m_future_recording_stopper.wait();
-    m_stats_thread.join();
     m_waiting_queue_thread.join();
     m_request_handler_thread_pool->join();
   }
@@ -235,10 +239,12 @@ public:
       auto t_req_end = std::chrono::high_resolution_clock::now();
       auto us_req_took = std::chrono::duration_cast<std::chrono::microseconds>(t_req_end - t_req_begin);
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Responding to data request took: " << us_req_took.count() << "[us]";
-      if (result.result_code == ResultCode::kFound) {
-        std::lock_guard<std::mutex> time_lock_guard(m_response_time_log_lock);
-        m_response_time_log.push_back( std::make_pair<int, int>(result.data_request.trigger_number, us_req_took.count()) );
-      }
+      // if (result.result_code == ResultCode::kFound) {
+      //   std::lock_guard<std::mutex> time_lock_guard(m_response_time_log_lock);
+      //   m_response_time_log.push_back( std::make_pair<int, int>(result.data_request.trigger_number, us_req_took.count()) );
+      // }
+      m_response_time_acc.fetch_add(us_req_took.count());
+      m_handled_requests++;
     });
   }
 
@@ -252,6 +258,45 @@ public:
     info.cleanups = m_cleanups.exchange(0);
     info.num_waiting_requests = m_waiting_requests.size();
     info.requests_timed_out = m_requests_timed_out.exchange(0);
+
+    int new_pop_reqs = 0;
+    int new_pop_count = 0;
+    int new_occupancy = 0;
+    int handled_requests = m_handled_requests.exchange(0);
+    int response_time_total = m_response_time_acc.exchange(0);
+    auto now = std::chrono::high_resolution_clock::now();
+    new_pop_reqs = m_pop_reqs.exchange(0);
+    new_pop_count = m_pops_count.exchange(0);
+    new_occupancy = m_occupancy;
+    double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
+    TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs / seconds / 1. << " [Hz]"
+                                  << " Dropped: " << new_pop_count << " Occupancy: " << new_occupancy;
+
+    //std::unique_lock<std::mutex> time_lorunck_guard(m_response_time_log_lock);
+    //if (!m_response_time_log.empty()) {
+    //  std::ostringstream oss;
+      //oss << "Completed data requests [trig id, took us]: ";
+    //  while (!m_response_time_log.empty()) {
+        //for (int i = 0; i < m_response_time_log.size(); ++i) {
+    //    auto& fr = m_response_time_log.front();
+    //    ++new_request_count;
+    //    new_request_times += fr.second;
+        //oss << fr.first << ". in " << fr.second << " | ";
+    //    m_response_time_log.pop_front();
+      //}
+      //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+      //TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << new_request_count
+      //                                << " | Avarage response time: " << new_request_times / new_request_count << "[us]";
+    //}
+    //time_lock_guard.unlock();
+    if (handled_requests > 0) {
+      TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << handled_requests
+                                    << " | Avarage response time: " << response_time_total / handled_requests << "[us]";
+      info.average_response_time = response_time_total / handled_requests;
+    }
+
+
+    m_t0 = now;
   }
 
 protected:
@@ -372,50 +417,6 @@ protected:
 
   }
 
-  void run_stats()
-  {
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread started...";
-    int new_pop_reqs = 0;
-    int new_pop_count = 0;
-    int new_occupancy = 0;
-    int new_request_times = 0;
-    int new_request_count = 0;
-    auto t0 = std::chrono::high_resolution_clock::now();
-    while (m_run_marker.load()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      new_pop_reqs = m_pop_reqs.exchange(0);
-      new_pop_count = m_pops_count.exchange(0);
-      new_occupancy = m_occupancy;
-      new_request_times = 0;
-      new_request_count = 0;
-      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
-      TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs / seconds / 1. << " [Hz]"
-                                    << " Dropped: " << new_pop_count << " Occupancy: " << new_occupancy;
-
-      std::unique_lock<std::mutex> time_lock_guard(m_response_time_log_lock);
-      if (!m_response_time_log.empty()) {
-        std::ostringstream oss;
-        //oss << "Completed data requests [trig id, took us]: ";
-        while (!m_response_time_log.empty()) {
-        //for (int i = 0; i < m_response_time_log.size(); ++i) {
-          auto& fr = m_response_time_log.front();
-          ++new_request_count;
-          new_request_times += fr.second;
-          //oss << fr.first << ". in " << fr.second << " | ";
-          m_response_time_log.pop_front();
-        }
-        //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
-        TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << new_request_count
-                                      << " | Avarage response time: " << new_request_times / new_request_count << "[us]"; 
-      }
-      time_lock_guard.unlock();
-      for (int i = 0; i < 50 && m_run_marker.load(); ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      t0 = now;
-    }
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread stopped...";
-  }
 
   RequestResult data_request(dfmessages::DataRequest dr) override
   {
@@ -585,7 +586,6 @@ protected:
   std::atomic<int> m_pop_reqs;
   std::atomic<int> m_pops_count;
   std::atomic<int> m_occupancy;
-  std::thread m_stats_thread;
   std::thread m_waiting_queue_thread;
 
   std::atomic<int> m_cleanups{ 0 };
@@ -612,18 +612,23 @@ protected:
   std::atomic<int> m_retry_request{ 0 };
   std::atomic<int> m_uncategorized_request{ 0 };
   std::atomic<int> m_requests_timed_out{ 0 };
+  std::atomic<int> m_handled_requests{ 0 };
   //std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
   //std::atomic<int> m_avg_resp_time{ 0 };
 
   // Request response time log
-  std::deque<std::pair<int, int>> m_response_time_log;
-  std::mutex m_response_time_log_lock;
+  //std::deque<std::pair<int, int>> m_response_time_log;
+  //std::mutex m_response_time_log_lock;
+
+  std::atomic<int> m_response_time_acc{ 0 };
 
   // Data extractor threads pool 
   std::unique_ptr<boost::asio::thread_pool> m_request_handler_thread_pool;
   size_t m_num_request_handling_threads = 0;
 
   std::unique_ptr<FrameErrorRegistry>& m_error_registry;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
+
 };
 
 } // namespace readout
