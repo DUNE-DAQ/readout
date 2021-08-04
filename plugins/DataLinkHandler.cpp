@@ -12,6 +12,7 @@
 
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
+#include "rcif/cmd/Nljs.hpp"
 
 #include <memory>
 #include <sstream>
@@ -77,6 +78,11 @@ DataLinkHandler::do_start(const data_t& args)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
   m_run_marker.store(true);
   m_readout_impl->start(args);
+
+  rcif::cmd::StartParams start_params = args.get<rcif::cmd::StartParams>();
+  m_run_number = start_params.run;
+  TLOG() << get_name() << " successfully started for run number " << m_run_number;
+
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_start() method";
 }
 
@@ -86,6 +92,7 @@ DataLinkHandler::do_stop(const data_t& args)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_stop() method";
   m_run_marker.store(false);
   m_readout_impl->stop(args);
+  TLOG() << get_name() << " successfully stopped for run number " << m_run_number;
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting do_stop() method";
 }
 
