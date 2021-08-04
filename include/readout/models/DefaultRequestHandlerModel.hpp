@@ -545,22 +545,6 @@ protected:
     appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
     size_t retry_count;
 
-    bool operator==(const RequestElement& other)
-    {
-      return this->request.request_number == other.request.request_number;
-    }
-
-    bool operator<(const RequestElement& other) const
-    {
-      return this->request.window_end > other.request.window_end;
-    }
-  };
-
-#warning add comment here or move with RequestElement to same header
-  struct RequestElementKey {
-    std::size_t operator()(const RequestElement& re) const {
-      return re.request.request_number;
-    }
   };
 
   // Data access (LB)
