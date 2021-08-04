@@ -68,7 +68,6 @@ public:
     : m_run_marker(run_marker)
     , m_fake_trigger(false)
     , m_current_fake_trigger_id(0)
-    , m_stats_thread(0)
     , m_consumer_thread(0)
     , m_source_queue_timeout_ms(0)
     , m_raw_data_source(nullptr)
@@ -125,7 +124,6 @@ public:
     }
 
     // Configure threads:
-    m_stats_thread.set_name("stats", conf.link_number);
     m_consumer_thread.set_name("consumer", conf.link_number);
     m_timesync_thread.set_name("timesync", conf.link_number);
     m_requester_thread.set_name("requests", conf.link_number);
@@ -142,12 +140,14 @@ public:
     m_request_count_tot = 0;
     m_request_count = 0;
     m_overwritten_packet_count = 0;
+    m_stats_packet_count = 0;
+    m_rawq_timeout_count = 0;
+
+    m_t0 = std::chrono::high_resolution_clock::now();
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_raw_processor_impl->start(args);
     m_request_handler_impl->start(args);
-    m_stats_thread.set_work(
-      &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_stats, this);
     m_consumer_thread.set_work(
       &ReadoutModel<ReadoutType, RequestHandlerType, LatencyBufferType, RawDataProcessorType>::run_consume, this);
     m_requester_thread.set_work(
@@ -169,9 +169,6 @@ public:
     while (!m_requester_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    while (!m_stats_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
     m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
     m_raw_processor_impl->stop(args);
@@ -188,6 +185,21 @@ public:
     dli.requests = m_request_count_tot.load();
     dli.new_requests = m_request_count.exchange(0);
     dli.overwritten_packet_count = m_overwritten_packet_count.exchange(0);
+
+    auto now = std::chrono::high_resolution_clock::now();
+    int new_packets = m_stats_packet_count.exchange(0);
+    double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
+    TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets / seconds / 1000.)
+                               << " [kHz]";
+    auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
+    if (rawq_timeouts > 0) {
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts)
+                                 << " times!";
+    }
+    m_t0 = now;
+
+    dli.consumed_packet_rate = new_packets / seconds / 1000.;
+    dli.raw_queue_timeouts = rawq_timeouts;
 
     m_request_handler_impl->get_info(dli);
     m_raw_processor_impl->get_info(dli);
@@ -330,31 +342,6 @@ private:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread joins... ";
   }
 
-  void run_stats()
-  {
-    // Temporarily, for debugging, a rate checker thread...
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread started...";
-    int new_packets = 0;
-    auto t0 = std::chrono::high_resolution_clock::now();
-    while (m_run_marker.load()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      new_packets = m_stats_packet_count.exchange(0);
-      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
-      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets / seconds / 1000.)
-                                 << " [kHz]";
-      auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
-      if (rawq_timeouts > 0) {
-        TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts)
-                                   << " times!";
-      }
-      for (int i = 0; i < 100 && m_run_marker.load(); ++i) { // 100 x 100ms = 10s sleeps
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      t0 = now;
-    }
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Statistics thread joins...";
-  }
-
   // Constuctor params
   std::atomic<bool>& m_run_marker;
 
@@ -373,7 +360,6 @@ private:
   std::atomic<int> m_rawq_timeout_count{ 0 };
   std::atomic<int> m_stats_packet_count{ 0 };
   std::atomic<int> m_overwritten_packet_count{ 0 };
-  ReusableThread m_stats_thread;
 
   // CONSUMER
   ReusableThread m_consumer_thread;
@@ -412,6 +398,7 @@ private:
   std::unique_ptr<timesync_sink_qt> m_timesync_sink;
   ReusableThread m_timesync_thread;
 
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
 
 } // namespace readout
