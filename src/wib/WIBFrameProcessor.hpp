@@ -236,6 +236,7 @@ public:
       double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
+      info.tp_hit_rate = new_hits / seconds / 1000.;
     }
     m_t0 = now;
 
@@ -346,7 +347,6 @@ protected:
 
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
-    unsigned int npushed = 0;
 
     uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
 

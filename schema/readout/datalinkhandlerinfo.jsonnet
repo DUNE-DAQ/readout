@@ -8,6 +8,8 @@ local s = moo.oschema.schema("dunedaq.readout.datalinkhandlerinfo");
 local info = {
     uint8  : s.number("uint8", "u8",
                      doc="An unsigned of 8 bytes"),
+    float8 : s.number("float8", "f8",
+                      doc="A float of 8 bytes"),
 
    info: s.record("Info", [
        s.field("packets", self.uint8, 0, doc="Application name"), 
@@ -25,7 +27,8 @@ local info = {
        s.field("num_waiting_requests", self.uint8, 0, doc="Number of requests that are waiting to be processed"),
        s.field("sent_tps", self.uint8, 0, doc="Number of sent TPs"),
        s.field("sent_tpsets", self.uint8, 0, doc="Number of sent TPSets"),
-       s.field("dropped_tps", self.uint8, 0, doc="Number of dropped TPs (because they were too old)")
+       s.field("dropped_tps", self.uint8, 0, doc="Number of dropped TPs (because they were too old)"),
+       s.field("tp_hit_rate", self.float8, 0, doc="TP hit rate in kHz")
    ], doc="Data link handler information information")
 };
 
