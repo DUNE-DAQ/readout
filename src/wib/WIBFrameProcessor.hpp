@@ -58,7 +58,6 @@ public:
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
     , m_sw_tpg_enabled(false)
-    , m_stats_thread(0)
   {
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
@@ -76,9 +75,14 @@ public:
     while (!m_tp_buffer.empty()) {
       m_tp_buffer.pop();
     }
+    m_t0 = std::chrono::high_resolution_clock::now();
+    m_new_hits = 0;
+    m_new_tps = 0;
     m_next_tpset_seqno = 0;
+    m_sent_tps = 0;
+    m_sent_tpsets = 0;
+    m_dropped_tps = 0;
     inherited::start(args);
-    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
   }
   
 
@@ -221,9 +225,19 @@ public:
 
   void get_info(datalinkhandlerinfo::Info& info)
   {
-    info.sent_tps = m_sent_tps;
-    info.sent_tpsets = m_sent_tpsets;
-    info.dropped_tps = m_dropped_tps;
+    info.sent_tps = m_sent_tps.exchange(0);
+    info.sent_tpsets = m_sent_tpsets.exchange(0);
+    info.dropped_tps = m_dropped_tps.exchange(0);
+
+    auto now = std::chrono::high_resolution_clock::now();
+    if (m_sw_tpg_enabled) {
+      int new_hits = m_coll_hits_count.exchange(0);
+      int new_tps = m_num_tps_pushed.exchange(0);
+      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
+    }
+    m_t0 = now;
 
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(info);
   }
@@ -420,7 +434,7 @@ protected:
           //} else {
 
           //}
-
+          m_new_tps++;
           ++nhits;
         }
       }
@@ -433,7 +447,6 @@ protected:
 
     m_num_hits_coll += nhits;
     m_coll_hits_count += nhits;
-    m_num_tps_pushed += npushed;
 
     if (m_first_coll) {
       TLOG() << "Total hits in first superchunk: " << nhits;
@@ -464,6 +477,7 @@ protected:
 
       try {
         m_tpset_sink->push(std::move(tpset));
+        m_num_tps_pushed++;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ers::error(CannotWriteToQueue(ERS_HERE, "m_tpset_sink"));
       }
@@ -483,27 +497,6 @@ protected:
     // if (m_first_ind) {
     //  m_ind_tpg_pi->setState(
     //}
-  }
-
-  void run_stats()
-  {
-    int new_hits = 0;
-    int new_tps = 0;
-    auto t0 = std::chrono::high_resolution_clock::now();
-    while (inherited::m_run_marker.load()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      if (m_sw_tpg_enabled) {
-        new_hits = m_coll_hits_count.exchange(0);
-        new_tps = m_num_tps_pushed.exchange(0);
-        double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
-        TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
-        TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
-      }
-      for (int i = 0; i < 50 && m_run_marker.load(); ++i) { // 100 x 100ms = 5s sleeps
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      t0 = now;
-    }
   }
 
 private:
@@ -536,7 +529,6 @@ private:
   std::atomic<int> m_coll_hits_count{ 0 };
   std::atomic<int> m_indu_hits_count{ 0 };
   std::atomic<int> m_num_tps_pushed{ 0 };
-  ReusableThread m_stats_thread;
 
   bool m_first_coll = true;
   bool m_first_ind = true;
@@ -590,6 +582,9 @@ private:
   std::atomic<uint64_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_sent_tpsets{ 0 }; // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
 
 } // namespace readout

@@ -244,14 +244,14 @@ public:
 
   void get_info(datalinkhandlerinfo::Info& info) override
   {
-    info.found_requested = m_found_requested_count;
-    info.bad_requested = m_bad_requested_count;
-    info.request_window_too_old = m_request_gone;
-    info.retry_request = m_retry_request;
-    info.uncategorized_request = m_uncategorized_request;
-    info.cleanups = m_cleanups;
+    info.found_requested = m_found_requested_count.exchange(0);
+    info.bad_requested = m_bad_requested_count.exchange(0);
+    info.request_window_too_old = m_request_gone.exchange(0);
+    info.retry_request = m_retry_request.exchange(0);
+    info.uncategorized_request = m_uncategorized_request.exchange(0);
+    info.cleanups = m_cleanups.exchange(0);
     info.num_waiting_requests = m_waiting_requests.size();
-    info.requests_timed_out = m_requests_timed_out;
+    info.requests_timed_out = m_requests_timed_out.exchange(0);
   }
 
 protected:

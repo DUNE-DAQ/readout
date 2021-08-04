@@ -187,7 +187,7 @@ public:
     dli.new_packets = m_packet_count.exchange(0);
     dli.requests = m_request_count_tot.load();
     dli.new_requests = m_request_count.exchange(0);
-    dli.overwritten_packet_count = m_overwritten_packet_count.load();
+    dli.overwritten_packet_count = m_overwritten_packet_count.exchange(0);
 
     m_request_handler_impl->get_info(dli);
     m_raw_processor_impl->get_info(dli);

@@ -40,13 +40,12 @@ namespace dunedaq {
 
       void issue_request(dfmessages::DataRequest datarequest, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
       {
-        TLOG_DEBUG(TLVL_WORK_STEPS) << "Going to send empty fragment";
         auto frag_header = inherited::create_fragment_header(datarequest);
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
         fragment->set_header_fields(frag_header);
 
-        ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "Request timed out"));
+        ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "DLH is configured to send empty fragment"));
 
         try { // Push to Fragment queue
           TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
