@@ -33,6 +33,8 @@
 #include "readout/models/DefaultRequestHandlerModel.hpp"
 #include "readout/models/FixedRateQueueModel.hpp"
 
+#include "readout/models/EmptyFragmentRequestHandlerModel.hpp"
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -102,7 +104,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG(TLVL_WORK_STEPS) << "Creating readout for tp";
         auto readout_model = std::make_unique<ReadoutModel<
           types::TP_READOUT_TYPE,
-          DefaultRequestHandlerModel<types::TP_READOUT_TYPE, BinarySearchQueueModel<types::TP_READOUT_TYPE>>,
+          EmptyFragmentRequestHandlerModel<types::TP_READOUT_TYPE, BinarySearchQueueModel<types::TP_READOUT_TYPE>>,
           BinarySearchQueueModel<types::TP_READOUT_TYPE>,
           WIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);

@@ -73,6 +73,10 @@ public:
 
   void start(const nlohmann::json& args) override
   {
+    while (!m_tp_buffer.empty()) {
+      m_tp_buffer.pop();
+    }
+    m_next_tpset_seqno = 0;
     inherited::start(args);
     m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
   }
@@ -392,7 +396,7 @@ protected:
           triggeralgs::TriggerPrimitive trigprim;
           trigprim.time_start = tp_t_begin;
           trigprim.time_peak = (tp_t_begin + tp_t_end) / 2;
-          trigprim.time_over_threshold = hit_tover[i];
+          trigprim.time_over_threshold = hit_tover[i] * clocksPerTPCTick;
           trigprim.channel = online_channel;
           trigprim.adc_integral = hit_charge[i];
           trigprim.adc_peak = hit_charge[i] / 20;
@@ -495,7 +499,7 @@ protected:
         TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
         TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
       }
-      for (int i = 0; i < 50; ++i) { // 100 x 100ms = 5s sleeps
+      for (int i = 0; i < 50 && m_run_marker.load(); ++i) { // 100 x 100ms = 5s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;

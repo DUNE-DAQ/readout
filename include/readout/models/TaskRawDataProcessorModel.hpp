@@ -43,16 +43,19 @@ public:
   {
     auto config = cfg.get<datalinkhandler::Conf>();
     m_postprocess_queue_sizes = config.postprocess_queue_sizes;
+    m_this_link_number = config.link_number;
 
     for (size_t i = 0; i < m_post_process_functions.size(); ++i) {
       m_items_to_postprocess_queues.push_back(
         std::make_unique<folly::ProducerConsumerQueue<const ReadoutType*>>(m_postprocess_queue_sizes));
+      m_post_process_threads.back()->set_name("postprocess-" + std::to_string(i), m_this_link_number);
     }
     RawDataProcessorConcept<ReadoutType>::conf(cfg);
   }
 
   void start(const nlohmann::json& /*args*/) override
   {
+    //m_last_processed_daq_ts = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     m_run_marker.store(true);
     for (size_t i = 0; i < m_post_process_threads.size(); ++i) {
       m_post_process_threads[i]->set_work(&TaskRawDataProcessorModel<ReadoutType>::run_post_processing_thread,
@@ -98,7 +101,6 @@ public:
   void add_postprocess_task(Task&& task)
   {
     m_post_process_threads.emplace_back(std::make_unique<ReusableThread>(0));
-    m_post_process_threads.back()->set_name("postprocess", m_post_process_threads.size() - 1);
     m_post_process_functions.push_back(std::forward<Task>(task));
   }
 
@@ -124,6 +126,8 @@ protected:
       const ReadoutType* element;
       if (queue.read(element)) {
         function(element);
+      } else {
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
       }
     }
   }
@@ -138,6 +142,7 @@ protected:
   std::vector<std::unique_ptr<ReusableThread>> m_post_process_threads;
 
   size_t m_postprocess_queue_sizes;
+  uint32_t m_this_link_number; // NOLINT(build/unsigned)
 };
 
 } // namespace readout
