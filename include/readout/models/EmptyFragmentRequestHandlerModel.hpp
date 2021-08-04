@@ -45,7 +45,8 @@ namespace dunedaq {
         auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
         fragment->set_header_fields(frag_header);
 
-        ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "DLH is configured to send empty fragment"));
+        //ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "DLH is configured to send empty fragment"));
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "DLH is configured to send empty fragment";
 
         try { // Push to Fragment queue
           TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
