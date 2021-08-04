@@ -346,7 +346,7 @@ protected:
 
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
-    unsigned int npushed = 0;
+    //unsigned int npushed = 0;
 
     uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
 
