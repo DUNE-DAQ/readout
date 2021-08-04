@@ -499,7 +499,7 @@ protected:
         TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
         TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
       }
-      for (int i = 0; i < 50; ++i) { // 100 x 100ms = 5s sleeps
+      for (int i = 0; i < 50 && m_run_marker.load(); ++i) { // 100 x 100ms = 5s sleeps
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       t0 = now;
