@@ -535,21 +535,7 @@ protected:
     return rres;
   }
 
-  // Data access (LB)
-  std::unique_ptr<LatencyBufferType>& m_latency_buffer;
-
-  // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<ReadoutType>> m_snb_sink;
-
-  // Requests
-  std::size_t m_max_requested_elements;
-
-  std::mutex m_cv_mutex;
-  std::condition_variable m_cv;
-
-  std::atomic<bool> m_cleanup_requested = false;
-  std::atomic<int> m_requests_running = 0;
-
+#warning add comment here, maybe move out to standalone header
   struct RequestElement {
     RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,  size_t retries) : request(data_request), fragment_sink(sink),  retry_count(retries) {
 
@@ -570,27 +556,39 @@ protected:
     }
   };
 
+#warning add comment here or move with RequestElement to same header
   struct RequestElementKey {
     std::size_t operator()(const RequestElement& re) const {
       return re.request.request_number;
     }
   };
 
+  // Data access (LB)
+  std::unique_ptr<LatencyBufferType>& m_latency_buffer;
+  // Sink for SNB data
+  std::unique_ptr<appfwk::DAQSink<ReadoutType>> m_snb_sink;
+
+  // Requests
+  std::size_t m_max_requested_elements;
+  std::mutex m_cv_mutex;
+  std::condition_variable m_cv;
+  std::atomic<bool> m_cleanup_requested = false;
+  std::atomic<int> m_requests_running = 0;
   std::vector<RequestElement> m_waiting_requests;
   std::mutex m_waiting_requests_lock;
 
+  // Data extractor threads pool and corresponding requests
+  std::unique_ptr<boost::asio::thread_pool> m_request_handler_thread_pool;
+  size_t m_num_request_handling_threads = 0;
+
+  // Error registry
+  std::unique_ptr<FrameErrorRegistry>& m_error_registry;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
+
   // The run marker
   std::atomic<bool> m_run_marker = false;
-
-  // Stats
-  std::atomic<int> m_pop_reqs;
-  std::atomic<int> m_pops_count;
-  std::atomic<int> m_occupancy;
+  // Threads and handles
   std::thread m_waiting_queue_thread;
-
-  std::atomic<int> m_cleanups{ 0 };
-
-  // For recording
   std::atomic<bool> m_recording = false;
   std::future<void> m_future_recording_stopper;
 
@@ -600,12 +598,16 @@ protected:
   float m_pop_size_pct;      // buffer percentage to pop
   unsigned m_pop_limit_size; // pop_limit_pct * buffer_capacity
   size_t m_retry_count;
-  std::atomic<int> m_pop_counter;
   size_t m_buffer_capacity;
   dataformats::GeoID m_geoid;
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
 
   // Stats
+  std::atomic<int> m_pop_counter;
+  std::atomic<int> m_cleanups{ 0 };
+  std::atomic<int> m_pop_reqs;
+  std::atomic<int> m_pops_count;
+  std::atomic<int> m_occupancy;
   std::atomic<int> m_found_requested_count{ 0 };
   std::atomic<int> m_bad_requested_count{ 0 };
   std::atomic<int> m_request_gone{ 0 };
@@ -613,21 +615,12 @@ protected:
   std::atomic<int> m_uncategorized_request{ 0 };
   std::atomic<int> m_requests_timed_out{ 0 };
   std::atomic<int> m_handled_requests{ 0 };
+  std::atomic<int> m_response_time_acc{ 0 };
   //std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
   //std::atomic<int> m_avg_resp_time{ 0 };
-
-  // Request response time log
+  // Request response time log (kept for debugging if needed)
   //std::deque<std::pair<int, int>> m_response_time_log;
   //std::mutex m_response_time_log_lock;
-
-  std::atomic<int> m_response_time_acc{ 0 };
-
-  // Data extractor threads pool 
-  std::unique_ptr<boost::asio::thread_pool> m_request_handler_thread_pool;
-  size_t m_num_request_handling_threads = 0;
-
-  std::unique_ptr<FrameErrorRegistry>& m_error_registry;
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 
 };
 
