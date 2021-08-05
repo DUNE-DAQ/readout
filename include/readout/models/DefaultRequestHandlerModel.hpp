@@ -143,11 +143,12 @@ public:
     m_cleanups = 0;
     m_requests_timed_out = 0;
 
+    m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
+
     m_run_marker.store(true);
     m_stats_thread = std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::run_stats, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
-    m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
   }
 
   void stop(const nlohmann::json& /*args*/)
@@ -270,6 +271,14 @@ protected:
     return std::move(fh);
   }
 
+  std::unique_ptr<dataformats::Fragment> create_empty_fragment(const dfmessages::DataRequest& dr) {
+    auto frag_header = create_fragment_header(dr);
+    frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+    auto fragment = std::make_unique<dataformats::Fragment>(std::vector < std::pair < void * , size_t >> ());
+    fragment->set_header_fields(frag_header);
+    return fragment;
+  }
+
   inline void dump_to_buffer(const void* data,
                              std::size_t size,
                              void* buffer,
@@ -324,7 +333,7 @@ protected:
 
   void check_waiting_requests()
   {
-    while (m_run_marker.load()) {
+    while (m_run_marker.load() || m_waiting_requests.size() > 0) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
         auto last_frame = m_latency_buffer->back();       // NOLINT
@@ -338,10 +347,7 @@ protected:
             m_waiting_requests.pop_back();
             size--;
           } else if (m_waiting_requests[i].retry_count >= m_retry_count) {
-            auto frag_header = create_fragment_header(m_waiting_requests[i].request);
-            frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-            auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
-            fragment->set_header_fields(frag_header);
+            auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
             ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "Request timed out"));
             m_bad_requested_count++;
@@ -352,7 +358,26 @@ protected:
                                           << fragment->get_run_number() << ", and GeoID "
                                           << fragment->get_element_id();
               m_waiting_requests[i].fragment_sink->push(std::move(fragment));
-            } catch (const ers::Issue& excpt) {
+            } catch (const ers::Issue &excpt) {
+              std::ostringstream oss;
+              oss << "fragments output queue for link " << m_geoid.element_id;
+              ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+            }
+            std::swap(m_waiting_requests[i], m_waiting_requests.back());
+            m_waiting_requests.pop_back();
+            size--;
+          } else if (!m_run_marker.load()) {
+            auto fragment = create_empty_fragment(m_waiting_requests[i].request);
+
+            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "End of run"));
+            m_bad_requested_count++;
+            try { // Push to Fragment queue
+              TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
+                                          << fragment->get_trigger_number() << ", run number "
+                                          << fragment->get_run_number() << ", and GeoID "
+                                          << fragment->get_element_id();
+              m_waiting_requests[i].fragment_sink->push(std::move(fragment));
+            } catch (const ers::Issue &excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
               ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
