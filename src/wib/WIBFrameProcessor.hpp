@@ -73,6 +73,7 @@ public:
 
   void start(const nlohmann::json& args) override
   {
+    m_first_coll = true;
     while (!m_tp_buffer.empty()) {
       m_tp_buffer.pop();
     }
