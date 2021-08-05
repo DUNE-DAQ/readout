@@ -72,6 +72,7 @@ public:
 
   void start(const nlohmann::json& args) override
   {
+    m_first_coll = true;
     while (!m_tp_buffer.empty()) {
       m_tp_buffer.pop();
     }
@@ -410,7 +411,7 @@ protected:
           triggeralgs::TriggerPrimitive trigprim;
           trigprim.time_start = tp_t_begin;
           trigprim.time_peak = (tp_t_begin + tp_t_end) / 2;
-          trigprim.time_over_threshold = hit_tover[i];
+          trigprim.time_over_threshold = hit_tover[i] * clocksPerTPCTick;
           trigprim.channel = online_channel;
           trigprim.adc_integral = hit_charge[i];
           trigprim.adc_peak = hit_charge[i] / 20;
