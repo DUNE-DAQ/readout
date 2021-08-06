@@ -11,9 +11,9 @@
 #include "appfwk/DAQModuleHelper.hpp"
 #include "readout/dummyconsumerinfo/InfoNljs.hpp"
 
-#include "readout/ReadoutIssues.hpp"
 #include "appfwk/cmd/Nljs.hpp"
 #include "logging/Logging.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include <string>
 
 namespace dunedaq {

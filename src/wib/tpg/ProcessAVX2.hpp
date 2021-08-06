@@ -115,13 +115,13 @@ process_window_avx2(ProcessingInfo<NREGISTERS>& info)
     // from the previous go-around.
 
     ChanState<NREGISTERS>& state = info.chanState;
-    __m256i median = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.pedestals) + ireg); // NOLINT
+    __m256i median = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.pedestals) + ireg);      // NOLINT
     __m256i quantile25 = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.quantile25) + ireg); // NOLINT
     __m256i quantile75 = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.quantile75) + ireg); // NOLINT
 
     // The accumulator that we increase/decrease when the current
     // sample is greater/less than the median
-    __m256i accum = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.accum) + ireg); // NOLINT
+    __m256i accum = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.accum) + ireg);     // NOLINT
     __m256i accum25 = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.accum25) + ireg); // NOLINT
     __m256i accum75 = _mm256_lddqu_si256(reinterpret_cast<__m256i*>(state.accum75) + ireg); // NOLINT
 
@@ -221,36 +221,35 @@ process_window_avx2(ProcessingInfo<NREGISTERS>& info)
       __m256i filt3 = _mm256_setzero_si256();
 
       // % would be slow, but we're making sure that NTAPS is a power of two so the optimizer ought to save us
-//#define ADDTAP0(x)                                                                                                     
-//  filt0 = _mm256_add_epi16(filt0, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
-//#define ADDTAP1(x)                                                                                                     
-//  filt1 = _mm256_add_epi16(filt1, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
-//#define ADDTAP2(x)                                                                                                     
-//  filt2 = _mm256_add_epi16(filt2, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
-//#define ADDTAP3(x)                                                                                                     
-//  filt3 = _mm256_add_epi16(filt3, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
+      //#define ADDTAP0(x)
+      //  filt0 = _mm256_add_epi16(filt0, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
+      //#define ADDTAP1(x)
+      //  filt1 = _mm256_add_epi16(filt1, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
+      //#define ADDTAP2(x)
+      //  filt2 = _mm256_add_epi16(filt2, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
+      //#define ADDTAP3(x)
+      //  filt3 = _mm256_add_epi16(filt3, _mm256_mullo_epi16(tap_256[x], prev_samp[(x + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP0(0);
+      // ADDTAP0(0);
       filt0 = _mm256_add_epi16(filt0, _mm256_mullo_epi16(tap_256[0], prev_samp[(0 + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP1(1);
+      // ADDTAP1(1);
       filt1 = _mm256_add_epi16(filt1, _mm256_mullo_epi16(tap_256[1], prev_samp[(1 + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP2(2);
+      // ADDTAP2(2);
       filt2 = _mm256_add_epi16(filt2, _mm256_mullo_epi16(tap_256[2], prev_samp[(2 + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP3(3);
+      // ADDTAP3(3);
       filt3 = _mm256_add_epi16(filt3, _mm256_mullo_epi16(tap_256[3], prev_samp[(3 + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP0(4);
+      // ADDTAP0(4);
       filt0 = _mm256_add_epi16(filt0, _mm256_mullo_epi16(tap_256[4], prev_samp[(4 + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP1(5);
+      // ADDTAP1(5);
       filt1 = _mm256_add_epi16(filt1, _mm256_mullo_epi16(tap_256[5], prev_samp[(5 + absTimeModNTAPS) % NTAPS]));
 
-      //ADDTAP2(6);
+      // ADDTAP2(6);
       filt2 = _mm256_add_epi16(filt2, _mm256_mullo_epi16(tap_256[6], prev_samp[(6 + absTimeModNTAPS) % NTAPS]));
-
 
       __m256i filt = _mm256_add_epi16(_mm256_add_epi16(filt0, filt1), _mm256_add_epi16(filt2, filt3));
       prev_samp[absTimeModNTAPS] = s;
@@ -315,10 +314,10 @@ process_window_avx2(ProcessingInfo<NREGISTERS>& info)
         // We have to save the whole register, including the
         // lanes that don't have anything interesting, but
         // we'll mask them to zero so they're easy to remove
-        // in a later processing step. 
+        // in a later processing step.
         //
         // (TODO: Maybe we should do that processing step in this function?)
-//#define STORE_MASK(x) _mm256_storeu_si256(output_loc++, _mm256_blendv_epi8(_mm256_set1_epi16(0), x, left));
+        //#define STORE_MASK(x) _mm256_storeu_si256(output_loc++, _mm256_blendv_epi8(_mm256_set1_epi16(0), x, left));
 
         _mm256_storeu_si256(output_loc++, channels); // NOLINT(runtime/increment_decrement)
         // Store the end time of the hit, not the start
@@ -329,8 +328,10 @@ process_window_avx2(ProcessingInfo<NREGISTERS>& info)
 
         _mm256_storeu_si256(output_loc++, timenow); // NOLINT(runtime/increment_decrement)
         // STORE_MASK(hit_charge);
-        _mm256_storeu_si256(output_loc++, _mm256_blendv_epi8(_mm256_set1_epi16(0), hit_charge, left)); // NOLINT(runtime/increment_decrement)
-        _mm256_storeu_si256(output_loc++, hit_tover); // NOLINT(runtime/increment_decrement)
+        _mm256_storeu_si256(
+          output_loc++, // NOLINT(runtime/increment_decrement)
+          _mm256_blendv_epi8(_mm256_set1_epi16(0), hit_charge, left));
+        _mm256_storeu_si256(output_loc++, hit_tover);                  // NOLINT(runtime/increment_decrement)
 
         // reset hit_start, hit_charge and hit_tover in the channels we saved
         const __m256i zero = _mm256_setzero_si256();
@@ -343,11 +344,11 @@ process_window_avx2(ProcessingInfo<NREGISTERS>& info)
     } // end loop over itime (times for this register)
 
     // Store the state, ready for the next time round
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.pedestals) + ireg, median); // NOLINT
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.pedestals) + ireg, median);      // NOLINT
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.quantile25) + ireg, quantile25); // NOLINT
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.quantile75) + ireg, quantile75); // NOLINT
 
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.accum) + ireg, accum); // NOLINT
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.accum) + ireg, accum);     // NOLINT
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.accum25) + ireg, accum25); // NOLINT
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.accum75) + ireg, accum75); // NOLINT
 
@@ -356,8 +357,8 @@ process_window_avx2(ProcessingInfo<NREGISTERS>& info)
     }
 
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.prev_was_over) + ireg, prev_was_over); // NOLINT
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.hit_charge) + ireg, hit_charge); // NOLINT
-    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.hit_tover) + ireg, hit_tover); // NOLINT
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.hit_charge) + ireg, hit_charge);       // NOLINT
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(state.hit_tover) + ireg, hit_tover);         // NOLINT
 
   } // end loop over ireg (the 8 registers in this frame)
 

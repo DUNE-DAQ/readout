@@ -100,7 +100,7 @@ protected:
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Didn't manage to get SKL head and tail!";
       }
     }
-    m_cleanups++;
+    m_num_buffer_cleanups++;
   }
 
 private:

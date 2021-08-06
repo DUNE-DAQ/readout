@@ -30,28 +30,28 @@ namespace types {
 // Location of this struct is very bad very bad
 struct TriggerPrimitive
 {
-    TriggerPrimitive(uint64_t messageTimestamp_,  // NOLINT(build/unsigned)
-                     uint16_t channel_,           // NOLINT(build/unsigned)
-                     uint16_t endTime_,           // NOLINT(build/unsigned)
-                     uint16_t charge_,            // NOLINT(build/unsigned)
-                     uint16_t timeOverThreshold_) // NOLINT(build/unsigned)
-        : messageTimestamp(messageTimestamp_),
-          channel(channel_),
-          endTime(endTime_),
-          charge(charge_),
-          timeOverThreshold(timeOverThreshold_)
-    {}
+  TriggerPrimitive(uint64_t messageTimestamp_,  // NOLINT(build/unsigned)
+                   uint16_t channel_,           // NOLINT(build/unsigned)
+                   uint16_t endTime_,           // NOLINT(build/unsigned)
+                   uint16_t charge_,            // NOLINT(build/unsigned)
+                   uint16_t timeOverThreshold_) // NOLINT(build/unsigned)
+    : messageTimestamp(messageTimestamp_)
+    , channel(channel_)
+    , endTime(endTime_)
+    , charge(charge_)
+    , timeOverThreshold(timeOverThreshold_)
+  {}
 
-    // The timestamp of the netio message that this hit comes from
-    uint64_t messageTimestamp;  // NOLINT(build/unsigned) 
-    // The electronics channel number within the (crate, slot, fiber)
-    uint16_t channel;           // NOLINT(build/unsigned)
-    // In TPC ticks relative to the start of the netio message
-    uint16_t endTime;           // NOLINT(build/unsigned) 
-    // In ADC
-    uint16_t charge;            // NOLINT(build/unsigned) 
-    // In *TPC* clock ticks
-    uint16_t timeOverThreshold; // NOLINT(build/unsigned)
+  // The timestamp of the netio message that this hit comes from
+  uint64_t messageTimestamp; // NOLINT(build/unsigned)
+  // The electronics channel number within the (crate, slot, fiber)
+  uint16_t channel; // NOLINT(build/unsigned)
+  // In TPC ticks relative to the start of the netio message
+  uint16_t endTime; // NOLINT(build/unsigned)
+  // In ADC
+  uint16_t charge; // NOLINT(build/unsigned)
+  // In *TPC* clock ticks
+  uint16_t timeOverThreshold; // NOLINT(build/unsigned)
 };
 
 /**

@@ -58,7 +58,6 @@ public:
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
     , m_sw_tpg_enabled(false)
-    , m_stats_thread(0)
   {
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
@@ -73,14 +72,19 @@ public:
 
   void start(const nlohmann::json& args) override
   {
+    m_first_coll = true;
     while (!m_tp_buffer.empty()) {
       m_tp_buffer.pop();
     }
+    m_t0 = std::chrono::high_resolution_clock::now();
+    m_new_hits = 0;
+    m_new_tps = 0;
     m_next_tpset_seqno = 0;
+    m_sent_tps = 0;
+    m_sent_tpsets = 0;
+    m_dropped_tps = 0;
     inherited::start(args);
-    m_stats_thread.set_work(&WIBFrameProcessor::run_stats, this);
   }
-  
 
   unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
                                  const dunedaq::dataformats::WIBFrame* frame,
@@ -111,7 +115,8 @@ public:
 
     unsigned int crateloc = crate; // NOLINT(build/unsigned)
     unsigned int offline =         // NOLINT(build/unsigned)
-      channelMap.GetOfflineNumberFromDetectorElements(crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
+      channelMap.GetOfflineNumberFromDetectorElements(
+        crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
     // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
     //        crate, slot, fiber, fiberloc, chloc, offline);
     return offline;
@@ -145,8 +150,8 @@ public:
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
 
-      const char* readout_share_cstr=getenv("READOUT_SHARE");
-      if(!readout_share_cstr){
+      const char* readout_share_cstr = getenv("READOUT_SHARE");
+      if (!readout_share_cstr) {
         throw ConfigurationError(ERS_HERE, "Environment variable READOUT_SHARE is not set");
       }
       std::string readout_share(readout_share_cstr);
@@ -221,9 +226,20 @@ public:
 
   void get_info(datalinkhandlerinfo::Info& info)
   {
-    info.sent_tps = m_sent_tps;
-    info.sent_tpsets = m_sent_tpsets;
-    info.dropped_tps = m_dropped_tps;
+    info.num_tps_sent = m_sent_tps.exchange(0);
+    info.num_tpsets_sent = m_sent_tpsets.exchange(0);
+    info.num_tps_dropped = m_dropped_tps.exchange(0);
+
+    auto now = std::chrono::high_resolution_clock::now();
+    if (m_sw_tpg_enabled) {
+      int new_hits = m_coll_hits_count.exchange(0);
+      int new_tps = m_num_tps_pushed.exchange(0);
+      double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
+      TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
+      info.rate_tp_hits = new_hits / seconds / 1000.;
+    }
+    m_t0 = now;
 
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(info);
   }
@@ -332,7 +348,6 @@ protected:
 
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
-    unsigned int npushed = 0;
 
     uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
 
@@ -376,9 +391,9 @@ protected:
         if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
           // This channel had a hit ending here, so we can create and output the hit here
           const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
-          uint64_t tp_t_begin = // NOLINT(build/unsigned)
-            timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);  // NOLINT(build/unsigned)
-          uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]); // NOLINT(build/unsigned)
+          uint64_t tp_t_begin =                                                        // NOLINT(build/unsigned)
+            timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);       // NOLINT(build/unsigned)
+          uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);      // NOLINT(build/unsigned)
 
           // May be needed for TPSet:
           // uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?
@@ -420,7 +435,7 @@ protected:
           //} else {
 
           //}
-
+          m_new_tps++;
           ++nhits;
         }
       }
@@ -433,7 +448,6 @@ protected:
 
     m_num_hits_coll += nhits;
     m_coll_hits_count += nhits;
-    m_num_tps_pushed += npushed;
 
     if (m_first_coll) {
       TLOG() << "Total hits in first superchunk: " << nhits;
@@ -464,6 +478,7 @@ protected:
 
       try {
         m_tpset_sink->push(std::move(tpset));
+        m_num_tps_pushed++;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ers::error(CannotWriteToQueue(ERS_HERE, "m_tpset_sink"));
       }
@@ -483,27 +498,6 @@ protected:
     // if (m_first_ind) {
     //  m_ind_tpg_pi->setState(
     //}
-  }
-
-  void run_stats()
-  {
-    int new_hits = 0;
-    int new_tps = 0;
-    auto t0 = std::chrono::high_resolution_clock::now();
-    while (inherited::m_run_marker.load()) {
-      auto now = std::chrono::high_resolution_clock::now();
-      if (m_sw_tpg_enabled) {
-        new_hits = m_coll_hits_count.exchange(0);
-        new_tps = m_num_tps_pushed.exchange(0);
-        double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - t0).count() / 1000000.;
-        TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
-        TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
-      }
-      for (int i = 0; i < 50 && m_run_marker.load(); ++i) { // 100 x 100ms = 5s sleeps
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
-      t0 = now;
-    }
   }
 
 private:
@@ -536,7 +530,6 @@ private:
   std::atomic<int> m_coll_hits_count{ 0 };
   std::atomic<int> m_indu_hits_count{ 0 };
   std::atomic<int> m_num_tps_pushed{ 0 };
-  ReusableThread m_stats_thread;
 
   bool m_first_coll = true;
   bool m_first_ind = true;
@@ -590,6 +583,9 @@ private:
   std::atomic<uint64_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_sent_tpsets{ 0 }; // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
 
 } // namespace readout
