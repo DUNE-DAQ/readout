@@ -50,6 +50,7 @@ private:
   // Configuration
   bool m_configured;
   using module_conf_t = datalinkhandler::Conf;
+  dataformats::run_number_t m_run_number;
 
   // Internal
   std::unique_ptr<ReadoutConcept> m_readout_impl;
