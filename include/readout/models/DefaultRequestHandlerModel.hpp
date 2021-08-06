@@ -59,23 +59,34 @@ public:
     : m_latency_buffer(latency_buffer)
     , m_waiting_requests()
     , m_waiting_requests_lock()
-    , m_pop_reqs(0)
-    , m_pops_count(0)
-    , m_occupancy(0)
+    , m_error_registry(error_registry)
     , m_pop_limit_pct(0.0f)
     , m_pop_size_pct(0.0f)
     , m_pop_limit_size(0)
-    , m_pop_counter{ 0 }
     , m_buffer_capacity(0)
+    , m_pop_counter{ 0 }
+    , m_pop_reqs(0)
+    , m_pops_count(0)
+    , m_occupancy(0)
     //, m_response_time_log()
     //, m_response_time_log_lock()
-    , m_error_registry(error_registry)
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
 
   using RequestResult = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::RequestResult;
   using ResultCode = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::ResultCode;
+
+  struct RequestElement {
+    RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,  size_t retries) : request(data_request), fragment_sink(sink),  retry_count(retries) {
+
+    }
+
+    dfmessages::DataRequest request;
+    appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
+    size_t retry_count;
+
+  };
 
   void init(const nlohmann::json& args) override {
     try {
@@ -563,18 +574,6 @@ protected:
 
     return rres;
   }
-
-#warning add comment here, maybe move out to standalone header
-  struct RequestElement {
-    RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,  size_t retries) : request(data_request), fragment_sink(sink),  retry_count(retries) {
-
-    }
-
-    dfmessages::DataRequest request;
-    appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
-    size_t retry_count;
-
-  };
 
   // Data access (LB)
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
