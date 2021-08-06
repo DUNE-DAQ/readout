@@ -147,13 +147,13 @@ public:
   void start(const nlohmann::json& /*args*/)
   {
     // Reset opmon variables
-    m_num_found_requests = 0;
-    m_num_bad_requests = 0;
-    m_num_old_window_requests = 0;
-    m_num_delayed_requests = 0;
-    m_num_uncategorized_requests = 0;
+    m_num_requests_found = 0;
+    m_num_requests_bad = 0;
+    m_num_requests_old_window = 0;
+    m_num_requests_delayed = 0;
+    m_num_requests_uncategorized = 0;
     m_num_buffer_cleanups = 0;
-    m_num_timed_out_requests = 0;
+    m_num_requests_timed_out = 0;
     m_handled_requests = 0;
     m_response_time_acc = 0;
     m_pop_reqs = 0;
@@ -266,14 +266,14 @@ public:
 
   void get_info(datalinkhandlerinfo::Info& info) override
   {
-    info.num_found_requests = m_num_found_requests.exchange(0);
-    info.num_bad_requests = m_num_bad_requests.exchange(0);
-    info.num_old_window_requests = m_num_old_window_requests.exchange(0);
-    info.num_delayed_requests = m_num_delayed_requests.exchange(0);
-    info.num_uncategorized_requests = m_num_uncategorized_requests.exchange(0);
+    info.num_requests_found = m_num_requests_found.exchange(0);
+    info.num_requests_bad = m_num_requests_bad.exchange(0);
+    info.num_requests_old_window = m_num_requests_old_window.exchange(0);
+    info.num_requests_delayed = m_num_requests_delayed.exchange(0);
+    info.num_requests_uncategorized = m_num_requests_uncategorized.exchange(0);
     info.num_buffer_cleanups = m_num_buffer_cleanups.exchange(0);
-    info.num_waiting_requests = m_waiting_requests.size();
-    info.num_timed_out_requests = m_num_timed_out_requests.exchange(0);
+    info.num_requests_waiting = m_waiting_requests.size();
+    info.num_requests_timed_out = m_num_requests_timed_out.exchange(0);
 
     int new_pop_reqs = 0;
     int new_pop_count = 0;
@@ -410,8 +410,8 @@ protected:
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
             ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "Request timed out"));
-            m_num_bad_requests++;
-            m_num_timed_out_requests++;
+            m_num_requests_bad++;
+            m_num_requests_timed_out++;
             try { // Push to Fragment queue
               TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
                                           << fragment->get_trigger_number() << ", run number "
@@ -430,7 +430,7 @@ protected:
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
             ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "End of run"));
-            m_num_bad_requests++;
+            m_num_requests_bad++;
             try { // Push to Fragment queue
               TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
                                           << fragment->get_trigger_number() << ", run number "
@@ -492,11 +492,11 @@ protected:
                                                         : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
-          ++m_num_delayed_requests;
+          ++m_num_requests_delayed;
           rres.result_code = ResultCode::kNotYet; // give it another chance
         } else {
           rres.result_code = ResultCode::kFound;
-          ++m_num_found_requests;
+          ++m_num_requests_found;
 
           auto elements_handled = 0;
 
@@ -526,17 +526,17 @@ protected:
       } else if (last_ts > start_win_ts) { // data is gone.
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
-        ++m_num_old_window_requests;
-        ++m_num_bad_requests;
+        ++m_num_requests_old_window;
+        ++m_num_requests_bad;
       } else if (newest_ts < end_win_ts) {
-        ++m_num_delayed_requests;
+        ++m_num_requests_delayed;
         rres.result_code = ResultCode::kNotYet; // give it another chance
       } else {
         TLOG() << "Don't know how to categorise this request";
         frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
-        ++m_num_uncategorized_requests;
-        ++m_num_bad_requests;
+        ++m_num_requests_uncategorized;
+        ++m_num_requests_bad;
       }
 
       // Requeue if needed
@@ -546,7 +546,7 @@ protected:
         } else {
           frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
           rres.result_code = ResultCode::kNotFound;
-          ++m_num_bad_requests;
+          ++m_num_requests_bad;
         }
       }
 
@@ -559,7 +559,7 @@ protected:
           << "Estimated newest stored TS=" << newest_ts;
       TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
     } else {
-      ++m_num_bad_requests;
+      ++m_num_requests_bad;
     }
 
     if (rres.result_code != ResultCode::kFound) {
@@ -621,12 +621,12 @@ protected:
   std::atomic<int> m_pop_reqs;
   std::atomic<int> m_pops_count;
   std::atomic<int> m_occupancy;
-  std::atomic<int> m_num_found_requests{ 0 };
-  std::atomic<int> m_num_bad_requests{ 0 };
-  std::atomic<int> m_num_old_window_requests{ 0 };
-  std::atomic<int> m_num_delayed_requests{ 0 };
-  std::atomic<int> m_num_uncategorized_requests{ 0 };
-  std::atomic<int> m_num_timed_out_requests{ 0 };
+  std::atomic<int> m_num_requests_found{ 0 };
+  std::atomic<int> m_num_requests_bad{ 0 };
+  std::atomic<int> m_num_requests_old_window{ 0 };
+  std::atomic<int> m_num_requests_delayed{ 0 };
+  std::atomic<int> m_num_requests_uncategorized{ 0 };
+  std::atomic<int> m_num_requests_timed_out{ 0 };
   std::atomic<int> m_handled_requests{ 0 };
   std::atomic<int> m_response_time_acc{ 0 };
   //std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
