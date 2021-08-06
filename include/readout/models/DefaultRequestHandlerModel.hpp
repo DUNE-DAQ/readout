@@ -111,6 +111,7 @@ public:
     m_buffer_capacity = conf.latency_buffer_size;
     m_num_request_handling_threads = conf.num_request_handling_threads;
     m_retry_count = conf.retry_count;
+    m_fragment_queue_timeout = conf.fragment_queue_timeout_ms;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -204,11 +205,14 @@ public:
 
   void issue_request(dfmessages::DataRequest datarequest, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
   {
-    std::unique_lock<std::mutex> lock(m_cv_mutex);
-    m_cv.wait(lock, [&] { return !m_cleanup_requested; });
-    m_requests_running++;
     boost::asio::post(*m_request_handler_thread_pool, [&, datarequest]() { // start a thread from pool
       auto t_req_begin = std::chrono::high_resolution_clock::now();
+      {
+        std::unique_lock<std::mutex> lock(m_cv_mutex);
+        m_cv.wait(lock, [&] { return !m_cleanup_requested; });
+        m_requests_running++;
+      }
+      m_cv.notify_all();
       auto result = data_request(datarequest);
       {
         std::lock_guard<std::mutex> lock(m_cv_mutex);
@@ -221,7 +225,7 @@ public:
                                       << result.fragment->get_trigger_number() << ", run number "
                                       << result.fragment->get_run_number() << ", and GeoID "
                                       << result.fragment->get_element_id();
-          fragment_queue.push(std::move(result.fragment));
+          fragment_queue.push(std::move(result.fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
         } catch (const ers::Issue& excpt) {
           std::ostringstream oss;
           oss << "fragments output queue for link " << m_geoid.element_id;
@@ -357,7 +361,7 @@ protected:
                                           << fragment->get_trigger_number() << ", run number "
                                           << fragment->get_run_number() << ", and GeoID "
                                           << fragment->get_element_id();
-              m_waiting_requests[i].fragment_sink->push(std::move(fragment));
+              m_waiting_requests[i].fragment_sink->push(std::move(fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
             } catch (const ers::Issue &excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
@@ -376,7 +380,7 @@ protected:
                                           << fragment->get_trigger_number() << ", run number "
                                           << fragment->get_run_number() << ", and GeoID "
                                           << fragment->get_element_id();
-              m_waiting_requests[i].fragment_sink->push(std::move(fragment));
+              m_waiting_requests[i].fragment_sink->push(std::move(fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
             } catch (const ers::Issue &excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
@@ -649,6 +653,7 @@ protected:
   size_t m_num_request_handling_threads = 0;
 
   std::unique_ptr<FrameErrorRegistry>& m_error_registry;
+  int m_fragment_queue_timeout = 100;
 };
 
 } // namespace readout
