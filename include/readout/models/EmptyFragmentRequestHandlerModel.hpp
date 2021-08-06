@@ -53,7 +53,7 @@ namespace dunedaq {
                                       << fragment->get_trigger_number() << ", run number "
                                       << fragment->get_run_number() << ", and GeoID "
                                       << fragment->get_element_id();
-          fragment_queue.push(std::move(fragment));
+          fragment_queue.push(std::move(fragment), std::chrono::milliseconds(DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::m_fragment_queue_timeout));
         } catch (const ers::Issue& excpt) {
           std::ostringstream oss;
           oss << "fragments output queue for link " << inherited::m_geoid.element_id;

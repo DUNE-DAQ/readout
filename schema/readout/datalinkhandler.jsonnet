@@ -38,6 +38,8 @@ local datalinkhandler = {
                 doc="If the input data is from an emulator."),
         s.field("source_queue_timeout_ms", self.count, 2000,
                 doc="Timeout for source queue"),
+        s.field("fragment_queue_timeout_ms", self.count, 100,
+                doc="Timeout for pushing to the fragment queue"),
         s.field("fake_trigger_flag", self.count, 0,
                 doc="flag indicating whether to generate fake triggers: 1=true, 0=false "),
         s.field("latency_buffer_size", self.size, 100000,
