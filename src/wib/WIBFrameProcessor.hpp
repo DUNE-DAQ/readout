@@ -226,9 +226,9 @@ public:
 
   void get_info(datalinkhandlerinfo::Info& info)
   {
-    info.num_sent_tps = m_sent_tps.exchange(0);
-    info.num_sent_tpsets = m_sent_tpsets.exchange(0);
-    info.num_dropped_tps = m_dropped_tps.exchange(0);
+    info.num_tps_sent = m_sent_tps.exchange(0);
+    info.num_tpsets_sent = m_sent_tpsets.exchange(0);
+    info.num_tps_dropped = m_dropped_tps.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     if (m_sw_tpg_enabled) {

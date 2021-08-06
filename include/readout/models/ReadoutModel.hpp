@@ -138,7 +138,7 @@ public:
     m_num_payloads = 0;
     m_sum_requests = 0;
     m_num_requests = 0;
-    m_num_overwritten_payloads = 0;
+    m_num_payloads_overwritten = 0;
     m_stats_packet_count = 0;
     m_rawq_timeout_count = 0;
 
@@ -183,7 +183,7 @@ public:
     dli.num_payloads = m_num_payloads.exchange(0);
     dli.sum_requests = m_sum_requests.load();
     dli.num_requests = m_num_requests.exchange(0);
-    dli.num_overwritten_payloads = m_num_overwritten_payloads.exchange(0);
+    dli.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);
@@ -196,7 +196,7 @@ public:
     }
     m_t0 = now;
 
-    dli.rate_consumed_payloads = new_packets / seconds / 1000.;
+    dli.rate_payloads_consumed = new_packets / seconds / 1000.;
     dli.num_raw_queue_timeouts = rawq_timeouts;
 
     m_request_handler_impl->get_info(dli);
@@ -240,7 +240,7 @@ private:
         m_raw_processor_impl->preprocess_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
-          m_num_overwritten_payloads++;
+          m_num_payloads_overwritten++;
         }
         m_raw_processor_impl->postprocess_item(m_latency_buffer_impl->back());
         ++m_num_payloads;
@@ -360,7 +360,7 @@ private:
   std::atomic<int> m_sum_requests{ 0 };
   std::atomic<int> m_rawq_timeout_count{ 0 };
   std::atomic<int> m_stats_packet_count{ 0 };
-  std::atomic<int> m_num_overwritten_payloads{ 0 };
+  std::atomic<int> m_num_payloads_overwritten{ 0 };
 
   // CONSUMER
   ReusableThread m_consumer_thread;
