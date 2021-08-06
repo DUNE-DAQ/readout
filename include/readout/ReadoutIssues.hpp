@@ -91,7 +91,10 @@ ERS_DECLARE_ISSUE_BASE(readout,
 
 ERS_DECLARE_ISSUE(readout, ConfigurationNote, name << ": " << text, ((std::string)name)((std::string)text))
 
-ERS_DECLARE_ISSUE(readout, ConfigurationProblem, name << " configuration problem: " << text, ((std::string)name)((std::string)text))
+ERS_DECLARE_ISSUE(readout,
+                  ConfigurationProblem,
+                  name << " configuration problem: " << text,
+                  ((std::string)name)((std::string)text))
 
 } // namespace dunedaq
 

@@ -18,7 +18,7 @@
 // @author Bo Hu (bhu@fb.com)
 // @author Jordan DeLong (delong.j@fb.com)
 
-// Modification by Roland Sipos and Florian Till Groetschla 
+// Modification by Roland Sipos and Florian Till Groetschla
 // for DUNE-DAQ software framework
 
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_

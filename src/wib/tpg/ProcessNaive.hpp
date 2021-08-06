@@ -9,13 +9,13 @@
 #ifndef READOUT_SRC_WIB_TPG_PROCESSNAIVE_HPP_
 #define READOUT_SRC_WIB_TPG_PROCESSNAIVE_HPP_
 
+#include "FrameExpand.hpp"
 #include "ProcessingInfo.hpp"
 #include "TPGConstants.hpp"
-#include "FrameExpand.hpp"
 
-#include <limits>
 #include <algorithm>
 #include <inttypes.h>
+#include <limits>
 
 namespace swtpg {
 
@@ -48,7 +48,7 @@ process_window_naive(ProcessingInfo<NREGISTERS>& info)
   const size_t NTAPS = 8;
   const int16_t adcMax = info.adcMax;
 
-  uint16_t* output_loc = info.output; // NOLINT
+  uint16_t* output_loc = info.output;           // NOLINT
   const uint16_t* input16 = info.input->data(); // NOLINT
   int nhits = 0;
 

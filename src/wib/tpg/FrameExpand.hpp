@@ -49,9 +49,10 @@ struct WindowCollectionADCs
     const size_t msg_index = itime / 12;
     const size_t msg_time_offset = itime % 12;
     // The index in uint16_t of the start of the message we want // NOLINT(build/unsigned)
-    const size_t msg_start_index = msg_index * sizeof(MessageCollectionADCs) / sizeof(uint16_t); // NOLINT(build/unsigned)
+    const size_t msg_start_index =
+      msg_index * sizeof(MessageCollectionADCs) / sizeof(uint16_t); // NOLINT(build/unsigned)
     const size_t offset_within_msg = register_t0_start + SAMPLES_PER_REGISTER * msg_time_offset + register_offset;
-    const size_t index = msg_start_index + offset_within_msg; 
+    const size_t index = msg_start_index + offset_within_msg;
     return *(reinterpret_cast<uint16_t*>(fragments) + index); // NOLINT
   }
 
@@ -84,14 +85,14 @@ public:
   {
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(m_array) + i, val); // NOLINT
   }
-  inline uint16_t uint16(size_t i) const { return m_array[i]; } // NOLINT(build/unsigned)
+  inline uint16_t uint16(size_t i) const { return m_array[i]; }        // NOLINT(build/unsigned)
   inline void set_uint16(size_t i, uint16_t val) { m_array[i] = val; } // NOLINT(build/unsigned)
 
   // Access the jth entry in the ith register
-  inline uint16_t uint16(size_t i, size_t j) const { return m_array[16 * i + j]; } // NOLINT(build/unsigned)
+  inline uint16_t uint16(size_t i, size_t j) const { return m_array[16 * i + j]; }        // NOLINT(build/unsigned)
   inline void set_uint16(size_t i, size_t j, uint16_t val) { m_array[16 * i + j] = val; } // NOLINT(build/unsigned)
 
-  inline uint16_t* data() { return m_array; } // NOLINT(build/unsigned)
+  inline uint16_t* data() { return m_array; }             // NOLINT(build/unsigned)
   inline const uint16_t* data() const { return m_array; } // NOLINT(build/unsigned)
 
   inline size_t size() const { return N; }

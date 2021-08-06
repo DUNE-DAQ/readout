@@ -270,7 +270,7 @@ induction_index_to_offline(int index)
   if (index < 0 || index > 159) {
     return -1;
   } else {
-    return induction_offlines[index]; // NOLINT  
+    return induction_offlines[index]; // NOLINT
   }
 }
 

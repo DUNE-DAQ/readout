@@ -23,8 +23,8 @@
 #include <iostream>
 #include <limits>
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace swtpg {
 

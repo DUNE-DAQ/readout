@@ -67,10 +67,10 @@ struct ProcessingInfo
                  uint16_t* __restrict__ output_,    // NOLINT
                  const int16_t* __restrict__ taps_, // NOLINT
                  int16_t ntaps_,
-                 const uint8_t tap_exponent_,       // NOLINT
-                 uint16_t threshold_,               // NOLINT
+                 const uint8_t tap_exponent_, // NOLINT
+                 uint16_t threshold_,         // NOLINT
                  size_t nhits_,
-                 uint16_t absTimeModNTAPS_)         // NOLINT
+                 uint16_t absTimeModNTAPS_) // NOLINT
     : input(input_)
     , timeWindowNumFrames(timeWindowNumFrames_)
     , first_register(first_register_)
@@ -102,17 +102,17 @@ struct ProcessingInfo
 
   const RegisterArray<NREGISTERS * FRAMES_PER_MSG>* __restrict__ input;
   size_t timeWindowNumFrames;
-  uint8_t first_register;             // NOLINT
-  uint8_t last_register;              // NOLINT
-  uint16_t* __restrict__ output;      // NOLINT
+  uint8_t first_register;        // NOLINT
+  uint8_t last_register;         // NOLINT
+  uint16_t* __restrict__ output; // NOLINT
   const int16_t* __restrict__ taps;
   int16_t ntaps;
-  uint8_t tap_exponent;               // NOLINT
-  uint16_t threshold;                 // NOLINT
+  uint8_t tap_exponent; // NOLINT
+  uint16_t threshold;   // NOLINT
   int16_t multiplier;
   int16_t adcMax;
   size_t nhits;
-  uint16_t absTimeModNTAPS;           // NOLINT
+  uint16_t absTimeModNTAPS; // NOLINT
   ChanState<NREGISTERS> chanState;
 };
 
