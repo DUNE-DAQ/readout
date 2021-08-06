@@ -135,11 +135,11 @@ public:
   void start(const nlohmann::json& args)
   {
     // Reset opmon variables
-    m_packet_count_tot = 0;
-    m_packet_count = 0;
-    m_request_count_tot = 0;
-    m_request_count = 0;
-    m_overwritten_packet_count = 0;
+    m_sum_payloads = 0;
+    m_num_payloads = 0;
+    m_sum_requests = 0;
+    m_num_requests = 0;
+    m_num_overwritten_payloads = 0;
     m_stats_packet_count = 0;
     m_rawq_timeout_count = 0;
 
@@ -180,11 +180,11 @@ public:
   void get_info(opmonlib::InfoCollector& ci, int /*level*/)
   {
     datalinkhandlerinfo::Info dli;
-    dli.packets = m_packet_count_tot.load();
-    dli.new_packets = m_packet_count.exchange(0);
-    dli.requests = m_request_count_tot.load();
-    dli.new_requests = m_request_count.exchange(0);
-    dli.overwritten_packet_count = m_overwritten_packet_count.exchange(0);
+    dli.sum_payloads = m_sum_payloads.load();
+    dli.num_payloads = m_num_payloads.exchange(0);
+    dli.sum_requests = m_sum_requests.load();
+    dli.num_requests = m_num_requests.exchange(0);
+    dli.num_overwritten_payloads = m_num_overwritten_payloads.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);
@@ -198,8 +198,8 @@ public:
     }
     m_t0 = now;
 
-    dli.consumed_packet_rate = new_packets / seconds / 1000.;
-    dli.raw_queue_timeouts = rawq_timeouts;
+    dli.rate_consumed_payloads = new_packets / seconds / 1000.;
+    dli.num_raw_queue_timeouts = rawq_timeouts;
 
     m_request_handler_impl->get_info(dli);
     m_raw_processor_impl->get_info(dli);
@@ -225,8 +225,8 @@ private:
   void run_consume()
   {
     m_rawq_timeout_count = 0;
-    m_packet_count = 0;
-    m_packet_count_tot = 0;
+    m_num_payloads = 0;
+    m_sum_payloads = 0;
     m_stats_packet_count = 0;
 
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread started...";
@@ -239,11 +239,11 @@ private:
         m_raw_processor_impl->preprocess_item(&payload);
         if (!m_latency_buffer_impl->write(std::move(payload))) {
           TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Latency buffer is full and data was overwritten!";
-          m_overwritten_packet_count++;
+          m_num_overwritten_payloads++;
         }
         m_raw_processor_impl->postprocess_item(m_latency_buffer_impl->back());
-        ++m_packet_count;
-        ++m_packet_count_tot;
+        ++m_num_payloads;
+        ++m_sum_payloads;
         ++m_stats_packet_count;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ++m_rawq_timeout_count;
@@ -256,8 +256,8 @@ private:
   void run_timesync()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "TimeSync thread started...";
-    m_request_count = 0;
-    m_request_count_tot = 0;
+    m_num_requests = 0;
+    m_sum_requests = 0;
     auto once_per_run = true;
     while (m_run_marker.load()) {
       try {
@@ -285,8 +285,8 @@ private:
             for (size_t i = 0; i < m_data_response_queues.size(); ++i) {
 	      m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
             }
-	    ++m_request_count;
-            ++m_request_count_tot;
+	    ++m_num_requests;
+            ++m_sum_requests;
           }
         } else {
           if (once_per_run) {
@@ -306,8 +306,8 @@ private:
   void run_requests()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Requester thread started...";
-    m_request_count = 0;
-    m_request_count_tot = 0;
+    m_num_requests = 0;
+    m_sum_requests = 0;
     dfmessages::DataRequest data_request;
 
     while (m_run_marker.load()) {
@@ -319,8 +319,8 @@ private:
           request_source.pop(data_request, std::chrono::milliseconds(0));
           popped_element = true;
           m_request_handler_impl->issue_request(data_request, response_sink);
-          ++m_request_count;
-          ++m_request_count_tot;
+          ++m_num_requests;
+          ++m_sum_requests;
           TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
                                      << ", run number " << data_request.run_number << " (APA number " << m_this_apa_number
                                      << ", link number " << m_this_link_number << ")";
@@ -353,13 +353,13 @@ private:
   uint32_t m_this_link_number; // NOLINT(build/unsigned)
 
   // STATS
-  std::atomic<int> m_packet_count{ 0 };
-  std::atomic<int> m_packet_count_tot{ 0 };
-  std::atomic<int> m_request_count{ 0 };
-  std::atomic<int> m_request_count_tot{ 0 };
+  std::atomic<int> m_num_payloads{ 0 };
+  std::atomic<int> m_sum_payloads{ 0 };
+  std::atomic<int> m_num_requests{ 0 };
+  std::atomic<int> m_sum_requests{ 0 };
   std::atomic<int> m_rawq_timeout_count{ 0 };
   std::atomic<int> m_stats_packet_count{ 0 };
-  std::atomic<int> m_overwritten_packet_count{ 0 };
+  std::atomic<int> m_num_overwritten_payloads{ 0 };
 
   // CONSUMER
   ReusableThread m_consumer_thread;

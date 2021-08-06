@@ -226,9 +226,9 @@ public:
 
   void get_info(datalinkhandlerinfo::Info& info)
   {
-    info.sent_tps = m_sent_tps.exchange(0);
-    info.sent_tpsets = m_sent_tpsets.exchange(0);
-    info.dropped_tps = m_dropped_tps.exchange(0);
+    info.num_sent_tps = m_sent_tps.exchange(0);
+    info.num_sent_tpsets = m_sent_tpsets.exchange(0);
+    info.num_dropped_tps = m_dropped_tps.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     if (m_sw_tpg_enabled) {
@@ -237,7 +237,7 @@ public:
       double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
-      info.tp_hit_rate = new_hits / seconds / 1000.;
+      info.rate_tp_hits = new_hits / seconds / 1000.;
     }
     m_t0 = now;
 
