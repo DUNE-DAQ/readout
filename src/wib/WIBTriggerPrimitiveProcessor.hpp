@@ -17,8 +17,8 @@
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "triggeralgs/TriggerPrimitive.hpp"
 #include "trigger/TPSet.hpp"
+#include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <atomic>
 #include <functional>
@@ -42,7 +42,6 @@ public:
   explicit WIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::TP_READOUT_TYPE>(error_registry)
   {}
-
 
 private:
 };

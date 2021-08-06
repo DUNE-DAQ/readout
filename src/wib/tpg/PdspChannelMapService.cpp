@@ -19,9 +19,9 @@
 
 #include "PdspChannelMapService.hpp"
 
+#include <limits>
 #include <sstream>
 #include <stdexcept>
-#include <limits>
 #include <string>
 
 namespace swtpg {
@@ -186,8 +186,7 @@ PdspChannelMapService::GetOfflineNumberFromDetectorElements(unsigned int crate,
   if (crate > fNCrates || crate == 0) {
     if (count_bits(fBadCrateNumberWarningsIssued) == 1) {
       TLOG() << "PdspChannelMapService: Bad Crate Number, expecting a number between 1 and 6. "
-             << "Falling back to 1. Ununderstood crate number=" 
-             << crate;
+             << "Falling back to 1. Ununderstood crate number=" << crate;
     }
     fBadCrateNumberWarningsIssued++;
     lcrate = 1;
@@ -196,8 +195,7 @@ PdspChannelMapService::GetOfflineNumberFromDetectorElements(unsigned int crate,
   if (slot >= fNSlots) {
     if (count_bits(fBadSlotNumberWarningsIssued) == 1) {
       TLOG() << "PdspChannelMapService: Bad slot number, using slot number zero as a fallback. "
-             << "Ununderstood slot number: "
-             << slot;
+             << "Ununderstood slot number: " << slot;
     }
     fBadSlotNumberWarningsIssued++;
     lslot = 0;
@@ -205,9 +203,8 @@ PdspChannelMapService::GetOfflineNumberFromDetectorElements(unsigned int crate,
 
   if (fiber > fNFibers || fiber == 0) {
     if (count_bits(fBadFiberNumberWarningsIssued) == 1) {
-      TLOG() << "PdspChannelMapService: Bad fiber number, falling back to 1. " 
-             << "Ununderstood fiber number: " 
-             << fiber;
+      TLOG() << "PdspChannelMapService: Bad fiber number, falling back to 1. "
+             << "Ununderstood fiber number: " << fiber;
     }
     fBadFiberNumberWarningsIssued++;
     lfiber = 1;
@@ -351,7 +348,7 @@ unsigned int
 PdspChannelMapService::ASICFromOfflineChannel(unsigned int offlineChannel)
 {
   if (count_bits(fASICWarningsIssued) == 1) {
-    TLOG() << "PdspChannelMapService: Deprecated call to ASICFromOfflineChannel. " 
+    TLOG() << "PdspChannelMapService: Deprecated call to ASICFromOfflineChannel. "
            << "Use AsicLinkFromOfflineChannel";
   }
   fASICWarningsIssued++;

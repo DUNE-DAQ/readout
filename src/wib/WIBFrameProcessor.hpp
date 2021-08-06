@@ -85,7 +85,6 @@ public:
     m_dropped_tps = 0;
     inherited::start(args);
   }
-  
 
   unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
                                  const dunedaq::dataformats::WIBFrame* frame,
@@ -116,7 +115,8 @@ public:
 
     unsigned int crateloc = crate; // NOLINT(build/unsigned)
     unsigned int offline =         // NOLINT(build/unsigned)
-      channelMap.GetOfflineNumberFromDetectorElements(crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
+      channelMap.GetOfflineNumberFromDetectorElements(
+        crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
     // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
     //        crate, slot, fiber, fiberloc, chloc, offline);
     return offline;
@@ -150,8 +150,8 @@ public:
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
 
-      const char* readout_share_cstr=getenv("READOUT_SHARE");
-      if(!readout_share_cstr){
+      const char* readout_share_cstr = getenv("READOUT_SHARE");
+      if (!readout_share_cstr) {
         throw ConfigurationError(ERS_HERE, "Environment variable READOUT_SHARE is not set");
       }
       std::string readout_share(readout_share_cstr);
@@ -391,9 +391,9 @@ protected:
         if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
           // This channel had a hit ending here, so we can create and output the hit here
           const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
-          uint64_t tp_t_begin = // NOLINT(build/unsigned)
-            timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);  // NOLINT(build/unsigned)
-          uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]); // NOLINT(build/unsigned)
+          uint64_t tp_t_begin =                                                        // NOLINT(build/unsigned)
+            timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);       // NOLINT(build/unsigned)
+          uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);      // NOLINT(build/unsigned)
 
           // May be needed for TPSet:
           // uint64_t tspan = clocksPerTPCTick * hit_tover[i]; // is/will be this needed?

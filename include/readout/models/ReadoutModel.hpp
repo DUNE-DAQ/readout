@@ -13,9 +13,9 @@
 #include "appfwk/cmd/Nljs.hpp"
 #include "appfwk/cmd/Structs.hpp"
 
+#include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
-#include "appfwk/DAQModuleHelper.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -84,7 +84,7 @@ public:
     setup_request_response_queues(args);
 
     try {
-      auto queue_index = appfwk::queue_index(args, {"raw_input", "timesync"});
+      auto queue_index = appfwk::queue_index(args, { "raw_input", "timesync" });
       m_raw_data_source.reset(new raw_source_qt(queue_index["raw_input"].inst));
       m_timesync_sink.reset(new timesync_sink_qt(queue_index["timesync"].inst));
     } catch (const ers::Issue& excpt) {
@@ -95,8 +95,7 @@ public:
     m_error_registry.reset(new FrameErrorRegistry());
     m_latency_buffer_impl.reset(new LatencyBufferType());
     m_raw_processor_impl.reset(new RawDataProcessorType(m_error_registry));
-    m_request_handler_impl.reset(
-      new RequestHandlerType(m_latency_buffer_impl, m_error_registry));
+    m_request_handler_impl.reset(new RequestHandlerType(m_latency_buffer_impl, m_error_registry));
     m_request_handler_impl->init(args);
     m_raw_processor_impl->init(args);
   }
@@ -189,8 +188,7 @@ public:
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);
     double seconds = std::chrono::duration_cast<std::chrono::microseconds>(now - m_t0).count() / 1000000.;
-    TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets / seconds / 1000.)
-                               << " [kHz]";
+    TLOG_DEBUG(TLVL_TAKE_NOTE) << "Consumed Packet rate: " << std::to_string(new_packets / seconds / 1000.) << " [kHz]";
     auto rawq_timeouts = m_rawq_timeout_count.exchange(0);
     if (rawq_timeouts > 0) {
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "***ERROR: Raw input queue timed out " << std::to_string(rawq_timeouts)
@@ -208,15 +206,18 @@ public:
   }
 
 private:
-  void setup_request_response_queues(const nlohmann::json& args) {
+  void setup_request_response_queues(const nlohmann::json& args)
+  {
     auto queue_index = appfwk::queue_index(args, {});
     size_t index = 0;
     while (queue_index.find("data_requests_" + std::to_string(index)) != queue_index.end()) {
-      m_data_request_queues.push_back(std::make_unique<request_source_qt>(queue_index["data_requests_" + std::to_string(index)].inst));
+      m_data_request_queues.push_back(
+        std::make_unique<request_source_qt>(queue_index["data_requests_" + std::to_string(index)].inst));
       if (queue_index.find("data_response_" + std::to_string(index)) == queue_index.end()) {
         throw InitializationError(ERS_HERE, "Queue not found: ", "data_response_" + std::to_string(index));
       } else {
-        m_data_response_queues.push_back(std::make_unique<fragment_sink_qt>(queue_index["data_response_" + std::to_string(index)].inst));
+        m_data_response_queues.push_back(
+          std::make_unique<fragment_sink_qt>(queue_index["data_response_" + std::to_string(index)].inst));
       }
       index++;
     }
@@ -283,9 +284,9 @@ private:
                                         << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
                                         << " window_end=" << dr.window_end;
             for (size_t i = 0; i < m_data_response_queues.size(); ++i) {
-	      m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
+              m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
             }
-	    ++m_num_requests;
+            ++m_num_requests;
             ++m_sum_requests;
           }
         } else {
@@ -322,8 +323,8 @@ private:
           ++m_num_requests;
           ++m_sum_requests;
           TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
-                                     << ", run number " << data_request.run_number << " (APA number " << m_this_apa_number
-                                     << ", link number " << m_this_link_number << ")";
+                                     << ", run number " << data_request.run_number << " (APA number "
+                                     << m_this_apa_number << ", link number " << m_this_link_number << ")";
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
           // not an error, safe to continue
         }

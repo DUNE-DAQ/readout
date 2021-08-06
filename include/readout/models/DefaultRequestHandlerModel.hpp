@@ -29,18 +29,18 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <deque>
 #include <functional>
 #include <future>
 #include <iomanip>
+#include <limits>
 #include <memory>
 #include <queue>
-#include <deque>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-#include <chrono>
-#include <limits>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -53,9 +53,8 @@ template<class ReadoutType, class LatencyBufferType>
 class DefaultRequestHandlerModel : public RequestHandlerConcept<ReadoutType, LatencyBufferType>
 {
 public:
-  explicit DefaultRequestHandlerModel(
-    std::unique_ptr<LatencyBufferType>& latency_buffer,
-    std::unique_ptr<FrameErrorRegistry>& error_registry)
+  explicit DefaultRequestHandlerModel(std::unique_ptr<LatencyBufferType>& latency_buffer,
+                                      std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
     , m_waiting_requests()
     , m_waiting_requests_lock()
@@ -68,8 +67,8 @@ public:
     , m_pop_reqs(0)
     , m_pops_count(0)
     , m_occupancy(0)
-    //, m_response_time_log()
-    //, m_response_time_log_lock()
+  //, m_response_time_log()
+  //, m_response_time_log_lock()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "DefaultRequestHandlerModel created...";
   }
@@ -77,20 +76,25 @@ public:
   using RequestResult = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::RequestResult;
   using ResultCode = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::ResultCode;
 
-  struct RequestElement {
-    RequestElement(dfmessages::DataRequest data_request, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,  size_t retries) : request(data_request), fragment_sink(sink),  retry_count(retries) {
-
-    }
+  struct RequestElement
+  {
+    RequestElement(dfmessages::DataRequest data_request,
+                   appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,
+                   size_t retries)
+      : request(data_request)
+      , fragment_sink(sink)
+      , retry_count(retries)
+    {}
 
     dfmessages::DataRequest request;
     appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
     size_t retry_count;
-
   };
 
-  void init(const nlohmann::json& args) override {
+  void init(const nlohmann::json& args) override
+  {
     try {
-      auto queue_index = appfwk::queue_index(args, {"raw_recording"});
+      auto queue_index = appfwk::queue_index(args, { "raw_recording" });
       m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
     } catch (const dunedaq::appfwk::QueueNotFound& excpt) {
       // 28-Jul-2021, KAB: I have split out the handling of the QueueNotFound exception from other exceptions.
@@ -105,10 +109,13 @@ public:
       //   name). This is in keeping with the guidance that we received when ERS Issues were first described, and
       //   this choice allows the Issue to be reported with whatever severity is appropriate at the time.
       // * The "module name" that I've specified in this message is not terribly helpful. (There is probably sufficient
-      //   other information in the log that indicates that this message came from the DefaultRequestHandlerModel class.)
-      //   It would be really cool if this class could somehow obtain the name of the DAQModule that it is part of,
-      //   and report the module name.  That might be an enhancement for another time.
-      ers::info(ConfigurationNote(ERS_HERE, "DefaultRequestHandlerModel", "Raw data recording is configured OFF, as indicated by the absence of the raw_recording queue in the initialization of this module."));
+      //   other information in the log that indicates that this message came from the DefaultRequestHandlerModel
+      //   class.) It would be really cool if this class could somehow obtain the name of the DAQModule that it is part
+      //   of, and report the module name.  That might be an enhancement for another time.
+      ers::info(ConfigurationNote(ERS_HERE,
+                                  "DefaultRequestHandlerModel",
+                                  "Raw data recording is configured OFF, as indicated by the absence of the "
+                                  "raw_recording queue in the initialization of this module."));
     } catch (const ers::Issue& excpt) {
       ers::error(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
     }
@@ -187,8 +194,8 @@ public:
       //
       // Another option for the text of this report: "Recording could not be started because the appropriate
       // output queue (name=\"raw_recording\") was not provided in the initialization of this module."
-      ers::error(ConfigurationProblem(ERS_HERE, "DefaultRequestHandlerModel",
-                                      "Recording could not be started because output queue is not set up."));
+      ers::error(ConfigurationProblem(
+        ERS_HERE, "DefaultRequestHandlerModel", "Recording could not be started because output queue is not set up."));
       return;
     }
     auto conf = args.get<datalinkhandler::RecordingParams>();
@@ -218,7 +225,8 @@ public:
     }
   }
 
-  void issue_request(dfmessages::DataRequest datarequest, appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
+  void issue_request(dfmessages::DataRequest datarequest,
+                     appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
   {
     boost::asio::post(*m_request_handler_thread_pool, [&, datarequest]() { // start a thread from pool
       auto t_req_begin = std::chrono::high_resolution_clock::now();
@@ -257,7 +265,8 @@ public:
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Responding to data request took: " << us_req_took.count() << "[us]";
       // if (result.result_code == ResultCode::kFound) {
       //   std::lock_guard<std::mutex> time_lock_guard(m_response_time_log_lock);
-      //   m_response_time_log.push_back( std::make_pair<int, int>(result.data_request.trigger_number, us_req_took.count()) );
+      //   m_response_time_log.push_back( std::make_pair<int, int>(result.data_request.trigger_number,
+      //   us_req_took.count()) );
       // }
       m_response_time_acc.fetch_add(us_req_took.count());
       m_handled_requests++;
@@ -288,29 +297,29 @@ public:
     TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Cleanup request rate: " << new_pop_reqs / seconds / 1. << " [Hz]"
                                   << " Dropped: " << new_pop_count << " Occupancy: " << new_occupancy;
 
-    //std::unique_lock<std::mutex> time_lorunck_guard(m_response_time_log_lock);
-    //if (!m_response_time_log.empty()) {
+    // std::unique_lock<std::mutex> time_lorunck_guard(m_response_time_log_lock);
+    // if (!m_response_time_log.empty()) {
     //  std::ostringstream oss;
-      //oss << "Completed data requests [trig id, took us]: ";
+    // oss << "Completed data requests [trig id, took us]: ";
     //  while (!m_response_time_log.empty()) {
-        //for (int i = 0; i < m_response_time_log.size(); ++i) {
+    // for (int i = 0; i < m_response_time_log.size(); ++i) {
     //    auto& fr = m_response_time_log.front();
     //    ++new_request_count;
     //    new_request_times += fr.second;
-        //oss << fr.first << ". in " << fr.second << " | ";
+    // oss << fr.first << ". in " << fr.second << " | ";
     //    m_response_time_log.pop_front();
-      //}
-      //TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
-      //TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << new_request_count
-      //                                << " | Avarage response time: " << new_request_times / new_request_count << "[us]";
     //}
-    //time_lock_guard.unlock();
+    // TLOG_DEBUG(TLVL_HOUSEKEEPING) << oss.str();
+    // TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << new_request_count
+    //                                << " | Avarage response time: " << new_request_times / new_request_count <<
+    //                                "[us]";
+    //}
+    // time_lock_guard.unlock();
     if (handled_requests > 0) {
       TLOG_DEBUG(TLVL_HOUSEKEEPING) << "Completed requests: " << handled_requests
                                     << " | Avarage response time: " << response_time_total / handled_requests << "[us]";
       info.avg_request_response_time = response_time_total / handled_requests;
     }
-
 
     m_t0 = now;
   }
@@ -331,10 +340,11 @@ protected:
     return std::move(fh);
   }
 
-  std::unique_ptr<dataformats::Fragment> create_empty_fragment(const dfmessages::DataRequest& dr) {
+  std::unique_ptr<dataformats::Fragment> create_empty_fragment(const dfmessages::DataRequest& dr)
+  {
     auto frag_header = create_fragment_header(dr);
     frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-    auto fragment = std::make_unique<dataformats::Fragment>(std::vector < std::pair < void * , size_t >> ());
+    auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
     fragment->set_header_fields(frag_header);
     return fragment;
   }
@@ -396,8 +406,9 @@ protected:
     while (m_run_marker.load() || m_waiting_requests.size() > 0) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        auto last_frame = m_latency_buffer->back();       // NOLINT
-        uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::max() : last_frame->get_timestamp(); // NOLINT(build/unsigned)
+        auto last_frame = m_latency_buffer->back(); // NOLINT
+        uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::max() // NOLINT(build/unsigned)
+                                                   : last_frame->get_timestamp();
 
         size_t size = m_waiting_requests.size();
         for (size_t i = 0; i < size;) {
@@ -413,12 +424,12 @@ protected:
             m_num_requests_bad++;
             m_num_requests_timed_out++;
             try { // Push to Fragment queue
-              TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
-                                          << fragment->get_trigger_number() << ", run number "
-                                          << fragment->get_run_number() << ", and GeoID "
-                                          << fragment->get_element_id();
-              m_waiting_requests[i].fragment_sink->push(std::move(fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
-            } catch (const ers::Issue &excpt) {
+              TLOG_DEBUG(TLVL_QUEUE_PUSH)
+                << "Sending fragment with trigger_number " << fragment->get_trigger_number() << ", run number "
+                << fragment->get_run_number() << ", and GeoID " << fragment->get_element_id();
+              m_waiting_requests[i].fragment_sink->push(std::move(fragment),
+                                                        std::chrono::milliseconds(m_fragment_queue_timeout));
+            } catch (const ers::Issue& excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
               ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
@@ -432,12 +443,12 @@ protected:
             ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "End of run"));
             m_num_requests_bad++;
             try { // Push to Fragment queue
-              TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
-                                          << fragment->get_trigger_number() << ", run number "
-                                          << fragment->get_run_number() << ", and GeoID "
-                                          << fragment->get_element_id();
-              m_waiting_requests[i].fragment_sink->push(std::move(fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
-            } catch (const ers::Issue &excpt) {
+              TLOG_DEBUG(TLVL_QUEUE_PUSH)
+                << "Sending fragment with trigger_number " << fragment->get_trigger_number() << ", run number "
+                << fragment->get_run_number() << ", and GeoID " << fragment->get_element_id();
+              m_waiting_requests[i].fragment_sink->push(std::move(fragment),
+                                                        std::chrono::milliseconds(m_fragment_queue_timeout));
+            } catch (const ers::Issue& excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
               ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
@@ -454,9 +465,7 @@ protected:
       cleanup_check();
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
   }
-
 
   RequestResult data_request(dfmessages::DataRequest dr) override
   {
@@ -629,12 +638,11 @@ protected:
   std::atomic<int> m_num_requests_timed_out{ 0 };
   std::atomic<int> m_handled_requests{ 0 };
   std::atomic<int> m_response_time_acc{ 0 };
-  //std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
-  //std::atomic<int> m_avg_resp_time{ 0 };
+  // std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
+  // std::atomic<int> m_avg_resp_time{ 0 };
   // Request response time log (kept for debugging if needed)
-  //std::deque<std::pair<int, int>> m_response_time_log;
-  //std::mutex m_response_time_log_lock;
-
+  // std::deque<std::pair<int, int>> m_response_time_log;
+  // std::mutex m_response_time_log_lock;
 };
 
 } // namespace readout

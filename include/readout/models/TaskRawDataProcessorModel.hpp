@@ -55,7 +55,8 @@ public:
 
   void start(const nlohmann::json& /*args*/) override
   {
-    //m_last_processed_daq_ts = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // m_last_processed_daq_ts =
+    // std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     m_run_marker.store(true);
     for (size_t i = 0; i < m_post_process_threads.size(); ++i) {
       m_post_process_threads[i]->set_work(&TaskRawDataProcessorModel<ReadoutType>::run_post_processing_thread,

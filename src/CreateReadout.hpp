@@ -25,8 +25,8 @@
 #include "daphne/DAPHNEListRequestHandler.hpp"
 #include "pacman/PACMANFrameProcessor.hpp"
 #include "pacman/PACMANListRequestHandler.hpp"
-#include "wib/WIBTriggerPrimitiveProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
+#include "wib/WIBTriggerPrimitiveProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
