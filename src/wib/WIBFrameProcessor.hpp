@@ -58,6 +58,10 @@ public:
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
     , m_sw_tpg_enabled(false)
+    , m_coll_taps_p(nullptr)
+    , m_coll_primfind_dest(nullptr)
+    , m_ind_taps_p(nullptr)
+    , m_ind_primfind_dest(nullptr)
   {
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
@@ -66,16 +70,85 @@ public:
 
   ~WIBFrameProcessor()
   {
-    delete[] m_coll_taps_p;
-    delete[] m_coll_primfind_dest;
+    if (m_coll_taps_p) {
+      delete[] m_coll_taps_p;
+    }
+    if (m_coll_primfind_dest) {
+      delete[] m_coll_primfind_dest;
+    }
+    if (m_ind_taps_p) {
+      delete[] m_ind_taps_p;
+    }
+    if (m_ind_primfind_dest) {
+      delete[] m_ind_primfind_dest;
+    }
   }
 
   void start(const nlohmann::json& args) override
   {
-    m_first_coll = true;
+    // Reset software TPG resources
+    if (m_sw_tpg_enabled) {
+      m_coll_taps = swtpg::firwin_int(7, 0.1, m_coll_multiplier);
+      m_coll_taps.push_back(0);
+      m_ind_taps = swtpg::firwin_int(7, 0.1, m_ind_multiplier);
+      m_ind_taps.push_back(0);
+
+      if (m_coll_taps_p == nullptr) {
+        m_coll_taps_p = new int16_t[m_coll_taps.size()];
+      }
+      for (size_t i = 0; i < m_coll_taps.size(); ++i) {
+        m_coll_taps_p[i] = m_coll_taps[i];
+      }
+
+      if (m_ind_taps_p == nullptr){ 
+        m_ind_taps_p = new int16_t[m_ind_taps.size()]; 
+      }
+      for (size_t i = 0; i < m_ind_taps.size(); ++i) {
+        m_ind_taps_p[i] = m_ind_taps[i];
+      }
+
+      // Temporary place to stash the hits
+      if (m_coll_primfind_dest == nullptr) {
+        m_coll_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
+      }
+      if (m_ind_primfind_dest == nullptr) {
+        m_ind_primfind_dest = new uint16_t[100000];  // NOLINT(build/unsigned)
+      }
+
+      TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold
+             << " exponent:" << m_coll_tap_exponent;
+
+      m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
+        nullptr,
+        swtpg::FRAMES_PER_MSG,
+        0,
+        swtpg::REGISTERS_PER_FRAME,
+        m_coll_primfind_dest,
+        m_coll_taps_p,
+        (uint8_t)m_coll_taps.size(), // NOLINT(build/unsigned)
+        m_coll_tap_exponent,
+        m_coll_threshold,
+        0,
+        0);
+
+      m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
+        nullptr,
+        swtpg::FRAMES_PER_MSG,
+        0,
+        10,
+        m_ind_primfind_dest,
+        m_ind_taps_p,
+        (uint8_t)m_ind_taps.size(), // NOLINT(build/unsigned)
+        m_ind_tap_exponent,
+        m_ind_threshold,
+        0,
+        0);
+    }
+
     while (!m_tp_buffer.empty()) {
       m_tp_buffer.pop();
     }
+    m_first_coll = true;
     m_t0 = std::chrono::high_resolution_clock::now();
     m_new_hits = 0;
     m_new_tps = 0;
@@ -84,6 +157,30 @@ public:
     m_sent_tpsets = 0;
     m_dropped_tps = 0;
     inherited::start(args);
+  }
+
+  void stop(const nlohmann::json& args) override 
+  {
+    if (m_sw_tpg_enabled) {
+      // Make temp. buffers reusable on next start.
+      if (m_coll_taps_p) {
+        delete[] m_coll_taps_p;
+        m_coll_taps_p = nullptr;
+      }
+      if (m_coll_primfind_dest) {
+        delete[] m_coll_primfind_dest;
+        m_coll_primfind_dest = nullptr;
+      }
+      if (m_ind_taps_p) {
+        delete[] m_ind_taps_p;
+        m_ind_taps_p = nullptr;
+      }
+      if (m_ind_primfind_dest) {
+        delete[] m_ind_primfind_dest;
+        m_ind_primfind_dest = nullptr;
+      }
+    }
+    inherited::stop(args);
   }
 
   unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
@@ -168,53 +265,7 @@ public:
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
 
-      m_coll_taps = swtpg::firwin_int(7, 0.1, m_coll_multiplier);
-      m_coll_taps.push_back(0);
-      m_ind_taps = swtpg::firwin_int(7, 0.1, m_ind_multiplier);
-      m_ind_taps.push_back(0);
 
-      m_coll_taps_p = new int16_t[m_coll_taps.size()];
-      for (size_t i = 0; i < m_coll_taps.size(); ++i) {
-        m_coll_taps_p[i] = m_coll_taps[i];
-      }
-
-      m_ind_taps_p = new int16_t[m_ind_taps.size()];
-      for (size_t i = 0; i < m_ind_taps.size(); ++i) {
-        m_ind_taps_p[i] = m_ind_taps[i];
-      }
-
-      // Temporary place to stash the hits
-      m_coll_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
-      m_ind_primfind_dest = new uint16_t[100000];  // NOLINT(build/unsigned)
-
-      TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold
-             << " exponent:" << m_coll_tap_exponent;
-
-      m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
-        nullptr,
-        swtpg::FRAMES_PER_MSG,
-        0,
-        swtpg::REGISTERS_PER_FRAME,
-        m_coll_primfind_dest,
-        m_coll_taps_p,
-        (uint8_t)m_coll_taps.size(), // NOLINT(build/unsigned)
-        m_coll_tap_exponent,
-        m_coll_threshold,
-        0,
-        0);
-
-      m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
-        nullptr,
-        swtpg::FRAMES_PER_MSG,
-        0,
-        10,
-        m_ind_primfind_dest,
-        m_ind_taps_p,
-        (uint8_t)m_ind_taps.size(), // NOLINT(build/unsigned)
-        m_ind_tap_exponent,
-        m_ind_threshold,
-        0,
-        0);
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
