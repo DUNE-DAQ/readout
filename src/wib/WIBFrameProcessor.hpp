@@ -58,10 +58,10 @@ public:
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
     : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
     , m_sw_tpg_enabled(false)
-    , m_coll_taps_p(nullptr)
     , m_coll_primfind_dest(nullptr)
-    , m_ind_taps_p(nullptr)
+    , m_coll_taps_p(nullptr)
     , m_ind_primfind_dest(nullptr)
+    , m_ind_taps_p(nullptr)
   {
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
@@ -161,6 +161,7 @@ public:
 
   void stop(const nlohmann::json& args) override 
   {
+    inherited::stop(args);
     if (m_sw_tpg_enabled) {
       // Make temp. buffers reusable on next start.
       if (m_coll_taps_p) {
@@ -180,7 +181,6 @@ public:
         m_ind_primfind_dest = nullptr;
       }
     }
-    inherited::stop(args);
   }
 
   unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
