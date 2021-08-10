@@ -126,6 +126,13 @@ ERS_DECLARE_ISSUE(readout,
                   "GeoID[" << geoid << "] Configuration problem: " << text,
                   ((dataformats::GeoID)geoid)((std::string)text))
 
+ERS_DECLARE_ISSUE(readout, RequestTimedOut, "GeoID[" << geoid << "] Request timed out", ((dataformats::GeoID)geoid))
+
+ERS_DECLARE_ISSUE(readout,
+                  EndOfRunEmptyFragment,
+                  "GeoID[" << geoid << "] Empty fragment at the end of the run",
+                  ((dataformats::GeoID)geoid))
+
 } // namespace dunedaq
 
 #endif // READOUT_INCLUDE_READOUT_READOUTISSUES_HPP_

@@ -418,7 +418,7 @@ protected:
           } else if (m_waiting_requests[i].retry_count >= m_retry_count) {
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
-            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, m_geoid, "Request timed out"));
+            ers::warning(dunedaq::readout::RequestTimedOut(ERS_HERE, m_geoid));
             m_num_requests_bad++;
             m_num_requests_timed_out++;
             try { // Push to Fragment queue
@@ -438,7 +438,7 @@ protected:
           } else if (!m_run_marker.load()) {
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
-            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, m_geoid, "End of run"));
+            ers::warning(dunedaq::readout::EndOfRunEmptyFragment(ERS_HERE, m_geoid));
             m_num_requests_bad++;
             try { // Push to Fragment queue
               TLOG_DEBUG(TLVL_QUEUE_PUSH)
