@@ -42,7 +42,7 @@ public:
       auto qi = appfwk::queue_index(args, { "raw_recording" });
       m_input_queue.reset(new source_t(qi["raw_recording"].inst));
     } catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, "Could not initialize queue", "raw_recording", "");
+      throw ResourceQueueError(ERS_HERE, "raw_recording", "RecorderModel");
     }
   }
 

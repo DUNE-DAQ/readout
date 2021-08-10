@@ -74,12 +74,16 @@ public:
       m_link_conf = link_conf.get<link_conf_t>();
       m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
+      m_geoid.element_id = m_link_conf.geoid.element;
+      m_geoid.region_id = m_link_conf.geoid.region;
+      m_geoid.system_type = dataformats::GeoID::SystemType::kTPC;;
+
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
       try {
         m_file_source->read(m_link_conf.data_filename);
       } catch (const ers::Issue& ex) {
         ers::fatal(ex);
-        throw ConfigurationError(ERS_HERE, "", ex);
+        throw ConfigurationError(ERS_HERE, m_geoid, "", ex);
       }
 
       m_is_configured = true;
@@ -227,6 +231,7 @@ private:
 
   bool m_is_configured = false;
   double m_rate_khz;
+  dataformats::GeoID m_geoid;
 };
 
 } // namespace readout

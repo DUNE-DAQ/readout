@@ -117,7 +117,7 @@ public:
                                   "Raw data recording is configured OFF, as indicated by the absence of the "
                                   "raw_recording queue in the initialization of this module."));
     } catch (const ers::Issue& excpt) {
-      ers::error(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
+      ers::error(ResourceQueueError(ERS_HERE, "raw_recording", "DefaultRequestHandlerModel", excpt));
     }
   }
 
@@ -133,7 +133,7 @@ public:
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
-      ers::error(ConfigurationError(ERS_HERE, "Auto-pop percentage out of range."));
+      ers::error(ConfigurationError(ERS_HERE, m_geoid, "Auto-pop percentage out of range."));
     } else {
       m_pop_limit_size = m_pop_limit_pct * m_buffer_capacity;
       m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
@@ -195,7 +195,7 @@ public:
       // Another option for the text of this report: "Recording could not be started because the appropriate
       // output queue (name=\"raw_recording\") was not provided in the initialization of this module."
       ers::error(ConfigurationProblem(
-        ERS_HERE, "DefaultRequestHandlerModel", "Recording could not be started because output queue is not set up."));
+        ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
       return;
     }
     auto conf = args.get<datalinkhandler::RecordingParams>();
@@ -250,9 +250,7 @@ public:
                                       << result.fragment->get_element_id();
           fragment_queue.push(std::move(result.fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
         } catch (const ers::Issue& excpt) {
-          std::ostringstream oss;
-          oss << "fragments output queue for link " << m_geoid.element_id;
-          ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+          ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "fragment queue"));
         }
       } else if (result.result_code == ResultCode::kNotYet) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
@@ -384,10 +382,10 @@ protected:
               if (m_recording)
                 m_snb_sink->push(element, std::chrono::milliseconds(0));
             } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-              ers::error(CannotWriteToQueue(ERS_HERE, "SNB Writer"));
+              ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "raw_recording"));
             }
           } else {
-            throw InternalError(ERS_HERE, "Could not read from latency buffer");
+            throw InternalError(ERS_HERE, m_geoid, "Could not read from latency buffer");
           }
         }
       } else {
@@ -420,7 +418,7 @@ protected:
           } else if (m_waiting_requests[i].retry_count >= m_retry_count) {
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
-            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "Request timed out"));
+            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, m_geoid, "Request timed out"));
             m_num_requests_bad++;
             m_num_requests_timed_out++;
             try { // Push to Fragment queue
@@ -432,7 +430,7 @@ protected:
             } catch (const ers::Issue& excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
-              ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+              ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "fragment queue"));
             }
             std::swap(m_waiting_requests[i], m_waiting_requests.back());
             m_waiting_requests.pop_back();
@@ -440,7 +438,7 @@ protected:
           } else if (!m_run_marker.load()) {
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
-            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "End of run"));
+            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, m_geoid, "End of run"));
             m_num_requests_bad++;
             try { // Push to Fragment queue
               TLOG_DEBUG(TLVL_QUEUE_PUSH)
@@ -449,9 +447,7 @@ protected:
               m_waiting_requests[i].fragment_sink->push(std::move(fragment),
                                                         std::chrono::milliseconds(m_fragment_queue_timeout));
             } catch (const ers::Issue& excpt) {
-              std::ostringstream oss;
-              oss << "fragments output queue for link " << m_geoid.element_id;
-              ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+              ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "fragment queue"));
             }
             std::swap(m_waiting_requests[i], m_waiting_requests.back());
             m_waiting_requests.pop_back();
@@ -572,7 +568,7 @@ protected:
     }
 
     if (rres.result_code != ResultCode::kFound) {
-      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
+      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, m_geoid, oss.str()));
     }
 
     // Create fragment from pieces

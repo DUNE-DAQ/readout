@@ -50,6 +50,11 @@ public:
         std::make_unique<folly::ProducerConsumerQueue<const ReadoutType*>>(m_postprocess_queue_sizes));
       m_post_process_threads.back()->set_name("postprocess-" + std::to_string(i), m_this_link_number);
     }
+
+    m_geoid.element_id = config.link_number;
+    m_geoid.region_id = config.apa_number;
+    m_geoid.system_type = ReadoutType::system_type;
+
     RawDataProcessorConcept<ReadoutType>::conf(cfg);
   }
 
@@ -87,7 +92,7 @@ public:
   {
     for (size_t i = 0; i < m_items_to_postprocess_queues.size(); ++i) {
       if (!m_items_to_postprocess_queues[i]->write(item)) {
-        ers::warning(PostprocessingNotKeepingUp(ERS_HERE, i));
+        ers::warning(PostprocessingNotKeepingUp(ERS_HERE, m_geoid, i));
       }
     }
   }
@@ -144,6 +149,7 @@ protected:
 
   size_t m_postprocess_queue_sizes;
   uint32_t m_this_link_number; // NOLINT(build/unsigned)
+  dataformats::GeoID m_geoid;
 };
 
 } // namespace readout

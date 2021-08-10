@@ -73,10 +73,10 @@ DataRecorder::init(const data_t& args)
       return;
     }
 
-    throw ConfigurationError(ERS_HERE, "Could not create DataRecorder of type " + inst);
+    throw DataRecorderConfigurationError(ERS_HERE, "Could not create DataRecorder of type " + inst);
 
   } catch (const ers::Issue& excpt) {
-    throw ResourceQueueError(ERS_HERE, "Could not initialize queue", "raw_recording", "");
+    throw DataRecorderResourceQueueError(ERS_HERE, "Could not initialize queue", "raw_recording", "");
   }
 }
 

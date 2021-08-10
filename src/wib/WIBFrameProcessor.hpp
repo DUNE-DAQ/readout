@@ -230,7 +230,7 @@ public:
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
       }
     } catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "", excpt);
+      throw ResourceQueueError(ERS_HERE, "tp queue", "DefaultRequestHandlerModel", excpt);
     }
   }
 
@@ -249,7 +249,7 @@ public:
 
       const char* readout_share_cstr = getenv("READOUT_SHARE");
       if (!readout_share_cstr) {
-        throw ConfigurationError(ERS_HERE, "Environment variable READOUT_SHARE is not set");
+        throw ConfigurationError(ERS_HERE, m_geoid, "Environment variable READOUT_SHARE is not set");
       }
       std::string readout_share(readout_share_cstr);
       std::string channel_map_rce(config.channel_map_rce);
@@ -520,7 +520,7 @@ protected:
         try {
           m_tp_sink->push(*tp_readout_type);
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-          ers::error(CannotWriteToQueue(ERS_HERE, "m_tp_sink"));
+          ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tp_sink"));
         }
         tpset.objects.emplace_back(std::move(tp));
         m_tp_buffer.pop();
@@ -531,7 +531,7 @@ protected:
         m_tpset_sink->push(std::move(tpset));
         m_num_tps_pushed++;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(CannotWriteToQueue(ERS_HERE, "m_tpset_sink"));
+        ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tpset_sink"));
       }
       m_sent_tpsets++;
     }
@@ -636,6 +636,7 @@ private:
   std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
 
