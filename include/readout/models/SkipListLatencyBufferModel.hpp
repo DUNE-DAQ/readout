@@ -1,9 +1,5 @@
 /**
- * @file SkipListLatencyBufferModel.hpp Buffers objects for some time
- * Software defined latency buffer to temporarily store objects from the
- * frontend apparatus. It wraps a bounded SPSC queue from Folly for
- * aligned memory access, and convenient frontPtr loads.
- * It's especially useful for fix rate and sized FE raw types, like WIB frames.
+ * @file SkipListLatencyBufferModel.hpp A folly concurrent SkipList wrapper
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
