@@ -1,22 +1,25 @@
 # readout - Readout software and utilities 
 Appfwk DAQModules, utilities, and scripts for DUNE Upstream DAQ Readout Software.
 
-## Building
+## Building and setting up the workarea
 
-How to clone and build DUNE DAQ packages, including readout, is covered in [the daq-buildtools instructions](https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-buildtools/).
+How to clone and build DUNE DAQ packages, including readout, is covered in [the daq-buildtools instructions](https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-buildtools/). You should follow these steps to set up your workarea that you can then use to run the following examples.
 
 ## Examples
-To run the application, first setup your development area following the instructions [here](https://github.com/DUNE-DAQ/minidaqapp/wiki/Instructions-for-setting-up-a-v2.8.0-development-environment).
+Before running the application, please download a small binary file that contains WIB Frames from the following CERNBox link, or from the commandline:
+
+    curl https://cernbox.cern.ch/index.php/s/7qNnuxD8igDOVJT/download -o frames.bin
+
     
 For WIB2 frames, download the following file that contains 120 WIB-2 Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/ocrHxSU8PucxphE), or like so:
 
-    curl https://cernbox.cern.ch/index.php/s/ocrHxSU8PucxphE/download -o /tmp/wib2-frames.bin
+    curl https://cernbox.cern.ch/index.php/s/ocrHxSU8PucxphE/download -o wib2-frames.bin
 
 If you download it to a different destination, please update the path of the source file in the configuration that you will use below. 
 
 To run a standalone readout app (instructions for the complete minidaqapp are included in the setup instructions above), you first create a config with:
 
-    python sourcecode/readout/python/readout/app_confgen.py -n 2 app.json
+    python -m readout.app_confgen -n 2 app.json
     
 Here, we use a fake card emulator with two WIB links. More options can be viewed with `-h`. Then, start the application with
 
