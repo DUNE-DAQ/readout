@@ -148,10 +148,21 @@ public:
     while (!m_tp_buffer.empty()) {
       m_tp_buffer.pop();
     }
+
+    // Reset timestamp check
+    m_previous_ts = 0;
+    m_current_ts = 0;
+    m_first_ts_missmatch = true;
+    m_problem_reported = false;
+    m_ts_error_ctr = 0;
+
+    // Reset stats
     m_first_coll = true;
     m_t0 = std::chrono::high_resolution_clock::now();
     m_new_hits = 0;
     m_new_tps = 0;
+    m_coll_hits_count.exchange(0);
+    m_num_tps_pushed.exchange(0);
     m_next_tpset_seqno = 0;
     m_sent_tps = 0;
     m_sent_tpsets = 0;
