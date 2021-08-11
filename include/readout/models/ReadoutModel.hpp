@@ -88,7 +88,7 @@ public:
       m_raw_data_source.reset(new raw_source_qt(queue_index["raw_input"].inst));
       m_timesync_sink.reset(new timesync_sink_qt(queue_index["timesync"].inst));
     } catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, "ReadoutModel", "", excpt);
+      throw ResourceQueueError(ERS_HERE, "raw_input/timesync", "ReadoutModel", excpt);
     }
 
     // Instantiate functionalities
@@ -112,6 +112,10 @@ public:
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
+    m_geoid.element_id = conf.link_number;
+    m_geoid.region_id = conf.apa_number;
+    m_geoid.system_type = ReadoutType::system_type;
+
     // Configure implementations:
     m_raw_processor_impl->conf(args);
     // m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
@@ -119,16 +123,13 @@ public:
     try {
       m_latency_buffer_impl->resize(m_latency_buffer_size);
     } catch (const std::bad_alloc& be) {
-      ers::error(InitializationError(ERS_HERE, "Latency Buffer can't be allocated with size!"));
+      ers::error(ConfigurationError(ERS_HERE, m_geoid, "Latency Buffer can't be allocated with size!"));
     }
 
     // Configure threads:
     m_consumer_thread.set_name("consumer", conf.link_number);
     m_timesync_thread.set_name("timesync", conf.link_number);
     m_requester_thread.set_name("requests", conf.link_number);
-
-    m_this_apa_number = conf.apa_number;
-    m_this_link_number = conf.link_number;
   }
 
   void start(const nlohmann::json& args)
@@ -248,7 +249,7 @@ private:
         ++m_stats_packet_count;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ++m_rawq_timeout_count;
-        // ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";
@@ -268,7 +269,7 @@ private:
           try {
             m_timesync_sink->push(std::move(timesyncmsg));
           } catch (const ers::Issue& excpt) {
-            ers::warning(CannotWriteToQueue(ERS_HERE, "timesync message queue", excpt));
+            ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "timesync message queue", excpt));
           }
 
           if (m_fake_trigger) {
@@ -324,7 +325,7 @@ private:
           ++m_sum_requests;
           TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
                                      << ", run number " << data_request.run_number << " (APA number "
-                                     << m_this_apa_number << ", link number " << m_this_link_number << ")";
+                                     << m_geoid.region_id << ", link number " << m_geoid.element_id << ")";
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
           // not an error, safe to continue
         }
@@ -350,8 +351,7 @@ private:
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
   int m_current_fake_trigger_id;
-  uint32_t m_this_apa_number;  // NOLINT(build/unsigned)
-  uint32_t m_this_link_number; // NOLINT(build/unsigned)
+  dataformats::GeoID m_geoid;
 
   // STATS
   std::atomic<int> m_num_payloads{ 0 };

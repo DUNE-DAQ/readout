@@ -116,7 +116,7 @@ public:
 
     m_fd = ::open(m_filename.c_str(), oflag, 0644);
     if (m_fd == -1) {
-      throw CannotOpenFile(ERS_HERE, m_filename);
+      throw BufferedReaderWriterCannotOpenFile(ERS_HERE, m_filename);
     }
 
     m_sink = io_sink_t(m_fd, boost::iostreams::file_descriptor_flags::close_handle);
@@ -132,7 +132,7 @@ public:
     } else if (m_compression_algorithm == "None") {
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Running without compression" << std::endl;
     } else {
-      throw ConfigurationError(ERS_HERE, "Non-recognized compression algorithm: " + m_compression_algorithm);
+      throw BufferedReaderWriterConfigurationError(ERS_HERE, "Non-recognized compression algorithm: " + m_compression_algorithm);
     }
 
     m_output_stream.push(m_sink, m_buffer_size);
