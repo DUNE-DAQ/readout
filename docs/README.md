@@ -6,7 +6,7 @@ Appfwk DAQModules, utilities, and scripts for DUNE Upstream DAQ Readout Software
 How to clone and build DUNE DAQ packages, including readout, is covered in [the daq-buildtools instructions](https://dune-daq-sw.readthedocs.io/en/latest/packages/daq-buildtools/).
 
 ## Examples
-Before running the application, please download a small binary file that contains 120 WIB Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download), or from the commandline:
+Before running the application, please download a small binary file that contains WIB Frames from the following [CERNBox link](https://cernbox.cern.ch/index.php/s/VAqNtn7bwuQtff3/download), or from the commandline:
 
     curl https://cernbox.cern.ch/index.php/s/7qNnuxD8igDOVJT/download -o /tmp/frames.bin
     
