@@ -78,7 +78,9 @@ local datalinkhandler = {
         s.field("compression_algorithm", self.string, "None",
                 doc="Compression algorithm to use before writing to file"),
         s.field("use_o_direct", self.choice, true,
-                doc="Whether to use O_DIRECT flag when opening files")
+                doc="Whether to use O_DIRECT flag when opening files"),
+        s.field("enable_raw_recording", self.choice, true,
+                doc="Enable raw recording")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [

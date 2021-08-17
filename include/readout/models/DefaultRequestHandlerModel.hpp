@@ -92,20 +92,9 @@ public:
     size_t retry_count;
   };
 
-  void init(const nlohmann::json& args) override
+  void init(const nlohmann::json& /*args*/) override
   {
-    try {
-      auto queue_index = appfwk::queue_index(args, { "raw_recording" });
-      m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
-    } catch (const dunedaq::appfwk::QueueNotFound& excpt) {
-      // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
-      ers::info(ConfigurationNote(ERS_HERE,
-                                  "DefaultRequestHandlerModel",
-                                  "Raw data recording is configured OFF, as indicated by the absence of the "
-                                  "raw_recording queue in the initialization of this module."));
-    } catch (const ers::Issue& excpt) {
-      ers::error(ResourceQueueError(ERS_HERE, "raw_recording", "DefaultRequestHandlerModel", excpt));
-    }
+
   }
 
   void conf(const nlohmann::json& args)
@@ -130,13 +119,15 @@ public:
     m_geoid.region_id = conf.apa_number;
     m_geoid.system_type = ReadoutType::system_type;
 
-    std::string output_file = conf.output_file;
-    if (remove(output_file.c_str()) == 0) {
-      TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
-    }
+    if (conf.enable_raw_recording) {
+      std::string output_file = conf.output_file;
+      if (remove(output_file.c_str()) == 0) {
+        TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
+      }
 
-    m_buffered_writer.open(
-        conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+      m_buffered_writer.open(
+          conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+    }
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
@@ -185,6 +176,9 @@ public:
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
       TLOG() << "A recording is still running, no new recording was started!" << std::endl;
+      return;
+    } else if (!m_buffered_writer.is_open()) {
+      ers::error(ConfigurationError(ERS_HERE, m_geoid, "DLH is not configured for recording"));
       return;
     }
     m_future_recording_stopper = std::async(
@@ -305,6 +299,7 @@ public:
     info.num_buffer_cleanups = m_num_buffer_cleanups.exchange(0);
     info.num_requests_waiting = m_waiting_requests.size();
     info.num_requests_timed_out = m_num_requests_timed_out.exchange(0);
+    info.is_recording = m_recording;
 
     int new_pop_reqs = 0;
     int new_pop_count = 0;
@@ -397,29 +392,6 @@ protected:
       ++m_pop_reqs;
       unsigned to_pop = m_pop_size_pct * m_latency_buffer->occupancy();
 
-      // SNB handling
-      /*
-      if (m_recording) {
-        ReadoutType element;
-        for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
-          if (m_latency_buffer->read(element)) {
-            try {
-              if (m_recording) {
-                if (!m_buffered_writer.write(element)) {
-                  ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
-                }
-              }
-            } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-              ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "raw_recording"));
-            }
-          } else {
-            throw InternalError(ERS_HERE, m_geoid, "Could not read from latency buffer");
-          }
-        }
-      } else {
-        m_latency_buffer->pop(to_pop);
-      }
-       */
       unsigned popped = 0;
       for (size_t i = 0; i < to_pop; ++i) {
         if (m_latency_buffer->front()->get_timestamp() < m_next_timestamp_to_record) {
@@ -620,8 +592,6 @@ protected:
 
   // Data access (LB)
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
-  // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<ReadoutType>> m_snb_sink;
 
   BufferedFileWriter<ReadoutType> m_buffered_writer;
 

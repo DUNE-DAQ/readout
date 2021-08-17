@@ -10,6 +10,7 @@ local info = {
                      doc="An unsigned of 8 bytes"),
     float8 : s.number("float8", "f8",
                       doc="A float of 8 bytes"),
+    choice : s.boolean("Choice"),
 
    info: s.record("Info", [
        s.field("sum_payloads",                  self.uint8,     0, doc="Total number of received payloads"),
@@ -31,7 +32,8 @@ local info = {
        s.field("rate_tp_hits",                  self.float8,    0, doc="TP hit rate in kHz"),
        s.field("rate_payloads_consumed",        self.float8,    0, doc="Rate of consumed packets"),
        s.field("num_raw_queue_timeouts",        self.uint8,     0, doc="Raw queue timeouts"),
-       s.field("avg_request_response_time",     self.uint8,     0, doc="Average response time in us")
+       s.field("avg_request_response_time",     self.uint8,     0, doc="Average response time in us"),
+       s.field("is_recording",                  self.choice,    0, doc="If the DLH is recording")
    ], doc="Data link handler information information")
 };
 
