@@ -182,12 +182,6 @@ public:
 
   void record(const nlohmann::json& args) override
   {
-    /*if (m_snb_sink.get() == nullptr) {
-      // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
-      ers::error(ConfigurationProblem(
-        ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
-      return;
-    }*/
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
       TLOG() << "A recording is still running, no new recording was started!" << std::endl;
@@ -207,12 +201,29 @@ public:
               m_next_timestamp_to_record = m_latency_buffer->front()->get_timestamp();
             }
             element_to_search.set_timestamp(m_next_timestamp_to_record);
-            for (auto chunk_iter = m_latency_buffer->lower_bound(element_to_search, true); chunk_iter != m_latency_buffer->end(); ++chunk_iter) {
-              if (chunk_iter.good() && (*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
+            size_t processed_chunks_in_loop = 0;
+
+            {
+              std::unique_lock<std::mutex> lock(m_cv_mutex);
+              m_cv.wait(lock, [&] { return !m_cleanup_requested; });
+              m_requests_running++;
+            }
+            m_cv.notify_all();
+            auto chunk_iter = m_latency_buffer->lower_bound(element_to_search, true);
+            auto end = m_latency_buffer->end();
+            {
+              std::lock_guard<std::mutex> lock(m_cv_mutex);
+              m_requests_running--;
+            }
+            m_cv.notify_all();
+
+            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
+              if ((*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
                 if (!m_buffered_writer.write(*chunk_iter)) {
                   ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
                 }
-                m_next_timestamp_to_record = (*chunk_iter).get_timestamp() + ReadoutType::tick_dist;
+                processed_chunks_in_loop++;
+                m_next_timestamp_to_record = (*chunk_iter).get_timestamp() + ReadoutType::tick_dist * ReadoutType::frames_per_element;
               }
               ++chunk_iter;
             }
