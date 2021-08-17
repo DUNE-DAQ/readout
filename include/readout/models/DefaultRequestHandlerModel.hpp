@@ -197,7 +197,30 @@ public:
       [&](int duration) {
         TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
         m_recording.exchange(true);
-        std::this_thread::sleep_for(std::chrono::seconds(duration));
+        auto start_of_recording = std::chrono::high_resolution_clock::now();
+        auto current_time = start_of_recording;
+        m_next_timestamp_to_record = 0;
+        ReadoutType element_to_search;
+        while (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_of_recording).count() < duration) {
+          if (!m_cleanup_requested || (m_next_timestamp_to_record == 0)) {
+            if (m_next_timestamp_to_record == 0) {
+              m_next_timestamp_to_record = m_latency_buffer->front()->get_timestamp();
+            }
+            element_to_search.set_timestamp(m_next_timestamp_to_record);
+            for (auto chunk_iter = m_latency_buffer->lower_bound(element_to_search, true); chunk_iter != m_latency_buffer->end(); ++chunk_iter) {
+              if (chunk_iter.good() && (*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
+                if (!m_buffered_writer.write(*chunk_iter)) {
+                  ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
+                }
+                m_next_timestamp_to_record = (*chunk_iter).get_timestamp() + ReadoutType::tick_dist;
+              }
+              ++chunk_iter;
+            }
+          }
+          current_time = std::chrono::high_resolution_clock::now();
+        }
+        m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
+
         TLOG() << "Stop recording" << std::endl;
         m_recording.exchange(false);
       },
@@ -364,6 +387,7 @@ protected:
       unsigned to_pop = m_pop_size_pct * m_latency_buffer->occupancy();
 
       // SNB handling
+      /*
       if (m_recording) {
         ReadoutType element;
         for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
@@ -384,9 +408,19 @@ protected:
       } else {
         m_latency_buffer->pop(to_pop);
       }
+       */
+      unsigned popped = 0;
+      for (size_t i = 0; i < to_pop; ++i) {
+        if (m_latency_buffer->front()->get_timestamp() < m_next_timestamp_to_record) {
+          m_latency_buffer->pop(1);
+          popped++;
+        } else {
+          break;
+        }
+      }
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
-      m_pops_count.store(m_pops_count.load() + to_pop);
+      m_pops_count += popped;
       m_error_registry->remove_errors_until(m_latency_buffer->front()->get_timestamp());
     }
     m_num_buffer_cleanups++;
@@ -603,6 +637,7 @@ protected:
   std::thread m_waiting_queue_thread;
   std::atomic<bool> m_recording = false;
   std::future<void> m_future_recording_stopper;
+  std::atomic<uint64_t> m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
 
   // Configuration
   bool m_configured;
