@@ -151,6 +151,7 @@ public:
     m_response_time_acc = 0;
     m_pop_reqs = 0;
     m_pops_count = 0;
+    m_payloads_written = 0;
 
     m_t0 = std::chrono::high_resolution_clock::now();
 
@@ -216,6 +217,7 @@ public:
                 if (!m_buffered_writer.write(*chunk_iter)) {
                   ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
                 }
+                m_payloads_written++;
                 processed_chunks_in_loop++;
                 m_next_timestamp_to_record = (*chunk_iter).get_timestamp() + ReadoutType::tick_dist * ReadoutType::frames_per_element;
               }
@@ -300,6 +302,8 @@ public:
     info.num_requests_waiting = m_waiting_requests.size();
     info.num_requests_timed_out = m_num_requests_timed_out.exchange(0);
     info.is_recording = m_recording;
+    info.num_payloads_written = m_payloads_written.exchange(0);
+    info.recording_status = m_recording ? "⏺" : "⏸";
 
     int new_pop_reqs = 0;
     int new_pop_count = 0;
@@ -645,6 +649,7 @@ protected:
   std::atomic<int> m_num_requests_timed_out{ 0 };
   std::atomic<int> m_handled_requests{ 0 };
   std::atomic<int> m_response_time_acc{ 0 };
+  std::atomic<int> m_payloads_written{ 0 };
   // std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
   // std::atomic<int> m_avg_resp_time{ 0 };
   // Request response time log (kept for debugging if needed)

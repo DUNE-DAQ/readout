@@ -11,6 +11,8 @@ local info = {
     float8 : s.number("float8", "f8",
                       doc="A float of 8 bytes"),
     choice : s.boolean("Choice"),
+    string : s.string("String", moo.re.ident,
+                          doc="A string field"),
 
    info: s.record("Info", [
        s.field("sum_payloads",                  self.uint8,     0, doc="Total number of received payloads"),
@@ -33,7 +35,9 @@ local info = {
        s.field("rate_payloads_consumed",        self.float8,    0, doc="Rate of consumed packets"),
        s.field("num_raw_queue_timeouts",        self.uint8,     0, doc="Raw queue timeouts"),
        s.field("avg_request_response_time",     self.uint8,     0, doc="Average response time in us"),
-       s.field("is_recording",                  self.choice,    0, doc="If the DLH is recording")
+       s.field("is_recording",                  self.choice,    0, doc="If the DLH is recording"),
+       s.field("num_payloads_written",          self.uint8,     0, doc="Number of payloads written in the recording"),
+       s.field("recording_status",              self.string,    0, doc="Recording status"),
    ], doc="Data link handler information information")
 };
 
