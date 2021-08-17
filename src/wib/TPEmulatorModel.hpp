@@ -23,7 +23,6 @@
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
 
-#include "readout/concepts/ReadoutConstants.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -43,6 +42,15 @@ class TPEmulatorModel : public SourceEmulatorConcept
 {
 public:
   using sink_t = appfwk::DAQSink<dataformats::RawWIBTp>;
+
+  // Very bad, use these from readout types, when RAW_WIB_TP is introduced
+  static const constexpr std::size_t WIB_FRAME_SIZE = 464;
+  static const constexpr std::size_t FLX_SUPERCHUNK_FACTOR = 12;
+  static const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
+
+  // Raw WIB TP
+  static const constexpr std::size_t RAW_WIB_TP_SUBFRAME_SIZE = 12; 
+  // same size for header, tp data, pedinfo: 3 words * 4 bytes/word
 
   explicit TPEmulatorModel(std::atomic<bool>& run_marker, double rate_khz)
     : m_run_marker(run_marker)
@@ -74,12 +82,17 @@ public:
       m_link_conf = link_conf.get<link_conf_t>();
       m_sink_queue_timeout_ms = std::chrono::milliseconds(m_conf.queue_timeout_ms);
 
-      m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, constant::RAW_WIB_TP_SUBFRAME_SIZE);
+      m_geoid.element_id = m_link_conf.geoid.element;
+      m_geoid.region_id = m_link_conf.geoid.region;
+      m_geoid.system_type = dataformats::GeoID::SystemType::kTPC;;
+
+      m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, RAW_WIB_TP_SUBFRAME_SIZE);
+      
       try {
         m_file_source->read(m_link_conf.data_filename);
       } catch (const ers::Issue& ex) {
         ers::fatal(ex);
-        throw ConfigurationError(ERS_HERE, "", ex);
+        throw ConfigurationError(ERS_HERE, m_geoid, "", ex);
       }
 
       m_is_configured = true;
@@ -139,17 +152,17 @@ protected:
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
-      if (offset == num_elem * static_cast<int>(constant::RAW_WIB_TP_SUBFRAME_SIZE) ||
-          static_cast<uint>((offset + 1) * constant::RAW_WIB_TP_SUBFRAME_SIZE) >
+      if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE) ||
+          static_cast<uint>((offset + 1) * RAW_WIB_TP_SUBFRAME_SIZE) >
             source.size()) { // NOLINT(build/unsigned)
         offset = 0;
       }
 
       // Count number of subframes in a TP frame
       int n = 1;
-      while (offset + (n - 1) * constant::RAW_WIB_TP_SUBFRAME_SIZE < source.size() &&
+      while (offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE < source.size() &&
              reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
-                                                  + offset + (n - 1) * constant::RAW_WIB_TP_SUBFRAME_SIZE)
+                                                  + offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE)
                  ->word3 != 0xDEADBEEF) {
         n++;
       }
@@ -157,7 +170,7 @@ protected:
       std::unique_ptr<types::RAW_WIB_TP_STRUCT> payload_ptr = std::make_unique<types::RAW_WIB_TP_STRUCT>();
       for (int i = 0; i < n; ++i) {
         auto* sp = reinterpret_cast<types::TpSubframe*>(                                // NOLINT
-          ((uint8_t*)source.data()) + offset + i * constant::RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT
+          ((uint8_t*)source.data()) + offset + i * RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT
         if (!m_found_tp_header) {
           dunedaq::dataformats::TpHeader* tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
           tfh->set_timestamp(ts_next);
@@ -184,7 +197,7 @@ protected:
       }
 
       // Count packet and limit rate if needed.
-      offset += n * constant::RAW_WIB_TP_SUBFRAME_SIZE;
+      offset += n * RAW_WIB_TP_SUBFRAME_SIZE;
       // if (m_alloc_) { free(m_data_); }
       ++m_packet_count;
       ++m_packet_count_tot;
@@ -227,6 +240,7 @@ private:
 
   bool m_is_configured = false;
   double m_rate_khz;
+  dataformats::GeoID m_geoid;
 };
 
 } // namespace readout

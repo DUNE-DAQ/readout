@@ -97,27 +97,13 @@ public:
       auto queue_index = appfwk::queue_index(args, { "raw_recording" });
       m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
     } catch (const dunedaq::appfwk::QueueNotFound& excpt) {
-      // 28-Jul-2021, KAB: I have split out the handling of the QueueNotFound exception from other exceptions.
-      // This exception seems to be the one that is used to indicate that no
-      // "raw_recording" queue was specified in the system configuration. The absence of this queue is not a
-      // problem, per se, but rather an indication that raw recording is disabled. We've included the reporting
-      // of an Info message in this case in the hope that it might be helpful if/when someone needs to debug why
-      // recording doesn't work later in the life cycle of a particular DAQ instance.
-      //
-      // A couple of notes on the particular ERS Issue that I used for the Info message:
-      // * I chose to *not* use a 'severity level' in the name of the message (e.g. I didn't use "Info" in the
-      //   name). This is in keeping with the guidance that we received when ERS Issues were first described, and
-      //   this choice allows the Issue to be reported with whatever severity is appropriate at the time.
-      // * The "module name" that I've specified in this message is not terribly helpful. (There is probably sufficient
-      //   other information in the log that indicates that this message came from the DefaultRequestHandlerModel
-      //   class.) It would be really cool if this class could somehow obtain the name of the DAQModule that it is part
-      //   of, and report the module name.  That might be an enhancement for another time.
+      // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
       ers::info(ConfigurationNote(ERS_HERE,
                                   "DefaultRequestHandlerModel",
                                   "Raw data recording is configured OFF, as indicated by the absence of the "
                                   "raw_recording queue in the initialization of this module."));
     } catch (const ers::Issue& excpt) {
-      ers::error(ResourceQueueError(ERS_HERE, "DefaultRequestHandlerModel", "raw_recording", excpt));
+      ers::error(ResourceQueueError(ERS_HERE, "raw_recording", "DefaultRequestHandlerModel", excpt));
     }
   }
 
@@ -133,7 +119,7 @@ public:
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
-      ers::error(ConfigurationError(ERS_HERE, "Auto-pop percentage out of range."));
+      ers::error(ConfigurationError(ERS_HERE, m_geoid, "Auto-pop percentage out of range."));
     } else {
       m_pop_limit_size = m_pop_limit_pct * m_buffer_capacity;
       m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
@@ -188,14 +174,9 @@ public:
   void record(const nlohmann::json& args) override
   {
     if (m_snb_sink.get() == nullptr) {
-      // 28-Jul-2021, KAB: I've updated the logging of this problem to be an ERS error, since this seems
-      // like a rather severe problem. If someone has tried to send a "record" command to this class and
-      // not provided a suitable queue to send the data on, we definitely should report that problem.
-      //
-      // Another option for the text of this report: "Recording could not be started because the appropriate
-      // output queue (name=\"raw_recording\") was not provided in the initialization of this module."
+      // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
       ers::error(ConfigurationProblem(
-        ERS_HERE, "DefaultRequestHandlerModel", "Recording could not be started because output queue is not set up."));
+        ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
       return;
     }
     auto conf = args.get<datalinkhandler::RecordingParams>();
@@ -250,9 +231,7 @@ public:
                                       << result.fragment->get_element_id();
           fragment_queue.push(std::move(result.fragment), std::chrono::milliseconds(m_fragment_queue_timeout));
         } catch (const ers::Issue& excpt) {
-          std::ostringstream oss;
-          oss << "fragments output queue for link " << m_geoid.element_id;
-          ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+          ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "fragment queue"));
         }
       } else if (result.result_code == ResultCode::kNotYet) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Re-queue request. "
@@ -384,10 +363,10 @@ protected:
               if (m_recording)
                 m_snb_sink->push(element, std::chrono::milliseconds(0));
             } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-              ers::error(CannotWriteToQueue(ERS_HERE, "SNB Writer"));
+              ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "raw_recording"));
             }
           } else {
-            throw InternalError(ERS_HERE, "Could not read from latency buffer");
+            throw InternalError(ERS_HERE, m_geoid, "Could not read from latency buffer");
           }
         }
       } else {
@@ -420,7 +399,7 @@ protected:
           } else if (m_waiting_requests[i].retry_count >= m_retry_count) {
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
-            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "Request timed out"));
+            ers::warning(dunedaq::readout::RequestTimedOut(ERS_HERE, m_geoid));
             m_num_requests_bad++;
             m_num_requests_timed_out++;
             try { // Push to Fragment queue
@@ -432,7 +411,7 @@ protected:
             } catch (const ers::Issue& excpt) {
               std::ostringstream oss;
               oss << "fragments output queue for link " << m_geoid.element_id;
-              ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+              ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "fragment queue"));
             }
             std::swap(m_waiting_requests[i], m_waiting_requests.back());
             m_waiting_requests.pop_back();
@@ -440,7 +419,7 @@ protected:
           } else if (!m_run_marker.load()) {
             auto fragment = create_empty_fragment(m_waiting_requests[i].request);
 
-            ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "End of run"));
+            ers::warning(dunedaq::readout::EndOfRunEmptyFragment(ERS_HERE, m_geoid));
             m_num_requests_bad++;
             try { // Push to Fragment queue
               TLOG_DEBUG(TLVL_QUEUE_PUSH)
@@ -449,9 +428,7 @@ protected:
               m_waiting_requests[i].fragment_sink->push(std::move(fragment),
                                                         std::chrono::milliseconds(m_fragment_queue_timeout));
             } catch (const ers::Issue& excpt) {
-              std::ostringstream oss;
-              oss << "fragments output queue for link " << m_geoid.element_id;
-              ers::warning(CannotWriteToQueue(ERS_HERE, oss.str(), excpt));
+              ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "fragment queue"));
             }
             std::swap(m_waiting_requests[i], m_waiting_requests.back());
             m_waiting_requests.pop_back();
@@ -572,7 +549,7 @@ protected:
     }
 
     if (rres.result_code != ResultCode::kFound) {
-      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, oss.str()));
+      ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, m_geoid, oss.str()));
     }
 
     // Create fragment from pieces

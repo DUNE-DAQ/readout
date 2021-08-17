@@ -16,7 +16,7 @@
 #include "readout/ReadoutTypes.hpp"
 
 #include "readout/models/SourceEmulatorModel.hpp"
-#include "readout/models/TPEmulatorModel.hpp"
+#include "wib/TPEmulatorModel.hpp"
 
 #include <memory>
 #include <string>

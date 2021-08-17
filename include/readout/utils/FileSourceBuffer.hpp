@@ -53,14 +53,14 @@ public:
       m_rawdata_ifs.ignore(std::numeric_limits<std::streamsize>::max());
       std::streamsize filesize = m_rawdata_ifs.gcount();
       if (filesize > m_input_limit) { // bigger than configured limit
-        ers::error(ConfigurationError(ERS_HERE, "File size limit exceeded."));
+        ers::warning(GenericConfigurationError(ERS_HERE, "File size limit exceeded."));
       }
 
       // Check for exact match
       if (m_chunk_size > 0) {
         int remainder = filesize % m_chunk_size;
         if (remainder > 0) {
-          ers::error(ConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+          ers::warning(GenericConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
         }
         // Set usable element count
         m_element_count = filesize / m_chunk_size;
@@ -75,7 +75,7 @@ public:
       TLOG_DEBUG(TLVL_BOOKKEEPING) << "Available bytes " << std::to_string(m_input_buffer.size());
 
     } catch (const std::exception& ex) {
-      throw CannotReadFile(ERS_HERE, m_source_filename, ex.what());
+      throw GenericConfigurationError(ERS_HERE, "Cannot read file: " + m_source_filename, ex.what());
     }
   }
 

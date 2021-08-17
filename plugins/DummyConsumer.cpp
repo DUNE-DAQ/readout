@@ -38,7 +38,7 @@ DummyConsumer<T>::init(const data_t& args)
     auto qi = appfwk::queue_index(args, { "input_queue" });
     m_input_queue.reset(new source_t(qi["input_queue"].inst));
   } catch (const ers::Issue& excpt) {
-    throw ResourceQueueError(ERS_HERE, "Could not initialize queue", "input_queue", "");
+    throw GenericResourceQueueError(ERS_HERE, "input_queue", get_name(), excpt);
   }
 }
 
