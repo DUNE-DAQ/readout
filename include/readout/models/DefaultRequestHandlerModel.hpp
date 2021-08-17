@@ -12,6 +12,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
+#include "readout/utils/BufferedFileWriter.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
 
@@ -129,6 +130,14 @@ public:
     m_geoid.region_id = conf.apa_number;
     m_geoid.system_type = ReadoutType::system_type;
 
+    std::string output_file = conf.output_file;
+    if (remove(output_file.c_str()) == 0) {
+      TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
+    }
+
+    m_buffered_writer.open(
+        conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
         << "auto-pop limit: " << m_pop_limit_pct * 100.0f << "% "
@@ -173,12 +182,12 @@ public:
 
   void record(const nlohmann::json& args) override
   {
-    if (m_snb_sink.get() == nullptr) {
+    /*if (m_snb_sink.get() == nullptr) {
       // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
       ers::error(ConfigurationProblem(
         ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
       return;
-    }
+    }*/
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
       TLOG() << "A recording is still running, no new recording was started!" << std::endl;
@@ -360,8 +369,11 @@ protected:
         for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
           if (m_latency_buffer->read(element)) {
             try {
-              if (m_recording)
-                m_snb_sink->push(element, std::chrono::milliseconds(0));
+              if (m_recording) {
+                if (!m_buffered_writer.write(element)) {
+                  ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
+                }
+              }
             } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
               ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "raw_recording"));
             }
@@ -565,6 +577,8 @@ protected:
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
   // Sink for SNB data
   std::unique_ptr<appfwk::DAQSink<ReadoutType>> m_snb_sink;
+
+  BufferedFileWriter<ReadoutType> m_buffered_writer;
 
   // Requests
   std::size_t m_max_requested_elements;

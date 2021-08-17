@@ -162,6 +162,8 @@ def generate(
                         apa_number = 0,
                         link_number = idx,
                         enable_software_tpg = ENABLE_SOFTWARE_TPG,
+                        output_file = f"output_{idx}.out",
+                        stream_buffer_size = 8388608
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"data_recorder_{idx}", bfs.Conf(
