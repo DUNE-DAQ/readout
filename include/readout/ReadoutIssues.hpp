@@ -119,7 +119,7 @@ ERS_DECLARE_ISSUE(readout,
                   "The " << queueType << " queue was not successfully created for " << moduleName,
                   ((std::string)queueType)((std::string)moduleName))
 
-ERS_DECLARE_ISSUE(readout, ConfigurationNote, "ConfigurationNote: " << text, ((std::string)text))
+ERS_DECLARE_ISSUE(readout, ConfigurationNote, "ConfigurationNote: " << text, ((std::string)name)((std::string)text))
 
 ERS_DECLARE_ISSUE(readout,
                   ConfigurationProblem,

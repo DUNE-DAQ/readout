@@ -53,14 +53,14 @@ public:
       m_rawdata_ifs.ignore(std::numeric_limits<std::streamsize>::max());
       std::streamsize filesize = m_rawdata_ifs.gcount();
       if (filesize > m_input_limit) { // bigger than configured limit
-        ers::error(GenericConfigurationError(ERS_HERE, "File size limit exceeded."));
+        ers::warning(GenericConfigurationError(ERS_HERE, "File size limit exceeded."));
       }
 
       // Check for exact match
       if (m_chunk_size > 0) {
         int remainder = filesize % m_chunk_size;
         if (remainder > 0) {
-          ers::error(GenericConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
+          ers::warning(GenericConfigurationError(ERS_HERE, "Binary file contains more data than expected."));
         }
         // Set usable element count
         m_element_count = filesize / m_chunk_size;
