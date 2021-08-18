@@ -18,6 +18,7 @@
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
+#include "dataformats/ssp/SSPWaveform.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <cstdint> // uint_t types
@@ -258,6 +259,76 @@ struct DAPHNE_SUPERCHUNK_STRUCT
 
 static_assert(sizeof(struct DAPHNE_SUPERCHUNK_STRUCT) == DAPHNE_SUPERCHUNK_SIZE,
               "Check your assumptions on DAPHNE_SUPERCHUNK_STRUCT");
+
+//SSP Waveform
+//=================================================================================
+//The SSPWaveform object only contains a single waveform
+//and has public data members rather than accessors
+
+const constexpr std::size_t SSP_WAVEFORM_SIZE = 4024;
+struct SSP_WAVEFORM_STRUCT
+{
+  using FrameType = dunedaq::dataformats::SSPWaveform;
+  // data
+  char data[SSP_WAVEFORM_SIZE];
+  // comparable based on first timestamp
+  bool operator<(const SSP_WAVEFORM_STRUCT& other) const
+  {
+    auto thisptr = reinterpret_cast<const dunedaq::dataformats::SSPWaveform*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::dataformats::SSPWaveform*>(&other.data); // NOLINT
+    return thisptr->timestamp < otherptr->timestamp ? true : false;
+  }
+
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
+    return reinterpret_cast<const dunedaq::dataformats::SSPWaveform*>(&data)->timestamp; // NOLINT
+  }
+
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    auto waveform = reinterpret_cast<dunedaq::dataformats::SSPWaveform*>(&data); // NOLINT
+    waveform->timestamp = ts;
+  }
+
+  //Not 100% sure what this fn needs to do 
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    waveform->timestamp = ts_next;
+    ts_next += offset;
+  }
+
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
+  }
+
+  FrameType* end()
+  {
+    return reinterpret_cast<FrameType*>(data + SSP_WAVEFORM_SIZE); // NOLINT
+  }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
+  
+  /*
+  static const constexpr uint64_t tick_dist = 16; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 584;
+  static const constexpr uint8_t frames_per_element = 12; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element;
+  */
+
+  static const constexpr uint64_t tick_dist = 16; //NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = 4024;
+  static const constexpr uint8_t frames_per_element = 1; //NOLINT(build/unsigned)
+  static const constexpr size_t element_size = frame_size * frames_per_element
+};
+
+static_assert(sizeof(struct SSP_WAVEFORM_STRUCT) == SSP_WAVEFORM_SIZE,
+              "Check your assumptions on SSP_WAVEFORM_STRUCT");
+
+
+//=================================================================================
 
 const constexpr std::size_t TP_SIZE = sizeof(triggeralgs::TriggerPrimitive);
 struct TP_READOUT_TYPE
