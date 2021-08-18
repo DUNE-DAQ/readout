@@ -57,6 +57,7 @@ public:
   explicit DefaultRequestHandlerModel(std::unique_ptr<LatencyBufferType>& latency_buffer,
                                       std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
+    , m_recording_thread(0)
     , m_waiting_requests()
     , m_waiting_requests_lock()
     , m_error_registry(error_registry)
@@ -129,6 +130,8 @@ public:
           conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
     }
 
+    m_recording_thread.set_name("recording", conf.link_number);
+
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
         << "auto-pop limit: " << m_pop_limit_pct * 100.0f << "% "
@@ -166,8 +169,9 @@ public:
   {
     m_run_marker.store(false);
     // if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
-    if (m_future_recording_stopper.valid())
-      m_future_recording_stopper.wait();
+    while (!m_recording_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     m_waiting_queue_thread.join();
     m_request_handler_thread_pool->join();
   }
@@ -176,13 +180,13 @@ public:
   {
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
-      TLOG() << "A recording is still running, no new recording was started!" << std::endl;
+      ers::error(CommandError(ERS_HERE, m_geoid, "A recording is still running, no new recording was started!"));
       return;
     } else if (!m_buffered_writer.is_open()) {
-      ers::error(ConfigurationError(ERS_HERE, m_geoid, "DLH is not configured for recording"));
+      ers::error(CommandError(ERS_HERE, m_geoid, "DLH is not configured for recording"));
       return;
     }
-    m_future_recording_stopper = std::async(
+    m_recording_thread.set_work(
       [&](int duration) {
         TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
         m_recording.exchange(true);
@@ -597,7 +601,9 @@ protected:
   // Data access (LB)
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
+  // Data recording
   BufferedFileWriter<ReadoutType> m_buffered_writer;
+  ReusableThread m_recording_thread;
 
   // Requests
   std::size_t m_max_requested_elements;
@@ -621,7 +627,6 @@ protected:
   // Threads and handles
   std::thread m_waiting_queue_thread;
   std::atomic<bool> m_recording = false;
-  std::future<void> m_future_recording_stopper;
   std::atomic<uint64_t> m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
 
   // Configuration

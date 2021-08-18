@@ -161,13 +161,13 @@ public:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Stoppping threads...";
     m_request_handler_impl->stop(args);
     while (!m_timesync_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     while (!m_consumer_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     while (!m_requester_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
     m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
