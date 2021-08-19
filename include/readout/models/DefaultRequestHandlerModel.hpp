@@ -58,6 +58,7 @@ public:
                                       std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
     , m_recording_thread(0)
+    , m_cleanup_thread(0)
     , m_waiting_requests()
     , m_waiting_requests_lock()
     , m_error_registry(error_registry)
@@ -131,6 +132,7 @@ public:
     }
 
     m_recording_thread.set_name("recording", conf.link_number);
+    m_cleanup_thread.set_name("cleanup", conf.link_number);
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
@@ -161,6 +163,8 @@ public:
     m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
 
     m_run_marker.store(true);
+    m_cleanup_thread.set_work(
+        &DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::periodic_cleanups, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
   }
@@ -170,6 +174,9 @@ public:
     m_run_marker.store(false);
     // if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
     while (!m_recording_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    while (!m_cleanup_thread.get_readiness()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     m_waiting_queue_thread.join();
@@ -392,6 +399,13 @@ protected:
     }
   }
 
+  void periodic_cleanups() {
+    while (m_run_marker.load()) {
+      cleanup_check();
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+  }
+
   void cleanup()
   {
     // auto now_s = time::now_as<std::chrono::seconds>();
@@ -476,7 +490,6 @@ protected:
           }
         }
       }
-      cleanup_check();
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
@@ -604,6 +617,8 @@ protected:
   // Data recording
   BufferedFileWriter<ReadoutType> m_buffered_writer;
   ReusableThread m_recording_thread;
+
+  ReusableThread m_cleanup_thread;
 
   // Requests
   std::size_t m_max_requested_elements;
