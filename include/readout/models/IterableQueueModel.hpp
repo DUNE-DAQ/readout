@@ -24,11 +24,14 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
+#include "readout/concepts/LatencyBufferConcept.hpp"
+
 #include <folly/lang/Align.h>
 
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
+#include <cstddef>
 #include <cxxabi.h>
 #include <iomanip>
 #include <iostream>
@@ -39,6 +42,10 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <thread>
+
+#include <xmmintrin.h>
+#include <numa.h>
 
 namespace dunedaq {
 namespace readout {
@@ -58,7 +65,10 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   IterableQueueModel()
     : LatencyBufferConcept<T>()
-    , aligned_allocator_(false)
+    , numa_aware_(false)
+    , numa_node_(0)
+    , intrinsic_allocator_(false)
+    , alignment_size_(0)
     , size_(2)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
     , readIndex_(0)
@@ -70,9 +80,12 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit IterableQueueModel(size_t size)
+  explicit IterableQueueModel(std::size_t size)
     : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
-    , aligned_allocator_(false)
+    , numa_aware_(false)
+    , numa_node_(0)
+    , intrinsic_allocator_(false)
+    , alignment_size_(0)
     , size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -98,16 +111,34 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   // size must be >= 2.
   // Aligned strategies
-  IterableQueueModel(size_t size, size_t alignment_size)
+  IterableQueueModel(std::size_t size, 
+                     bool numa_aware=false, uint8_t numa_node=0,
+                     bool intrinsic_allocator=false, std::size_t alignment_size=0)
     : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
-    , aligned_allocator_(true)
+    , numa_aware_(numa_aware)
+    , numa_node_(numa_node)
+    , intrinsic_allocator_(intrinsic_allocator)
+    , alignment_size_(alignment_size)
     , size_(size)
     , readIndex_(0)
     , writeIndex_(0)
   {
     assert(size >= 2);
     // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
-    records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
+
+    if (intrinsic_allocator_ && alignment_size_ > 0) { // _mm allocator
+      records_ = static_cast<T*>(_mm_malloc(sizeof(T) * size_, alignment_size_));
+
+    } else if (!intrinsic_allocator_ && alignment_size > 0) { // std aligned allocator
+      records_ = static_cast<T*>(std::aligned_alloc(alignment_size_, sizeof(T) * size_));
+
+    } else if (numa_aware_ && numa_node_ >= 0 && numa_node_ < 8) { // numa allocator from libnuma
+      records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size_, numa_node_));
+
+    } else {
+      // Let it fail, as expected combination might be invalid
+      //records_ = static_cast<T*>(std::malloc(sizeof(T) * size_);
+    }
 
     if (!records_) {
       throw std::bad_alloc();
@@ -132,8 +163,8 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     // (No real synchronization needed at destructor time: only one
     // thread can be doing this.)
     if (!std::is_trivially_destructible<T>::value) {
-      size_t readIndex = readIndex_;
-      size_t endIndex = writeIndex_;
+      std::size_t readIndex = readIndex_;
+      std::size_t endIndex = writeIndex_;
       while (readIndex != endIndex) {
         records_[readIndex].~T();
         if (++readIndex == size_) { // NOLINT(runtime/increment_decrement)
@@ -141,7 +172,14 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
         }
       }
     }
-    std::free(records_);
+
+    if (intrinsic_allocator_) {
+      _mm_free(records_);
+    } else if (numa_aware_) {
+      numa_free(records_, sizeof(T) * size_);
+    } else {
+      std::free(records_);
+    }
   }
 
   bool put(T& record) { return write_(record); }
@@ -183,9 +221,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   }
 
   // RS: Will this work?
-  void pop(size_t x)
+  void pop(std::size_t x)
   {
-    for (size_t i = 0; i < x; i++) {
+    for (std::size_t i = 0; i < x; i++) {
       popFront();
     }
   }
@@ -213,18 +251,18 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   // * If called by producer, then true size may be less (because consumer may
   //   be removing items concurrently).
   // * It is undefined to call this from any other thread.
-  size_t occupancy() const override
+  std::size_t occupancy() const override
   {
     int ret = static_cast<int>(writeIndex_.load(std::memory_order_acquire)) -
               static_cast<int>(readIndex_.load(std::memory_order_acquire));
     if (ret < 0) {
       ret += static_cast<int>(size_);
     }
-    return static_cast<size_t>(ret);
+    return static_cast<std::size_t>(ret);
   }
 
   // maximum number of items in the queue.
-  size_t capacity() const { return size_ - 1; }
+  std::size_t capacity() const { return size_ - 1; }
 
   struct Iterator
   {
@@ -311,12 +349,12 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
   }
 
-  void resize(size_t new_size) override
+  void resize(std::size_t new_size) override
   {
     assert(new_size >= 2);
     if (!std::is_trivially_destructible<T>::value) {
-      size_t readIndex = readIndex_;
-      size_t endIndex = writeIndex_;
+      std::size_t readIndex = readIndex_;
+      std::size_t endIndex = writeIndex_;
       while (readIndex != endIndex) {
         records_[readIndex].~T();
         if (++readIndex == size_) { // NOLINT(runtime/increment_decrement)
@@ -370,7 +408,11 @@ protected:
   // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
   std::atomic<int> overflow_ctr{ 0 };
 
-  bool aligned_allocator_;
+  // NUMA awareness and aligned allocator usage
+  bool numa_aware_;
+  uint8_t numa_node_;
+  bool intrinsic_allocator_;
+  std::size_t alignment_size_;
 
   std::thread ptrlogger;
 

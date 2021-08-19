@@ -8,6 +8,8 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_LATENCYBUFFERCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_LATENCYBUFFERCONCEPT_HPP_
 
+#include <cstddef>
+
 namespace dunedaq {
 namespace readout {
 
@@ -30,10 +32,10 @@ public:
   LatencyBufferConcept& operator=(LatencyBufferConcept&&) = delete; ///< LatencyBufferConcept is not move-assignable
 
   //! Resize LB to the new capacity
-  virtual void resize(size_t capacity) = 0;
+  virtual void resize(std::size_t capacity) = 0;
 
   //! Occupancy of LB
-  virtual size_t occupancy() const = 0;
+  virtual std::size_t occupancy() const = 0;
 
   //! Move referenced object into LB
   virtual bool write(T&& element) = 0;
@@ -51,7 +53,7 @@ public:
   virtual const T* back() = 0;
 
   //! Pop specified amount of elements from LB
-  virtual void pop(size_t amount) = 0;
+  virtual void pop(std::size_t amount) = 0;
 
 private:
 };
