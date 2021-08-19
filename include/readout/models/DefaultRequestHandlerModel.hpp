@@ -12,6 +12,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
+#include "readout/utils/BufferedFileWriter.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
 
@@ -56,6 +57,8 @@ public:
   explicit DefaultRequestHandlerModel(std::unique_ptr<LatencyBufferType>& latency_buffer,
                                       std::unique_ptr<FrameErrorRegistry>& error_registry)
     : m_latency_buffer(latency_buffer)
+    , m_recording_thread(0)
+    , m_cleanup_thread(0)
     , m_waiting_requests()
     , m_waiting_requests_lock()
     , m_error_registry(error_registry)
@@ -91,20 +94,9 @@ public:
     size_t retry_count;
   };
 
-  void init(const nlohmann::json& args) override
+  void init(const nlohmann::json& /*args*/) override
   {
-    try {
-      auto queue_index = appfwk::queue_index(args, { "raw_recording" });
-      m_snb_sink.reset(new appfwk::DAQSink<ReadoutType>(queue_index["raw_recording"].inst));
-    } catch (const dunedaq::appfwk::QueueNotFound& excpt) {
-      // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
-      ers::info(ConfigurationNote(ERS_HERE,
-                                  "DefaultRequestHandlerModel",
-                                  "Raw data recording is configured OFF, as indicated by the absence of the "
-                                  "raw_recording queue in the initialization of this module."));
-    } catch (const ers::Issue& excpt) {
-      ers::error(ResourceQueueError(ERS_HERE, "raw_recording", "DefaultRequestHandlerModel", excpt));
-    }
+
   }
 
   void conf(const nlohmann::json& args)
@@ -129,6 +121,19 @@ public:
     m_geoid.region_id = conf.apa_number;
     m_geoid.system_type = ReadoutType::system_type;
 
+    if (conf.enable_raw_recording) {
+      std::string output_file = conf.output_file;
+      if (remove(output_file.c_str()) == 0) {
+        TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
+      }
+
+      m_buffered_writer.open(
+          conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+    }
+
+    m_recording_thread.set_name("recording", conf.link_number);
+    m_cleanup_thread.set_name("cleanup", conf.link_number);
+
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
         << "auto-pop limit: " << m_pop_limit_pct * 100.0f << "% "
@@ -151,12 +156,15 @@ public:
     m_response_time_acc = 0;
     m_pop_reqs = 0;
     m_pops_count = 0;
+    m_payloads_written = 0;
 
     m_t0 = std::chrono::high_resolution_clock::now();
 
     m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
 
     m_run_marker.store(true);
+    m_cleanup_thread.set_work(
+        &DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::periodic_cleanups, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
   }
@@ -165,30 +173,72 @@ public:
   {
     m_run_marker.store(false);
     // if (m_recording) throw CommandError(ERS_HERE, "Recording is still ongoing!");
-    if (m_future_recording_stopper.valid())
-      m_future_recording_stopper.wait();
+    while (!m_recording_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    while (!m_cleanup_thread.get_readiness()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     m_waiting_queue_thread.join();
     m_request_handler_thread_pool->join();
   }
 
   void record(const nlohmann::json& args) override
   {
-    if (m_snb_sink.get() == nullptr) {
-      // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
-      ers::error(ConfigurationProblem(
-        ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
-      return;
-    }
     auto conf = args.get<datalinkhandler::RecordingParams>();
     if (m_recording.load()) {
-      TLOG() << "A recording is still running, no new recording was started!" << std::endl;
+      ers::error(CommandError(ERS_HERE, m_geoid, "A recording is still running, no new recording was started!"));
+      return;
+    } else if (!m_buffered_writer.is_open()) {
+      ers::error(CommandError(ERS_HERE, m_geoid, "DLH is not configured for recording"));
       return;
     }
-    m_future_recording_stopper = std::async(
+    m_recording_thread.set_work(
       [&](int duration) {
         TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
         m_recording.exchange(true);
-        std::this_thread::sleep_for(std::chrono::seconds(duration));
+        auto start_of_recording = std::chrono::high_resolution_clock::now();
+        auto current_time = start_of_recording;
+        m_next_timestamp_to_record = 0;
+        ReadoutType element_to_search;
+        while (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_of_recording).count() < duration) {
+          if (!m_cleanup_requested || (m_next_timestamp_to_record == 0)) {
+            if (m_next_timestamp_to_record == 0) {
+              m_next_timestamp_to_record = m_latency_buffer->front()->get_timestamp();
+            }
+            element_to_search.set_timestamp(m_next_timestamp_to_record);
+            size_t processed_chunks_in_loop = 0;
+
+            {
+              std::unique_lock<std::mutex> lock(m_cv_mutex);
+              m_cv.wait(lock, [&] { return !m_cleanup_requested; });
+              m_requests_running++;
+            }
+            m_cv.notify_all();
+            auto chunk_iter = m_latency_buffer->lower_bound(element_to_search, true);
+            auto end = m_latency_buffer->end();
+            {
+              std::lock_guard<std::mutex> lock(m_cv_mutex);
+              m_requests_running--;
+            }
+            m_cv.notify_all();
+
+            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
+              if ((*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
+                if (!m_buffered_writer.write(*chunk_iter)) {
+                  ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
+                }
+                m_payloads_written++;
+                processed_chunks_in_loop++;
+                m_next_timestamp_to_record = (*chunk_iter).get_timestamp() + ReadoutType::tick_dist * ReadoutType::frames_per_element;
+              }
+              ++chunk_iter;
+            }
+          }
+          current_time = std::chrono::high_resolution_clock::now();
+        }
+        m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
+
         TLOG() << "Stop recording" << std::endl;
         m_recording.exchange(false);
       },
@@ -262,6 +312,9 @@ public:
     info.num_buffer_cleanups = m_num_buffer_cleanups.exchange(0);
     info.num_requests_waiting = m_waiting_requests.size();
     info.num_requests_timed_out = m_num_requests_timed_out.exchange(0);
+    info.is_recording = m_recording;
+    info.num_payloads_written = m_payloads_written.exchange(0);
+    info.recording_status = m_recording ? "⏺" : "⏸";
 
     int new_pop_reqs = 0;
     int new_pop_count = 0;
@@ -346,6 +399,13 @@ protected:
     }
   }
 
+  void periodic_cleanups() {
+    while (m_run_marker.load()) {
+      cleanup_check();
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+  }
+
   void cleanup()
   {
     // auto now_s = time::now_as<std::chrono::seconds>();
@@ -354,27 +414,18 @@ protected:
       ++m_pop_reqs;
       unsigned to_pop = m_pop_size_pct * m_latency_buffer->occupancy();
 
-      // SNB handling
-      if (m_recording) {
-        ReadoutType element;
-        for (unsigned i = 0; i < to_pop; ++i) { // NOLINT(build/unsigned)
-          if (m_latency_buffer->read(element)) {
-            try {
-              if (m_recording)
-                m_snb_sink->push(element, std::chrono::milliseconds(0));
-            } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-              ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "raw_recording"));
-            }
-          } else {
-            throw InternalError(ERS_HERE, m_geoid, "Could not read from latency buffer");
-          }
+      unsigned popped = 0;
+      for (size_t i = 0; i < to_pop; ++i) {
+        if (m_latency_buffer->front()->get_timestamp() < m_next_timestamp_to_record) {
+          m_latency_buffer->pop(1);
+          popped++;
+        } else {
+          break;
         }
-      } else {
-        m_latency_buffer->pop(to_pop);
       }
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
-      m_pops_count.store(m_pops_count.load() + to_pop);
+      m_pops_count += popped;
       m_error_registry->remove_errors_until(m_latency_buffer->front()->get_timestamp());
     }
     m_num_buffer_cleanups++;
@@ -439,7 +490,6 @@ protected:
           }
         }
       }
-      cleanup_check();
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
@@ -563,8 +613,12 @@ protected:
 
   // Data access (LB)
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
-  // Sink for SNB data
-  std::unique_ptr<appfwk::DAQSink<ReadoutType>> m_snb_sink;
+
+  // Data recording
+  BufferedFileWriter<ReadoutType> m_buffered_writer;
+  ReusableThread m_recording_thread;
+
+  ReusableThread m_cleanup_thread;
 
   // Requests
   std::size_t m_max_requested_elements;
@@ -588,7 +642,7 @@ protected:
   // Threads and handles
   std::thread m_waiting_queue_thread;
   std::atomic<bool> m_recording = false;
-  std::future<void> m_future_recording_stopper;
+  std::atomic<uint64_t> m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
 
   // Configuration
   bool m_configured;
@@ -615,6 +669,7 @@ protected:
   std::atomic<int> m_num_requests_timed_out{ 0 };
   std::atomic<int> m_handled_requests{ 0 };
   std::atomic<int> m_response_time_acc{ 0 };
+  std::atomic<int> m_payloads_written{ 0 };
   // std::atomic<int> m_avg_req_count{ 0 }; // for opmon, later
   // std::atomic<int> m_avg_resp_time{ 0 };
   // Request response time log (kept for debugging if needed)

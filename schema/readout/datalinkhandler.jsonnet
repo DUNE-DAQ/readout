@@ -33,6 +33,9 @@ local datalinkhandler = {
     file_name : s.string("FileName",
                       doc="A string field"),
 
+    string : s.string("String", moo.re.ident,
+                      doc="A string field"),
+
     conf: s.record("Conf", [
         s.field("emulator_mode", self.choice, false,
                 doc="If the input data is from an emulator."),
@@ -67,7 +70,17 @@ local datalinkhandler = {
         s.field("enable_software_tpg", self.choice, false,
                 doc="Enable software TPG"),
         s.field("retry_count", self.count, 100,
-                doc="Number of times to recheck a request before sending an empty fragment")
+                doc="Number of times to recheck a request before sending an empty fragment"),
+        s.field("output_file", self.file_name, "output.out",
+                doc="Name of the output file to write to"),
+        s.field("stream_buffer_size", self.size, 8388608,
+                doc="Buffer size of the stream buffer"),
+        s.field("compression_algorithm", self.string, "None",
+                doc="Compression algorithm to use before writing to file"),
+        s.field("use_o_direct", self.choice, true,
+                doc="Whether to use O_DIRECT flag when opening files"),
+        s.field("enable_raw_recording", self.choice, true,
+                doc="Enable raw recording")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [
