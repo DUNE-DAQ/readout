@@ -38,6 +38,7 @@ local info = {
        s.field("is_recording",                  self.choice,    0, doc="If the DLH is recording"),
        s.field("num_payloads_written",          self.uint8,     0, doc="Number of payloads written in the recording"),
        s.field("recording_status",              self.string,    0, doc="Recording status"),
+       s.field("num_buffer_elements",           self.uint8,     0, doc="Occupancy of the LB"),
    ], doc="Data link handler information information")
 };
 

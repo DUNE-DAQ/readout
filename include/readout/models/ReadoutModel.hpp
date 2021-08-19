@@ -185,6 +185,7 @@ public:
     dli.sum_requests = m_sum_requests.load();
     dli.num_requests = m_num_requests.exchange(0);
     dli.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
+    dli.num_buffer_elements = m_latency_buffer_impl->occupancy();
 
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);
