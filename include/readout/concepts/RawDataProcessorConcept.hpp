@@ -8,6 +8,8 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_RAWDATAPROCESSORCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_RAWDATAPROCESSORCONCEPT_HPP_
 
+#include <nlohmann/json.hpp>
+
 #include <string>
 
 namespace dunedaq {

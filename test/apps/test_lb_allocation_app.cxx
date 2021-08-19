@@ -8,6 +8,8 @@
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/models/SkipListLatencyBufferModel.hpp"
 
+#include "readout/concepts/RawDataProcessorConcept.hpp"
+
 #include "logging/Logging.hpp"
 
 #include <atomic>
