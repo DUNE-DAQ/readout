@@ -6,6 +6,7 @@
  * received with this code.
  */
 #include "readout/models/IterableQueueModel.hpp"
+#include "readout/models/SkipListLatencyBufferModel.hpp"
 
 #include "logging/Logging.hpp"
 

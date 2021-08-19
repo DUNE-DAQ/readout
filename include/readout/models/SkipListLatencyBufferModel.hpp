@@ -8,8 +8,11 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 
-#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
+#include "readout/ReadoutIssues.hpp"
+#include "readout/ReadoutLogging.hpp"
+
+#include "logging/Logging.hpp"
 
 #include "folly/ConcurrentSkipList.h"
 
