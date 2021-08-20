@@ -86,6 +86,11 @@ ERS_DECLARE_ISSUE(readout,
                   "GeoID[" << geoid << "] Trigger Matching result with empty fragment: " << trmdetails,
                   ((dataformats::GeoID)geoid)((std::string)trmdetails))
 
+ERS_DECLARE_ISSUE(readout,
+                  RequestOnEmptyBuffer,
+                  "GeoID[" << geoid << "] Request on empty buffer: " << trmdetails,
+                  ((dataformats::GeoID)geoid)((std::string)trmdetails))
+
 ERS_DECLARE_ISSUE_BASE(readout,
                        FailedReadoutInitialization,
                        readout::InitializationError,
