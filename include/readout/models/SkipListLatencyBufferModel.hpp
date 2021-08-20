@@ -72,7 +72,10 @@ public:
     SkipListTIter m_iter;
   };
 
-  void resize(size_t /*new_size*/) override {}
+  void conf(const nlohmann::json& /*cfg*/) override {
+    // Reset datastructure
+    m_skip_list = folly::ConcurrentSkipList<T>::createInstance(unconfigured_head_height);
+  }
 
   size_t occupancy() const override
   {

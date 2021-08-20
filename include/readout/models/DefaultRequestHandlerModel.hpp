@@ -273,7 +273,7 @@ public:
         m_requests_running--;
       }
       m_cv.notify_all();
-      if (result.result_code == ResultCode::kFound) {
+      if (result.result_code == ResultCode::kFound || result.result_code == ResultCode::kNotFound) {
         try { // Push to Fragment queue
           TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
                                       << result.fragment->get_trigger_number() << ", run number "
@@ -402,7 +402,7 @@ protected:
   void periodic_cleanups() {
     while (m_run_marker.load()) {
       cleanup_check();
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
   }
 

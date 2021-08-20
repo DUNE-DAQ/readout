@@ -25,6 +25,7 @@
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
 #include "readout/concepts/LatencyBufferConcept.hpp"
+#include "readout/datalinkhandler/Structs.hpp"
 
 #include <folly/lang/Align.h>
 
@@ -124,21 +125,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     , writeIndex_(0)
   {
     assert(size >= 2);
-    // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
-
-    if (intrinsic_allocator_ && alignment_size_ > 0) { // _mm allocator
-      records_ = static_cast<T*>(_mm_malloc(sizeof(T) * size_, alignment_size_));
-
-    } else if (!intrinsic_allocator_ && alignment_size > 0) { // std aligned allocator
-      records_ = static_cast<T*>(std::aligned_alloc(alignment_size_, sizeof(T) * size_));
-
-    } else if (numa_aware_ && numa_node_ >= 0 && numa_node_ < 8) { // numa allocator from libnuma
-      records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size_, numa_node_));
-
-    } else {
-      // Let it fail, as expected combination might be invalid
-      //records_ = static_cast<T*>(std::malloc(sizeof(T) * size_);
-    }
+    allocate_memory(size, numa_aware, numa_node, intrinsic_allocator, alignment_size);
 
     if (!records_) {
       throw std::bad_alloc();
@@ -159,6 +146,10 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   ~IterableQueueModel()
   {
+    free_memory();
+  }
+
+  void free_memory() {
     // We need to destruct anything that may still exist in our queue.
     // (No real synchronization needed at destructor time: only one
     // thread can be doing this.)
@@ -180,6 +171,39 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     } else {
       std::free(records_);
     }
+  }
+
+  void allocate_memory(std::size_t size,
+                       bool numa_aware=false, uint8_t numa_node=0,
+                       bool intrinsic_allocator=false, std::size_t alignment_size=0)
+  {
+    assert(size >= 2);
+    // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
+
+    if (intrinsic_allocator && alignment_size > 0) { // _mm allocator
+      records_ = static_cast<T*>(_mm_malloc(sizeof(T) * size, alignment_size));
+
+    } else if (!intrinsic_allocator && alignment_size > 0) { // std aligned allocator
+      records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
+
+    } else if (numa_aware && numa_node >= 0 && numa_node < 8) { // numa allocator from libnuma
+      records_ = static_cast<T *>(numa_alloc_onnode(sizeof(T) * size, numa_node));
+
+    } else if (!numa_aware && !intrinsic_allocator && alignment_size == 0) {
+      // Standard allocator
+      records_ = static_cast<T*>(std::malloc(sizeof(T) * size));
+
+    } else {
+      // Let it fail, as expected combination might be invalid
+      //records_ = static_cast<T*>(std::malloc(sizeof(T) * size_);
+    }
+
+    size_ = size;
+    numa_aware_ = numa_aware;
+    numa_node_ = numa_node;
+    intrinsic_allocator_ = intrinsic_allocator;
+    alignment_size_ = alignment_size;
+
   }
 
   bool put(T& record) { return write_(record); }
@@ -349,23 +373,13 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
   }
 
-  void resize(std::size_t new_size) override
+  void conf(const nlohmann::json& cfg) override
   {
-    assert(new_size >= 2);
-    if (!std::is_trivially_destructible<T>::value) {
-      std::size_t readIndex = readIndex_;
-      std::size_t endIndex = writeIndex_;
-      while (readIndex != endIndex) {
-        records_[readIndex].~T();
-        if (++readIndex == size_) { // NOLINT(runtime/increment_decrement)
-          readIndex = 0;
-        }
-      }
-    }
-    std::free(records_);
+    auto conf = cfg.get<datalinkhandler::Conf>();
+    assert(conf.latency_buffer_size >= 2);
+    free_memory();
 
-    size_ = new_size;
-    records_ = static_cast<T*>(std::malloc(sizeof(T) * new_size));
+    allocate_memory(conf.latency_buffer_size, conf.latency_buffer_numa_aware, conf.latency_buffer_numa_node);
     readIndex_ = 0;
     writeIndex_ = 0;
 

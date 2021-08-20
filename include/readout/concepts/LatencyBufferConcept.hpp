@@ -8,6 +8,9 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_LATENCYBUFFERCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_LATENCYBUFFERCONCEPT_HPP_
 
+
+#include <nlohmann/json.hpp>
+
 #include <cstddef>
 
 namespace dunedaq {
@@ -31,8 +34,8 @@ public:
   LatencyBufferConcept(LatencyBufferConcept&&) = delete;            ///< LatencyBufferConcept is not move-constructible
   LatencyBufferConcept& operator=(LatencyBufferConcept&&) = delete; ///< LatencyBufferConcept is not move-assignable
 
-  //! Resize LB to the new capacity
-  virtual void resize(std::size_t capacity) = 0;
+  //! Configure the LB
+  virtual void conf(const nlohmann::json& cfg) = 0;
 
   //! Occupancy of LB
   virtual std::size_t occupancy() const = 0;
