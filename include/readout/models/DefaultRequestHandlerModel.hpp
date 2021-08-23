@@ -204,7 +204,8 @@ public:
         while (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_of_recording).count() < duration) {
           if (!m_cleanup_requested || (m_next_timestamp_to_record == 0)) {
             if (m_next_timestamp_to_record == 0) {
-              m_next_timestamp_to_record = m_latency_buffer->front()->get_timestamp();
+              auto front = m_latency_buffer->front();
+              m_next_timestamp_to_record = front == nullptr ? 0 : front->get_timestamp();
             }
             element_to_search.set_timestamp(m_next_timestamp_to_record);
             size_t processed_chunks_in_loop = 0;
