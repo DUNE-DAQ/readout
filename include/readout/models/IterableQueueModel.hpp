@@ -379,7 +379,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     assert(conf.latency_buffer_size >= 2);
     free_memory();
 
-    allocate_memory(conf.latency_buffer_size, conf.latency_buffer_numa_aware, conf.latency_buffer_numa_node);
+    allocate_memory(conf.latency_buffer_size, conf.latency_buffer_numa_aware, conf.latency_buffer_numa_node, conf.latency_buffer_intrinsic_allocator, conf.latency_buffer_alignment_size);
     readIndex_ = 0;
     writeIndex_ = 0;
 
