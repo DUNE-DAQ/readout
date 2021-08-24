@@ -11,8 +11,8 @@
 
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
-#include "readout/utils/ReusableThread.hpp"
 #include "readout/utils/BufferedFileWriter.hpp"
+#include "readout/utils/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Structs.hpp"
 
@@ -94,10 +94,7 @@ public:
     size_t retry_count;
   };
 
-  void init(const nlohmann::json& /*args*/) override
-  {
-
-  }
+  void init(const nlohmann::json& /*args*/) override {}
 
   void conf(const nlohmann::json& args)
   {
@@ -127,8 +124,7 @@ public:
         TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
       }
 
-      m_buffered_writer.open(
-          conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+      m_buffered_writer.open(conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
     }
 
     m_recording_thread.set_name("recording", conf.link_number);
@@ -163,8 +159,7 @@ public:
     m_request_handler_thread_pool = std::make_unique<boost::asio::thread_pool>(m_num_request_handling_threads);
 
     m_run_marker.store(true);
-    m_cleanup_thread.set_work(
-        &DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::periodic_cleanups, this);
+    m_cleanup_thread.set_work(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::periodic_cleanups, this);
     m_waiting_queue_thread =
       std::thread(&DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::check_waiting_requests, this);
   }
@@ -231,14 +226,15 @@ public:
                 }
                 m_payloads_written++;
                 processed_chunks_in_loop++;
-                m_next_timestamp_to_record = (*chunk_iter).get_timestamp() + ReadoutType::tick_dist * ReadoutType::frames_per_element;
+                m_next_timestamp_to_record =
+                  (*chunk_iter).get_timestamp() + ReadoutType::tick_dist * ReadoutType::frames_per_element;
               }
               ++chunk_iter;
             }
           }
           current_time = std::chrono::high_resolution_clock::now();
         }
-        m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
+        m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max(); // NOLINT (build/unsigned)
 
         TLOG() << "Stop recording" << std::endl;
         m_recording.exchange(false);
@@ -400,7 +396,8 @@ protected:
     }
   }
 
-  void periodic_cleanups() {
+  void periodic_cleanups()
+  {
     while (m_run_marker.load()) {
       cleanup_check();
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -437,7 +434,7 @@ protected:
     while (m_run_marker.load() || m_waiting_requests.size() > 0) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        auto last_frame = m_latency_buffer->back(); // NOLINT
+        auto last_frame = m_latency_buffer->back();                                       // NOLINT
         uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::max() // NOLINT(build/unsigned)
                                                    : last_frame->get_timestamp();
 
@@ -643,7 +640,7 @@ protected:
   // Threads and handles
   std::thread m_waiting_queue_thread;
   std::atomic<bool> m_recording = false;
-  std::atomic<uint64_t> m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max();
+  std::atomic<uint64_t> m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max(); // NOLINT (build/unsigned)
 
   // Configuration
   bool m_configured;
