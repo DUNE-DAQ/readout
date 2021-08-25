@@ -8,6 +8,7 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
 
+#include "readout/datalinkhandlerinfo/InfoStructs.hpp"
 #include "appfwk/DAQSink.hpp"
 #include "dataformats/Fragment.hpp"
 #include "dfmessages/DataRequest.hpp"
@@ -83,9 +84,6 @@ protected:
     dfmessages::DataRequest data_request;
     std::unique_ptr<dataformats::Fragment> fragment;
   };
-
-  // Bookkeeping of OOB requests
-  std::map<dfmessages::DataRequest, int> m_request_counter;
 
   virtual void cleanup() = 0;
   virtual RequestResult data_request(dfmessages::DataRequest /*dr*/) = 0;

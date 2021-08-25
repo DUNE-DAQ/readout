@@ -10,9 +10,13 @@
 #define READOUT_INCLUDE_READOUT_MODELS_TASKRAWDATAPROCESSORMODEL_HPP_
 
 #include "logging/Logging.hpp"
+#include "dataformats/GeoID.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
+#include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
 #include "readout/utils/ReusableThread.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
 
@@ -42,6 +46,7 @@ public:
   void conf(const nlohmann::json& cfg) override
   {
     auto config = cfg.get<datalinkhandler::Conf>();
+    m_emulator_mode = config.emulator_mode;
     m_postprocess_queue_sizes = config.postprocess_queue_sizes;
     m_this_link_number = config.link_number;
 
@@ -54,8 +59,6 @@ public:
     m_geoid.element_id = config.link_number;
     m_geoid.region_id = config.apa_number;
     m_geoid.system_type = ReadoutType::system_type;
-
-    RawDataProcessorConcept<ReadoutType>::conf(cfg);
   }
 
   void start(const nlohmann::json& /*args*/) override
@@ -85,6 +88,10 @@ public:
   {
     // No stats for now, extend later
   }
+
+  void reset_last_daq_time() { m_last_processed_daq_ts.store(0); }
+
+  std::uint64_t get_last_daq_time() override { return m_last_processed_daq_ts.load(); } // NOLINT(build/unsigned)
 
   void preprocess_item(ReadoutType* item) override { invoke_all_preprocess_functions(item); }
 
@@ -150,6 +157,8 @@ protected:
   size_t m_postprocess_queue_sizes;
   uint32_t m_this_link_number; // NOLINT(build/unsigned)
   dataformats::GeoID m_geoid;
+  bool m_emulator_mode{ false };
+  std::atomic<std::uint64_t> m_last_processed_daq_ts{ 0 }; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

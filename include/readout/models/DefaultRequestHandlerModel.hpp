@@ -14,7 +14,7 @@
 #include "readout/utils/BufferedFileWriter.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
-#include "readout/datalinkhandler/Structs.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 
 #include "appfwk/Issues.hpp"
 #include "dataformats/Fragment.hpp"
@@ -621,6 +621,9 @@ protected:
   ReusableThread m_recording_thread;
 
   ReusableThread m_cleanup_thread;
+
+  // Bookkeeping of OOB requests
+  std::map<dfmessages::DataRequest, int> m_request_counter;
 
   // Requests
   std::size_t m_max_requested_elements;

@@ -24,6 +24,7 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
+#include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/datalinkhandler/Structs.hpp"
 

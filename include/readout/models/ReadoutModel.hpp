@@ -27,8 +27,9 @@
 #include "dfmessages/DataRequest.hpp"
 #include "dfmessages/TimeSync.hpp"
 
+#include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/ReadoutLogging.hpp"
-#include "readout/datalinkhandler/Structs.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
 #include "readout/FrameErrorRegistry.hpp"
