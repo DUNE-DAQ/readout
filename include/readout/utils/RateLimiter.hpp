@@ -12,6 +12,7 @@
 #include <chrono>
 #include <ctime>
 #include <unistd.h>
+#include "logging/Logging.hpp"
 
 namespace dunedaq {
 namespace readout {
@@ -35,7 +36,7 @@ public:
   static inline constexpr timestamp_t s = 1000 * ms;
 
   explicit RateLimiter(double kilohertz)
-    : m_max_overshoot(10 * ms)
+    : m_max_overshoot(100 * ms)
   {
     adjust(kilohertz);
     init();

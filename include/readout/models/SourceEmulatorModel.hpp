@@ -14,6 +14,7 @@
 #include "logging/Logging.hpp"
 
 #include "opmonlib/InfoCollector.hpp"
+#include "rcif/cmd/Nljs.hpp"
 
 #include "readout/fakecardreader/Structs.hpp"
 
@@ -116,8 +117,10 @@ public:
 
   void scrap(const nlohmann::json& /*args*/) { m_is_configured = false; }
 
-  void start(const nlohmann::json& /*args*/)
+  void start(const nlohmann::json& args)
   {
+    rcif::cmd::StartParams start_params = args.get<rcif::cmd::StartParams>();
+    m_rc_start_time = start_params.start_time;
     m_packet_count_tot = 0;
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Starting threads...";
     m_rate_limiter = std::make_unique<RateLimiter>(m_rate_khz / m_link_conf.slowdown);
@@ -157,12 +160,21 @@ protected:
 
     auto rptr = reinterpret_cast<ReadoutType*>(source.data()); // NOLINT
 
+    uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    uint64_t offset_to_rc_start_time = time_now - m_rc_start_time;
+    size_t tick_offset = offset_to_rc_start_time * 50000000.0 / 1000000000.0;
+    size_t element_offset = tick_offset / ReadoutType::tick_dist / ReadoutType::frames_per_element;
+    TLOG_DEBUG(TLVL_BOOKKEEPING) << "Skipping " << element_offset << " elements";
+
+    offset = element_offset % (source.size() / sizeof(ReadoutType));
+
     // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
     uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT(build/unsigned)
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
-    uint64_t timestamp = ts_0; // NOLINT(build/unsigned)
+    uint64_t timestamp = ts_0 + element_offset * ReadoutType::tick_dist * ReadoutType::frames_per_element; // NOLINT(build/unsigned)
     int dropout_index = 0;
 
+    m_rate_limiter->init();
     while (m_run_marker.load()) {
       // Which element to push to the buffer
       if (offset == num_elem * sizeof(ReadoutType) || (offset + 1) * sizeof(ReadoutType) > source.size()) {
@@ -195,7 +207,7 @@ protected:
         ++m_packet_count_tot;
       }
 
-      timestamp += m_time_tick_diff * 12;
+      timestamp += m_time_tick_diff * ReadoutType::frames_per_element;
 
       m_rate_limiter->limit();
     }
@@ -243,6 +255,7 @@ private:
 
   uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
   dataformats::GeoID m_geoid;
+  uint64_t m_rc_start_time = 0;
 };
 
 } // namespace readout
