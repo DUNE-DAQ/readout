@@ -24,8 +24,6 @@
 
 #include "readout/utils/ReusableThread.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
-
 #include <functional>
 #include <memory>
 #include <random>
@@ -106,8 +104,6 @@ public:
         m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
-      // add similar as above but for frame errors
-
       m_dropouts_length = m_link_conf.random_population_size;
 
       m_is_configured = true;
@@ -146,10 +142,12 @@ protected:
   void run_produce()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " started";
+
     // pthread_setname_np(pthread_self(), get_name().c_str());
 
     uint offset = 0; // NOLINT(build/unsigned)
-    auto& source = m_file_source->get();
+    auto&
+    = m_file_source->get();
 
     int num_elem = m_file_source->num_elements();
     if (num_elem == 0) {
@@ -183,10 +181,6 @@ protected:
 
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);
-
-        /// Introduce errors here ///
-        auto wibheader = reinterpret_cast<dataformats::WIBFrame*>(payload.begin())->get_wib_header();
-        wibheader->wib_errors = 0b0000000000000000;
 
         // queue in to actual DAQSink
         try {
