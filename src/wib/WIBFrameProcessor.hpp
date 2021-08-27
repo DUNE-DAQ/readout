@@ -13,6 +13,7 @@
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
+#include "rcif/cmd/Nljs.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
@@ -167,6 +168,11 @@ public:
     m_sent_tps = 0;
     m_sent_tpsets = 0;
     m_dropped_tps = 0;
+
+    m_first_payload = true;
+    rcif::cmd::StartParams start_params = args.get<rcif::cmd::StartParams>();
+    m_rc_start_time = start_params.start_time;
+
     inherited::start(args);
   }
 
@@ -324,6 +330,16 @@ protected:
    * */
   void timestamp_check(frameptr fp)
   {
+    if (m_first_payload) {
+      uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      uint64_t offset_to_rc_start_time = time_now - m_rc_start_time;
+      size_t tick_offset = offset_to_rc_start_time * 50000000.0 / 1000000000.0;
+      size_t element_offset = tick_offset / 25 / 12;
+
+      m_previous_ts = element_offset * 25 * 12;
+      m_first_payload = false;
+    }
+
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
       uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
@@ -649,6 +665,9 @@ private:
   std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
+
+  std::atomic<bool> m_first_payload = true;
+  uint64_t m_rc_start_time = 0;
 };
 
 } // namespace readout
