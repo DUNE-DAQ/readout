@@ -32,7 +32,6 @@ local info = {
        s.field("rate_payloads_consumed",        self.float8,    0, doc="Rate of consumed packets"),
        s.field("num_raw_queue_timeouts",        self.uint8,     0, doc="Raw queue timeouts"),
        s.field("avg_request_response_time",     self.uint8,     0, doc="Average response time in us")
-       // add field for errors
    ], doc="Data link handler information information")
 };
 

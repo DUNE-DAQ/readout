@@ -38,8 +38,8 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
 
   static constexpr int wib_time_tick_diff = 25;
   static constexpr double wib_dropout_rate = 0.0;
+  static constexpr double wib_frame_error_rate = 0.0;
   static constexpr double wib_rate_khz = 166.0;
-  // add frame error rate
 
   static constexpr int wib2_time_tick_diff = 32;
   static constexpr double wib2_dropout_rate = 0.0;
@@ -52,7 +52,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake wib2 link";
 
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB2_SUPERCHUNK_STRUCT>>(
-      qi.name, run_marker, wib2_time_tick_diff, wib2_dropout_rate, wib2_rate_khz);
+      qi.name, run_marker, wib2_time_tick_diff, wib2_dropout_rate, wib_frame_error_rate, wib2_rate_khz);
     return std::move(source_emu_model);
   }
 
@@ -60,7 +60,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
   if (inst.find("wib") != std::string::npos) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake wib link";
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB_SUPERCHUNK_STRUCT>>(
-      qi.name, run_marker, wib_time_tick_diff, wib_dropout_rate, wib_rate_khz);
+      qi.name, run_marker, wib_time_tick_diff, wib_dropout_rate, wib_frame_error_rate, wib_rate_khz);
     return std::move(source_emu_model);
   }
 
@@ -68,7 +68,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
   if (inst.find("pds") != std::string::npos) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake pds link";
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(
-      qi.name, run_marker, daphne_time_tick_diff, daphne_dropout_rate, daphne_rate_khz);
+      qi.name, run_marker, daphne_time_tick_diff, daphne_dropout_rate, wib_frame_error_rate, daphne_rate_khz);
     return std::move(source_emu_model);
   }
 

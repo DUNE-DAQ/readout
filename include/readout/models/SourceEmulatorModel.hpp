@@ -49,10 +49,12 @@ public:
                                std::atomic<bool>& run_marker,
                                uint64_t time_tick_diff, // NOLINT(build/unsigned)
                                double dropout_rate,
+                               double frame_error_rate,
                                double rate_khz)
     : m_run_marker(run_marker)
     , m_time_tick_diff(time_tick_diff)
     , m_dropout_rate(dropout_rate)
+    , m_frame_error_rate(frame_error_rate)
     , m_packet_count{ 0 }
     , m_sink_queue_timeout_ms(0)
     , m_raw_data_sink(nullptr)
@@ -97,6 +99,10 @@ public:
         throw ConfigurationError(ERS_HERE, m_geoid, "", ex);
       }
 
+      /* Line below has been moved up. Was below the setting of bits in the vector
+       * which meant that default value would always be used. Consider also adding
+       * some check that the value is valid */
+      m_dropouts_length = m_link_conf.random_population_size;
       if (m_dropout_rate == 0.0) {
         m_dropouts = std::vector<bool>(1);
       } else {
@@ -106,9 +112,16 @@ public:
         m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
-      // add similar as above but for frame errors
-
-      m_dropouts_length = m_link_conf.random_population_size;
+      m_frame_errors_length = m_link_conf.random_population_size;
+      m_frame_error_rate = m_link_conf.frame_error_rate;
+      if (m_frame_error_rate == 0.0) {
+        m_frame_errors = std::vector<bool>(1);
+      } else {
+        m_frame_errors = std::vector<bool>(m_frame_errors_length);
+      }
+      for (size_t i = 0; i < m_frame_errors.size(); ++i) {
+        m_frame_errors[i] = dis(mt) >= m_frame_error_rate;
+      }
 
       m_is_configured = true;
     }
@@ -184,9 +197,14 @@ protected:
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
-        /// Introduce errors here ///
+        // Introducing errors
         auto wibheader = reinterpret_cast<dataformats::WIBFrame*>(payload.begin())->get_wib_header();
-        wibheader->wib_errors = 0b0000000000000000;
+        int frame_error_index = 0;
+        bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
+        frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
+        if (set_frame_error){
+          wibheader->wib_errors = 1 << 0;
+        }
 
         // queue in to actual DAQSink
         try {
@@ -219,6 +237,7 @@ private:
 
   uint64_t m_time_tick_diff; // NOLINT(build/unsigned)
   double m_dropout_rate;
+  double m_frame_error_rate;
 
   // STATS
   std::atomic<int> m_packet_count{ 0 };
@@ -247,8 +266,10 @@ private:
   double m_rate_khz;
 
   std::vector<bool> m_dropouts; // Random population
+  std::vector<bool> m_frame_errors;
 
   uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
+  uint m_frame_errors_length = 10000;
   dataformats::GeoID m_geoid;
 };
 
