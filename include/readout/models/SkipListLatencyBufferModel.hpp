@@ -87,6 +87,11 @@ public:
     return occupancy;
   }
 
+  void flush() override
+  {
+    pop(occupancy());
+  }
+
   std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
 
   // For the continous buffer, the data is moved into the Folly queue.

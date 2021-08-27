@@ -57,7 +57,9 @@ public:
   //! Pop specified amount of elements from LB
   virtual void pop(std::size_t amount) = 0;
 
-private:
+  //! Flush all elements from the latency buffer
+  virtual void flush() = 0;
+
 };
 
 } // namespace readout

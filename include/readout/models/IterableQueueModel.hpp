@@ -394,6 +394,11 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
   }
 
+  void flush() override
+  {
+    pop(occupancy());
+  }
+
 protected:
   template<class... Args>
   bool write_(Args&&... recordArgs)
