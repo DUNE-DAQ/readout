@@ -344,6 +344,7 @@
                                 "input_limit": 10485100,
                                 "queue_name": "output_0",
                                 "random_population_size": 10000,
+                                "frame_error_rate": 1.0,
                                 "slowdown": 10.0
                             },
                             {
@@ -356,6 +357,7 @@
                                 "input_limit": 10485100,
                                 "queue_name": "output_1",
                                 "random_population_size": 10000,
+                                "frame_error_rate": 1.0,
                                 "slowdown": 10.0
                             }
                         ],

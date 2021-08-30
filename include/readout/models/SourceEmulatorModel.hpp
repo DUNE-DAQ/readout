@@ -120,7 +120,7 @@ public:
         m_frame_errors = std::vector<bool>(m_frame_errors_length);
       }
       for (size_t i = 0; i < m_frame_errors.size(); ++i) {
-        m_frame_errors[i] = dis(mt) >= m_frame_error_rate;
+        m_frame_errors[i] = dis(mt) < m_frame_error_rate;
       }
 
       m_is_configured = true;
@@ -178,6 +178,7 @@ protected:
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
     uint64_t timestamp = ts_0; // NOLINT(build/unsigned)
     int dropout_index = 0;
+    int frame_error_index = 0;
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
@@ -197,14 +198,24 @@ protected:
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
-        // Introducing errors
-        auto wibheader = reinterpret_cast<dataformats::WIBFrame*>(payload.begin())->get_wib_header();
-        int frame_error_index = 0;
-        bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
-        frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
-        if (set_frame_error){
-          wibheader->wib_errors = 1 << 0;
+        // Introducing frame errors
+
+        /* This part can't be made generic, as frame header access is not uniform between frame types
+         * Better alternative would be:
+         * auto fptr = payload.begin(); */
+        auto fptr = reinterpret_cast<dataformats::WIBFrame*>(payload.begin());
+        for (int i = 0; i < rptr->frames_per_element ; ++i) {
+          auto header = fptr->get_wib_header();
+          //bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
+          frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
+          header->wib_errors = 0b0000000000000001;
+//          if (set_frame_error){
+//            header->wib_errors = 1 << 0;
+//          }
+          fptr++;
         }
+
+
 
         // queue in to actual DAQSink
         try {

@@ -36,6 +36,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <bitset>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -169,6 +170,7 @@ public:
     m_sent_tps = 0;
     m_sent_tpsets = 0;
     m_dropped_tps = 0;
+    m_frame_error_count = 0;
     inherited::start(args);
   }
 
@@ -283,6 +285,7 @@ public:
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
           std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+      // Add function for checking if frame error rate is correct
     }
 
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
@@ -293,7 +296,7 @@ public:
     info.num_tps_sent = m_sent_tps.exchange(0);
     info.num_tpsets_sent = m_sent_tpsets.exchange(0);
     info.num_tps_dropped = m_dropped_tps.exchange(0);
-    // add variable for frame errors
+    info.num_frame_errors = m_frame_error_count.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     if (m_sw_tpg_enabled) {
@@ -373,14 +376,21 @@ protected:
     if (!fp)
       return;
 
-    auto wfhptr = reinterpret_cast<dunedaq::dataformats::WIBHeader*>((uint8_t*)fp);
-    if (wfhptr->wib_errors)
-      /* Does not consider that there could also be a timestamp error in which case
-       * the passed timestamp here would be incorrect */
-      m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, m_current_ts));
+    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)); // NOLINT
+    for (int i = 0; i < fp->frames_per_element; ++i) {
+      auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
+      wf++;
+    }
 
-      /* Further error handling */
-  }
+    //TLOG() << "There are errors in the frame";
+    /* Does not consider that there could also be a timestamp error in which case
+     * the passed timestamp here would be incorrect */
+    //m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, m_current_ts));
+
+    //TLOG() << "Frame is error free";
+    /* Further error handling */
+}
 
 
   /**
@@ -660,6 +670,7 @@ private:
   std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_frame_error_count{ 0 };// NOLINT(build/unsigned)
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
