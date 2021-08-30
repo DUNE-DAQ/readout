@@ -28,6 +28,8 @@
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/datalinkhandler/Structs.hpp"
 
+#include "logging/Logging.hpp"
+
 #include <folly/lang/Align.h>
 
 #include <atomic>
@@ -391,6 +393,14 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
     if (!records_) {
       throw std::bad_alloc();
+    }
+
+    if (conf.latency_buffer_preallocation) {
+      T element;
+      for (size_t i = 0; i < size_-1; ++i) {
+        write_(element);
+      }
+      flush();
     }
   }
 

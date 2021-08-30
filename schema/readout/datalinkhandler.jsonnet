@@ -55,6 +55,8 @@ local datalinkhandler = {
                 doc="Use intrinsic allocator for LB"),
         s.field("latency_buffer_alignment_size", self.count, 0,
                 doc="Alignment size of LB allocation"),
+        s.field("latency_buffer_preallocation", self.choice, false,
+                doc="Preallocate memory for the latency buffer"),
         s.field("pop_limit_pct", self.pct, 0.5,
                 doc="Latency buffer occupancy percentage to issue an auto-pop"),
         s.field("pop_size_pct", self.pct, 0.8,
