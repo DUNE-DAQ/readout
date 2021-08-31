@@ -223,7 +223,7 @@ public:
         m_requests_running--;
       }
       m_cv.notify_all();
-      if (result.result_code == ResultCode::kFound) {
+      if (result.result_code == ResultCode::kFound || result.result_code == ResultCode::kNotFound) {
         try { // Push to Fragment queue
           TLOG_DEBUG(TLVL_QUEUE_PUSH) << "Sending fragment with trigger_number "
                                       << result.fragment->get_trigger_number() << ", run number "
@@ -386,7 +386,7 @@ protected:
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
         auto last_frame = m_latency_buffer->back(); // NOLINT
-        uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::max() // NOLINT(build/unsigned)
+        uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::min() // NOLINT(build/unsigned)
                                                    : last_frame->get_timestamp();
 
         size_t size = m_waiting_requests.size();
@@ -545,6 +545,9 @@ protected:
           << "Estimated newest stored TS=" << newest_ts;
       TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
     } else {
+      ers::warning(RequestOnEmptyBuffer(ERS_HERE, m_geoid, "Data not found"));
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+      rres.result_code = ResultCode::kNotFound;
       ++m_num_requests_bad;
     }
 
