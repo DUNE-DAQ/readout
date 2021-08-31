@@ -27,8 +27,8 @@
 #include "dfmessages/DataRequest.hpp"
 #include "dfmessages/TimeSync.hpp"
 
-#include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/ReadoutLogging.hpp"
+#include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
@@ -251,7 +251,7 @@ private:
         ++m_stats_packet_count;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ++m_rawq_timeout_count;
-        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+        // ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";

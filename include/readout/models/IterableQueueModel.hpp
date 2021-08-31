@@ -24,8 +24,8 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
-#include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/datalinkhandler/Structs.hpp"
 
 #include "logging/Logging.hpp"
@@ -397,17 +397,14 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
     if (conf.latency_buffer_preallocation) {
       T element;
-      for (size_t i = 0; i < size_-1; ++i) {
+      for (size_t i = 0; i < size_ - 1; ++i) {
         write_(element);
       }
       flush();
     }
   }
 
-  void flush() override
-  {
-    pop(occupancy());
-  }
+  void flush() override { pop(occupancy()); }
 
 protected:
   template<class... Args>

@@ -59,7 +59,6 @@ public:
 
   //! Flush all elements from the latency buffer
   virtual void flush() = 0;
-
 };
 
 } // namespace readout

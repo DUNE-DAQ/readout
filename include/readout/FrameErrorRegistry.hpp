@@ -8,8 +8,8 @@
 #ifndef READOUT_INCLUDE_READOUT_FRAMEERRORREGISTRY_HPP_
 #define READOUT_INCLUDE_READOUT_FRAMEERRORREGISTRY_HPP_
 
-#include <deque>
 #include <cstdint> // uint_t types
+#include <deque>
 
 namespace dunedaq {
 namespace readout {

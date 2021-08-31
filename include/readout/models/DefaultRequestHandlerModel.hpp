@@ -42,6 +42,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <map>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -435,7 +436,7 @@ protected:
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
 
-        auto last_frame = m_latency_buffer->back(); // NOLINT
+        auto last_frame = m_latency_buffer->back();                                       // NOLINT
         uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::min() // NOLINT(build/unsigned)
                                                    : last_frame->get_timestamp();
 

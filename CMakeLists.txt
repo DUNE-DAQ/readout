@@ -27,17 +27,17 @@ if(${USE_INTRINSICS})
 endif()
 
 ##############################################################################
-# Dependency sets
-set(READOUT_DEPENDENCIES 
-  # system
+#Dependency sets
+set(READOUT_DEPENDENCIES
+#system
   numa
- 
-  # tools
+
+#tools
   Folly::folly
   ers::ers
   logging::logging
 
-  # dunedaq
+#dunedaq
   opmonlib::opmonlib
   dataformats::dataformats
   dfmessages::dfmessages
@@ -46,7 +46,7 @@ set(READOUT_DEPENDENCIES
 )
 
 ##############################################################################
-# Main library
+#Main library
 daq_add_library(
   wib/tpg/*.cpp
   LINK_LIBRARIES appfwk::appfwk ${READOUT_DEPENDENCIES}

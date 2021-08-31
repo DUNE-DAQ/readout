@@ -8,10 +8,10 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
 
-#include "readout/datalinkhandlerinfo/InfoStructs.hpp"
 #include "appfwk/DAQSink.hpp"
 #include "dataformats/Fragment.hpp"
 #include "dfmessages/DataRequest.hpp"
+#include "readout/datalinkhandlerinfo/InfoStructs.hpp"
 
 #include <map>
 #include <memory>

@@ -9,14 +9,14 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_TASKRAWDATAPROCESSORMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_TASKRAWDATAPROCESSORMODEL_HPP_
 
-#include "logging/Logging.hpp"
 #include "dataformats/GeoID.hpp"
-#include "readout/datalinkhandler/Nljs.hpp"
+#include "logging/Logging.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/utils/ReusableThread.hpp"
-#include "readout/FrameErrorRegistry.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
 

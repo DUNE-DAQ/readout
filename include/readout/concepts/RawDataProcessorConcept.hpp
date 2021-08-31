@@ -8,9 +8,9 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_RAWDATAPROCESSORCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_RAWDATAPROCESSORCONCEPT_HPP_
 
-#include <nlohmann/json.hpp>
 #include "readout/datalinkhandler/Structs.hpp"
 #include "readout/datalinkhandlerinfo/InfoStructs.hpp"
+#include <nlohmann/json.hpp>
 
 #include <string>
 
@@ -47,7 +47,6 @@ public:
   virtual void preprocess_item(ReadoutType* item) = 0;
   //! Postprocess one element
   virtual void postprocess_item(const ReadoutType* item) = 0;
-
 };
 
 } // namespace readout
