@@ -33,6 +33,9 @@ local datalinkhandler = {
     file_name : s.string("FileName",
                       doc="A string field"),
 
+    int8 : s.number("int8", "i8",
+                    doc="integer of 8 bytes"),
+
     conf: s.record("Conf", [
         s.field("emulator_mode", self.choice, false,
                 doc="If the input data is from an emulator."),
@@ -74,6 +77,16 @@ local datalinkhandler = {
         s.field("duration", self.count, 1,
                 doc="Number of seconds to record")
     ], doc="Recording parameters"),
+
+    err_msg : s.record("ErrorMessage", [
+        s.field("apa_number", self.apa_number, 0,
+                doc="APA number related to error"),
+        s.field("link_number", self.link_number, 0,
+                doc="Link number related to error"),
+//      field for system type??
+        s.field("timestamp", self.int8, 0,
+                doc="Timestamp of frame containing error")
+    ], doc="Message struct for parsing errors"),
 
 };
 

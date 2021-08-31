@@ -76,7 +76,6 @@ local fakecardreader = {
                 doc="The first DAQ timestamp. If -1, t0 from file is used.")
 
     ], doc="Fake Elink reader module configuration"),
-
 };
 
 moo.oschema.sort_select(fakecardreader, ns)
