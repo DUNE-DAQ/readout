@@ -42,10 +42,10 @@ ERS_DECLARE_ISSUE(readout,
                   "Configuration Error: " << conferror,
                   ((std::string)conferror))
 
-                  ERS_DECLARE_ISSUE(readout,
-                                    ProducerNotKeepingUp,
-                                    "GeoID[" << geoid << "] Producer could not keep up with rate: " << error,
-                                    ((dataformats::GeoID)geoid)((std::string)error))
+ERS_DECLARE_ISSUE(readout,
+                  ProducerNotKeepingUp,
+                  "GeoID[" << geoid << "] Producer could not keep up with rate: " << error,
+                  ((dataformats::GeoID)geoid)((std::string)error))
 
 ERS_DECLARE_ISSUE(readout, GenericConfigurationError, "Configuration Error: " << conferror, ((std::string)conferror))
 

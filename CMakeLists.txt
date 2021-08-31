@@ -23,17 +23,17 @@ daq_codegen( *info.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
 
 ##############################################################################
-# Dependency sets
-set(READOUT_DEPENDENCIES 
-  # system
-  #numa
- 
-  # tools
+#Dependency sets
+set(READOUT_DEPENDENCIES
+#system
+#numa
+
+#tools
   Folly::folly
   ers::ers
   logging::logging
 
-  # dunedaq
+#dunedaq
   opmonlib::opmonlib
   dataformats::dataformats
   dfmessages::dfmessages
@@ -42,7 +42,7 @@ set(READOUT_DEPENDENCIES
 )
 
 ##############################################################################
-# Main library
+#Main library
 daq_add_library(
   wib/tpg/*.cpp
   LINK_LIBRARIES appfwk::appfwk ${READOUT_DEPENDENCIES}

@@ -175,8 +175,8 @@ public:
   {
     if (m_snb_sink.get() == nullptr) {
       // Removed lengthy comment from KAB (28-Jul-2021). Details in PR #113
-      ers::error(ConfigurationProblem(
-        ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
+      ers::error(
+        ConfigurationProblem(ERS_HERE, m_geoid, "Recording could not be started because output queue is not set up."));
       return;
     }
     auto conf = args.get<datalinkhandler::RecordingParams>();
@@ -385,7 +385,7 @@ protected:
     while (m_run_marker.load() || m_waiting_requests.size() > 0) {
       {
         std::lock_guard<std::mutex> lock_guard(m_waiting_requests_lock);
-        auto last_frame = m_latency_buffer->back(); // NOLINT
+        auto last_frame = m_latency_buffer->back();                                       // NOLINT
         uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::min() // NOLINT(build/unsigned)
                                                    : last_frame->get_timestamp();
 

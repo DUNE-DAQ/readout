@@ -160,7 +160,9 @@ protected:
 
     auto rptr = reinterpret_cast<ReadoutType*>(source.data()); // NOLINT
 
-    uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); // NOLINT(build/unsigned)
+    uint64_t time_now =                                           // NOLINT(build/unsigned)
+      std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch())
+        .count();
     uint64_t offset_to_rc_start_time = time_now - m_rc_start_time; // NOLINT(build/unsigned)
     size_t tick_offset = offset_to_rc_start_time * 50000000.0 / 1000000000.0;
     size_t element_offset = tick_offset / ReadoutType::tick_dist / ReadoutType::frames_per_element;
@@ -171,7 +173,8 @@ protected:
     // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
     uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT(build/unsigned)
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
-    uint64_t timestamp = ts_0 + element_offset * ReadoutType::tick_dist * ReadoutType::frames_per_element; // NOLINT(build/unsigned)
+    uint64_t timestamp =                                                                // NOLINT(build/unsigned)
+      ts_0 + element_offset * ReadoutType::tick_dist * ReadoutType::frames_per_element;
     int dropout_index = 0;
 
     m_rate_limiter->init();
@@ -210,7 +213,8 @@ protected:
       timestamp += m_time_tick_diff * ReadoutType::frames_per_element;
 
       if (!m_rate_limiter->limit()) {
-        ers::warning(ProducerNotKeepingUp(ERS_HERE, m_geoid, "Data generation is too slow and link is falling behind, some frames had to be skipped"));
+        ers::warning(ProducerNotKeepingUp(
+          ERS_HERE, m_geoid, "Data generation is too slow and link is falling behind, some frames had to be skipped"));
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";
