@@ -106,6 +106,7 @@ public:
     m_num_request_handling_threads = conf.num_request_handling_threads;
     m_retry_count = conf.retry_count;
     m_fragment_queue_timeout = conf.fragment_queue_timeout_ms;
+    m_output_file = conf.output_file;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -223,7 +224,7 @@ public:
             for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
               if ((*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
                 if (!m_buffered_writer.write(*chunk_iter)) {
-                  ers::warning(CannotWriteToFile(ERS_HERE, "output file"));
+                  ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
                 }
                 m_payloads_written++;
                 processed_chunks_in_loop++;
@@ -660,6 +661,7 @@ protected:
   dataformats::GeoID m_geoid;
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
   int m_fragment_queue_timeout = 100;
+  std::string m_output_file;
 
   // Stats
   std::atomic<int> m_pop_counter;
