@@ -20,26 +20,34 @@ set(BOOST_LIBS Boost::iostreams ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} 
 daq_codegen( datalinkhandler.jsonnet  datarecorder.jsonnet  fakecardreader.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
 daq_codegen( *info.jsonnet DEP_PKGS opmonlib TEMPLATES opmonlib/InfoStructs.hpp.j2 opmonlib/InfoNljs.hpp.j2 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-
 ##############################################################################
 # Dependency sets
-set(READOUT_DEPENDENCIES 
-  # system
-  #numa
- 
-  # tools
+set(READOUT_DEPENDENCIES
+#tools
   Folly::folly
   ers::ers
   logging::logging
-
-  # dunedaq
+#dunedaq
   opmonlib::opmonlib
   dataformats::dataformats
   dfmessages::dfmessages
   triggeralgs::triggeralgs
   trigger::trigger
 )
+
+##############################################################################
+# Extra options and tweaks
+set(READOUT_USE_INTRINSICS ON)
+set(READOUT_USE_LIBNUMA OFF)
+
+if(${READOUT_USE_INTRINSICS})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+endif()
+
+if(${READOUT_USE_LIBNUMA})
+  list(APPEND READOUT_DEPENDENCIES numa)
+  add_compile_definitions(WITH_LIBNUMA_SUPPORT)
+endif()
 
 ##############################################################################
 # Main library
@@ -51,7 +59,7 @@ daq_add_library(
 ##############################################################################
 # Plugins
 daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
 daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
 daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
@@ -59,6 +67,7 @@ daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk read
 ##############################################################################
 # Integration tests
 daq_add_application(readout_test_ratelimiter test_ratelimiter_app.cxx TEST LINK_LIBRARIES readout)
+daq_add_application(readout_test_lb_allocation test_lb_allocation_app.cxx TEST LINK_LIBRARIES readout)
 daq_add_application(readout_test_bufferedfilewriter test_bufferedfilewriter_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})

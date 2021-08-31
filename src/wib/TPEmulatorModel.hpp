@@ -49,7 +49,7 @@ public:
   static const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 
   // Raw WIB TP
-  static const constexpr std::size_t RAW_WIB_TP_SUBFRAME_SIZE = 12; 
+  static const constexpr std::size_t RAW_WIB_TP_SUBFRAME_SIZE = 12;
   // same size for header, tp data, pedinfo: 3 words * 4 bytes/word
 
   explicit TPEmulatorModel(std::atomic<bool>& run_marker, double rate_khz)
@@ -84,10 +84,11 @@ public:
 
       m_geoid.element_id = m_link_conf.geoid.element;
       m_geoid.region_id = m_link_conf.geoid.region;
-      m_geoid.system_type = dataformats::GeoID::SystemType::kTPC;;
+      m_geoid.system_type = dataformats::GeoID::SystemType::kTPC;
+      ;
 
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, RAW_WIB_TP_SUBFRAME_SIZE);
-      
+
       try {
         m_file_source->read(m_link_conf.data_filename);
       } catch (const ers::Issue& ex) {
@@ -153,8 +154,7 @@ protected:
     while (m_run_marker.load()) {
       // Which element to push to the buffer
       if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE) ||
-          static_cast<uint>((offset + 1) * RAW_WIB_TP_SUBFRAME_SIZE) >
-            source.size()) { // NOLINT(build/unsigned)
+          static_cast<uint>((offset + 1) * RAW_WIB_TP_SUBFRAME_SIZE) > source.size()) { // NOLINT(build/unsigned)
         offset = 0;
       }
 
@@ -169,7 +169,7 @@ protected:
       // Create next TP frame
       std::unique_ptr<types::RAW_WIB_TP_STRUCT> payload_ptr = std::make_unique<types::RAW_WIB_TP_STRUCT>();
       for (int i = 0; i < n; ++i) {
-        auto* sp = reinterpret_cast<types::TpSubframe*>(                                // NOLINT
+        auto* sp = reinterpret_cast<types::TpSubframe*>(                      // NOLINT
           ((uint8_t*)source.data()) + offset + i * RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT
         if (!m_found_tp_header) {
           dunedaq::dataformats::TpHeader* tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
