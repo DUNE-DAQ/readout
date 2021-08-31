@@ -48,8 +48,11 @@
 #include <type_traits>
 #include <utility>
 
-#include <numa.h>
 #include <xmmintrin.h>
+
+#ifdef WITH_LIBNUMA_SUPPORT
+  #include <numa.h>
+#endif
 
 namespace dunedaq {
 namespace readout {
@@ -73,6 +76,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     , numa_node_(0)
     , intrinsic_allocator_(false)
     , alignment_size_(0)
+    , invalid_configuration_requested_(false)
     , size_(2)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
     , readIndex_(0)
@@ -90,6 +94,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     , numa_node_(0)
     , intrinsic_allocator_(false)
     , alignment_size_(0)
+    , invalid_configuration_requested_(false)
     , size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -125,6 +130,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     , numa_node_(numa_node)
     , intrinsic_allocator_(intrinsic_allocator)
     , alignment_size_(alignment_size)
+    , invalid_configuration_requested_(false)
     , size_(size)
     , readIndex_(0)
     , writeIndex_(0)
@@ -170,7 +176,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     if (intrinsic_allocator_) {
       _mm_free(records_);
     } else if (numa_aware_) {
+#ifdef WITH_LIBNUMA_SUPPORT
       numa_free(records_, sizeof(T) * size_);
+#endif
     } else {
       std::free(records_);
     }
@@ -192,7 +200,13 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
       records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
 
     } else if (numa_aware && numa_node >= 0 && numa_node < 8) { // numa allocator from libnuma
+#ifdef WITH_LIBNUMA_SUPPORT
       records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size, numa_node));
+#else
+      // TODO Roland Sipos rsipos@cern.ch July-22-2021 
+      // We really need to scream here, as NUMA support is turned off build time,
+      // but the configuration still requests NUMA allocation.
+#endif
 
     } else if (!numa_aware && !intrinsic_allocator && alignment_size == 0) {
       // Standard allocator
@@ -445,6 +459,7 @@ protected:
   uint8_t numa_node_; // NOLINT (build/unsigned)
   bool intrinsic_allocator_;
   std::size_t alignment_size_;
+  bool invalid_configuration_requested_;
 
   std::thread ptrlogger;
 
