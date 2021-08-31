@@ -37,14 +37,14 @@ set(READOUT_DEPENDENCIES
 
 ##############################################################################
 # Extra options and tweaks
-set(USE_INTRINSICS ON)
-set(USE_LIBNUMA OFF)
+set(READOUT_USE_INTRINSICS ON)
+set(READOUT_USE_LIBNUMA OFF)
 
-if(${USE_INTRINSICS})
+if(${READOUT_USE_INTRINSICS})
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
 endif()
 
-if(${USE_LIBNUMA})
+if(${READOUT_USE_LIBNUMA})
   list(APPEND READOUT_DEPENDENCIES numa)
   add_compile_definitions(WITH_LIBNUMA_SUPPORT)
 endif()
