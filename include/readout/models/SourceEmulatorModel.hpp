@@ -160,8 +160,8 @@ protected:
 
     auto rptr = reinterpret_cast<ReadoutType*>(source.data()); // NOLINT
 
-    uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    uint64_t offset_to_rc_start_time = time_now - m_rc_start_time;
+    uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); // NOLINT(build/unsigned)
+    uint64_t offset_to_rc_start_time = time_now - m_rc_start_time; // NOLINT(build/unsigned)
     size_t tick_offset = offset_to_rc_start_time * 50000000.0 / 1000000000.0;
     size_t element_offset = tick_offset / ReadoutType::tick_dist / ReadoutType::frames_per_element;
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "Skipping " << element_offset << " elements";
@@ -209,7 +209,9 @@ protected:
 
       timestamp += m_time_tick_diff * ReadoutType::frames_per_element;
 
-      m_rate_limiter->limit();
+      if (!m_rate_limiter->limit()) {
+        ers::warning(ProducerNotKeepingUp(ERS_HERE, m_geoid, "Data generation is too slow and link is falling behind, some frames had to be skipped"));
+      }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";
   }
@@ -255,7 +257,7 @@ private:
 
   uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
   dataformats::GeoID m_geoid;
-  uint64_t m_rc_start_time = 0;
+  uint64_t m_rc_start_time = 0; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

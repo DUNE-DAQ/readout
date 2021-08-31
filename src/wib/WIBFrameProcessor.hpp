@@ -331,8 +331,8 @@ protected:
   void timestamp_check(frameptr fp)
   {
     if (m_first_payload) {
-      uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-      uint64_t offset_to_rc_start_time = time_now - m_rc_start_time;
+      uint64_t time_now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); // NOLINT(build/unsigned)
+      uint64_t offset_to_rc_start_time = time_now - m_rc_start_time; // NOLINT(build/unsigned)
       size_t tick_offset = offset_to_rc_start_time * 50000000.0 / 1000000000.0;
       size_t element_offset = tick_offset / 25 / 12;
 
@@ -667,7 +667,7 @@ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 
   std::atomic<bool> m_first_payload = true;
-  uint64_t m_rc_start_time = 0;
+  uint64_t m_rc_start_time = 0; // NOLINT(build/unsigned)
 };
 
 } // namespace readout

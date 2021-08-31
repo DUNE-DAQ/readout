@@ -12,7 +12,6 @@
 #include <chrono>
 #include <ctime>
 #include <unistd.h>
-#include "logging/Logging.hpp"
 
 namespace dunedaq {
 namespace readout {
@@ -65,15 +64,17 @@ public:
     m_period.store(static_cast<timestamp_t>((1000.f / m_kilohertz) * static_cast<double>(us)));
   }
 
-  void limit()
+  bool limit()
   {
     if (m_now > m_deadline + m_max_overshoot) {
       m_deadline = m_now + m_period.load();
+      return false;
     } else {
       while (m_now < m_deadline) {
         m_now = gettime();
       }
       m_deadline += m_period.load();
+      return true;
     }
   }
 
