@@ -33,6 +33,9 @@ local datalinkhandler = {
     file_name : s.string("FileName",
                       doc="A string field"),
 
+    string : s.string("String", moo.re.ident,
+                      doc="A string field"),
+
     conf: s.record("Conf", [
         s.field("emulator_mode", self.choice, false,
                 doc="If the input data is from an emulator."),
@@ -44,6 +47,16 @@ local datalinkhandler = {
                 doc="flag indicating whether to generate fake triggers: 1=true, 0=false "),
         s.field("latency_buffer_size", self.size, 100000,
                 doc="Size of latency buffer"),
+        s.field("latency_buffer_numa_aware", self.choice, false,
+                doc="Use numa allocation for LB"),
+        s.field("latency_buffer_numa_node", self.count, 0,
+                doc="NUMA node to use for allocation if latency_buffer_numa_aware is set to true"),
+        s.field("latency_buffer_intrinsic_allocator", self.choice, false,
+                doc="Use intrinsic allocator for LB"),
+        s.field("latency_buffer_alignment_size", self.count, 0,
+                doc="Alignment size of LB allocation"),
+        s.field("latency_buffer_preallocation", self.choice, false,
+                doc="Preallocate memory for the latency buffer"),
         s.field("pop_limit_pct", self.pct, 0.5,
                 doc="Latency buffer occupancy percentage to issue an auto-pop"),
         s.field("pop_size_pct", self.pct, 0.8,
@@ -67,7 +80,17 @@ local datalinkhandler = {
         s.field("enable_software_tpg", self.choice, false,
                 doc="Enable software TPG"),
         s.field("retry_count", self.count, 100,
-                doc="Number of times to recheck a request before sending an empty fragment")
+                doc="Number of times to recheck a request before sending an empty fragment"),
+        s.field("output_file", self.file_name, "output.out",
+                doc="Name of the output file to write to"),
+        s.field("stream_buffer_size", self.size, 8388608,
+                doc="Buffer size of the stream buffer"),
+        s.field("compression_algorithm", self.string, "None",
+                doc="Compression algorithm to use before writing to file"),
+        s.field("use_o_direct", self.choice, true,
+                doc="Whether to use O_DIRECT flag when opening files"),
+        s.field("enable_raw_recording", self.choice, true,
+                doc="Enable raw recording")
     ], doc="Generic readout element configuration"),
 
     recording: s.record("RecordingParams", [

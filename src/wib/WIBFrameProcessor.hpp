@@ -100,8 +100,8 @@ public:
         m_coll_taps_p[i] = m_coll_taps[i];
       }
 
-      if (m_ind_taps_p == nullptr){ 
-        m_ind_taps_p = new int16_t[m_ind_taps.size()]; 
+      if (m_ind_taps_p == nullptr) {
+        m_ind_taps_p = new int16_t[m_ind_taps.size()];
       }
       for (size_t i = 0; i < m_ind_taps.size(); ++i) {
         m_ind_taps_p[i] = m_ind_taps[i];
@@ -112,7 +112,7 @@ public:
         m_coll_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
       }
       if (m_ind_primfind_dest == nullptr) {
-        m_ind_primfind_dest = new uint16_t[100000];  // NOLINT(build/unsigned)
+        m_ind_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
       }
 
       TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold
@@ -170,7 +170,7 @@ public:
     inherited::start(args);
   }
 
-  void stop(const nlohmann::json& args) override 
+  void stop(const nlohmann::json& args) override
   {
     inherited::stop(args);
     if (m_sw_tpg_enabled) {
@@ -275,8 +275,6 @@ public:
 
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
-
-
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(

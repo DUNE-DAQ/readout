@@ -15,7 +15,7 @@
 
 #include "opmonlib/InfoCollector.hpp"
 
-#include "readout/fakecardreader/Structs.hpp"
+#include "readout/fakecardreader/Nljs.hpp"
 
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/SourceEmulatorConcept.hpp"
