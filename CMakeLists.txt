@@ -55,6 +55,7 @@ daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk reado
 daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
 daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(FrameErrorConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests
@@ -63,7 +64,6 @@ daq_add_application(readout_test_bufferedfilewriter test_bufferedfilewriter_app.
 daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_fast_expand_wib2frame test_fast_expand_wib2frame_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
-
 
 ##############################################################################
 # Unit Tests

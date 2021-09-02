@@ -57,6 +57,11 @@
                                 "dir": "output",
                                 "inst": "tpset_link_0",
                                 "name": "tpset_out"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "frame_error_q",
+                                "name": "errors"
                             }
                         ]
                     },
@@ -100,6 +105,11 @@
                                 "dir": "output",
                                 "inst": "tpset_link_1",
                                 "name": "tpset_out"
+                            },
+                            {
+                                "dir": "output",
+                                "inst": "frame_error_q",
+                                "name": "errors"
                             }
                         ]
                     },
@@ -249,6 +259,19 @@
                     },
                     "inst": "tpset_publisher_1",
                     "plugin": "QueueToNetwork"
+                },
+                {
+                    "data": {
+                        "qinfos": [
+                            {
+                                "dir": "input",
+                                "inst": "frame_error_q",
+                                "name": "input_queue"
+                            }
+                        ]
+                    },
+                    "inst": "frame_error_consumer",
+                    "plugin": "FrameErrorConsumer"
                 }
             ],
             "queues": [
@@ -266,6 +289,11 @@
                     "capacity": 1000,
                     "inst": "data_requests_1",
                     "kind": "FollySPSCQueue"
+                },
+                {
+                    "capacity": 10000,
+                    "inst": "frame_error_q",
+                    "kind": "FollyMPMCQueue"
                 },
                 {
                     "capacity": 100,
@@ -336,6 +364,7 @@
                         "link_confs": [
                             {
                                 "data_filename": "./frames.bin",
+                                "frame_error_rate": 0.0,
                                 "geoid": {
                                     "element": 0,
                                     "region": 0,
@@ -344,11 +373,11 @@
                                 "input_limit": 10485100,
                                 "queue_name": "output_0",
                                 "random_population_size": 10000,
-                                "frame_error_rate": 1.0,
                                 "slowdown": 10.0
                             },
                             {
                                 "data_filename": "./frames.bin",
+                                "frame_error_rate": 0.0,
                                 "geoid": {
                                     "element": 1,
                                     "region": 0,
@@ -357,7 +386,6 @@
                                 "input_limit": 10485100,
                                 "queue_name": "output_1",
                                 "random_population_size": 10000,
-                                "frame_error_rate": 1.0,
                                 "slowdown": 10.0
                             }
                         ],
@@ -562,6 +590,14 @@
                         "trigger_interval_ticks": 64000000
                     },
                     "match": "tpset_publisher_.*"
+                },
+                {
+                    "data": {
+                        "disable_data_storage": false,
+                        "run": 333,
+                        "trigger_interval_ticks": 64000000
+                    },
+                    "match": "frame_error_consumer"
                 }
             ]
         },
@@ -592,6 +628,9 @@
                 },
                 {
                     "match": "tpset_publisher_.*"
+                },
+                {
+                    "match": "frame_error_consumer"
                 }
             ]
         },

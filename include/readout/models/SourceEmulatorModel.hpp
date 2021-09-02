@@ -99,9 +99,9 @@ public:
         throw ConfigurationError(ERS_HERE, m_geoid, "", ex);
       }
 
-      /* Line below has been moved up. Was below the setting of bits in the vector
-       * which meant that default value would always be used. Consider also adding
-       * some check that the value is valid */
+      // Line below has been moved up. Was below the setting of bits in the vector
+      // which meant that default value would always be used. Consider also adding
+      // some check that the value is valid
       m_dropouts_length = m_link_conf.random_population_size;
       if (m_dropout_rate == 0.0) {
         m_dropouts = std::vector<bool>(1);
@@ -200,18 +200,18 @@ protected:
 
         // Introducing frame errors
 
-        /* This part can't be made generic, as frame header access is not uniform between frame types
-         * Better alternative would be:
-         * auto fptr = payload.begin(); */
-        auto fptr = reinterpret_cast<dataformats::WIBFrame*>(payload.begin());
+        // This part can't be made generic, as frame header access is not uniform between frame types
+        // Better alternative would be:
+        // auto fptr = payload.begin();
+        auto fptr = reinterpret_cast<dataformats::WIBFrame*>(payload.begin());  // NOLINT
         for (int i = 0; i < rptr->frames_per_element ; ++i) {
           auto header = fptr->get_wib_header();
-          //bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
+          bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
           frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
-          header->wib_errors = 0b0000000000000001;
-//          if (set_frame_error){
-//            header->wib_errors = 1 << 0;
-//          }
+          header->wib_errors = 0;
+          if (set_frame_error){
+            header->wib_errors = 1 << 0;
+          }
           fptr++;
         }
 

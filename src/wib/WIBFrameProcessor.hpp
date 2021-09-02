@@ -14,6 +14,8 @@
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
+#include "readout/datalinkhandler/Structs.hpp"
+
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
@@ -244,6 +246,9 @@ public:
       if (queue_index.find("tpset_out") != queue_index.end()) {
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
       }
+      if (queue_index.find("errors") != queue_index.end()) {
+        m_err_sink.reset(new appfwk::DAQSink<std::unique_ptr<err_msg_t>>(queue_index["errors"].inst));
+      }
     } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, "tp queue", "DefaultRequestHandlerModel", excpt);
     }
@@ -377,19 +382,26 @@ protected:
       return;
 
     auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)); // NOLINT
+    err_msg_t msg;
     for (int i = 0; i < fp->frames_per_element; ++i) {
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
-      m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
+      if (wfh->wib_errors){
+        m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
+        msg.apa_number = m_geoid.region_id;
+        msg.link_number = m_geoid.element_id;
+        msg.timestamp = wfh->get_timestamp();
+        m_err_sink->push(std::make_unique<err_msg_t>(msg));
+      }
       wf++;
     }
 
     //TLOG() << "There are errors in the frame";
-    /* Does not consider that there could also be a timestamp error in which case
-     * the passed timestamp here would be incorrect */
+      // Does not consider that there could also be a timestamp error in which case
+      // the passed timestamp here would be incorrect
     //m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, m_current_ts));
 
     //TLOG() << "Frame is error free";
-    /* Further error handling */
+    // Further error handling
 }
 
 
@@ -646,8 +658,11 @@ private:
   int16_t* m_ind_taps_p;
   std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
+  using err_msg_t = dunedaq::readout::datalinkhandler::ErrorMessage;
+
   std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
+  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<err_msg_t>>> m_err_sink;
 
   class Comparator
   {

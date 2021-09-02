@@ -49,6 +49,7 @@ def generate(
     queue_bare_specs = [
             app.QueueSpec(inst="time_sync_q", kind='FollyMPMCQueue', capacity=100),
             app.QueueSpec(inst="data_fragments_q", kind='FollyMPMCQueue', capacity=100),
+            app.QueueSpec(inst="frame_error_q", kind='FollyMPMCQueue', capacity=10000)
         ] + [
             app.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
@@ -94,7 +95,8 @@ def generate(
                             app.QueueInfo(name="data_response_0", inst="data_fragments_q", dir="output"),
                             app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="output"),
                             app.QueueInfo(name="tp_out", inst=f"tp_queue_{idx}", dir="output"),
-                            app.QueueInfo(name="tpset_out", inst=f"tpset_link_{idx}", dir="output")
+                            app.QueueInfo(name="tpset_out", inst=f"tpset_link_{idx}", dir="output"),
+                            app.QueueInfo(name="errors", inst="frame_error_q", dir="output")
                 ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"data_recorder_{idx}", "DataRecorder", [
@@ -120,7 +122,11 @@ def generate(
                 mspec(f"tpset_publisher_{idx}", "QueueToNetwork", [
                                             app.QueueInfo(name="input", inst=f"tpset_link_{idx}", dir="input")
                                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
-        ]
+        ] + [
+                 mspec("frame_error_consumer", "FrameErrorConsumer", [
+                                            app.QueueInfo(name="input_queue", inst="frame_error_q", dir="input")
+                                            ])
+         ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
 
@@ -200,7 +206,8 @@ def generate(
             ("timesync_consumer", startpars),
             ("fragment_consumer", startpars),
             ("tp_handler_.*", startpars),
-            ("tpset_publisher_.*", startpars)
+            ("tpset_publisher_.*", startpars),
+            ("frame_error_consumer", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -214,7 +221,8 @@ def generate(
             ("timesync_consumer", None),
             ("fragment_consumer", None),
             ("tp_handler_.*", None),
-            ("tpset_publisher_.*", None)
+            ("tpset_publisher_.*", None),
+            ("frame_error_consumer", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
