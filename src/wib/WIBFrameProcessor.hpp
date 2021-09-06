@@ -32,13 +32,13 @@
 #include "tpg/TPGConstants.hpp"
 
 #include <atomic>
+#include <bitset>
 #include <functional>
 #include <memory>
 #include <queue>
 #include <string>
 #include <utility>
 #include <vector>
-#include <bitset>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -59,18 +59,18 @@ public:
   typedef int (*chan_map_fn_t)(int);
 
   explicit WIBFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
-      : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
-      , m_sw_tpg_enabled(false)
-      , m_coll_primfind_dest(nullptr)
-      , m_coll_taps_p(nullptr)
-      , m_ind_primfind_dest(nullptr)
-      , m_ind_taps_p(nullptr)
+    : TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>(error_registry)
+    , m_sw_tpg_enabled(false)
+    , m_coll_primfind_dest(nullptr)
+    , m_coll_taps_p(nullptr)
+    , m_ind_primfind_dest(nullptr)
+    , m_ind_taps_p(nullptr)
   {
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
-        std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
+      std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
-        std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1));
+      std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1));
   }
 
   ~WIBFrameProcessor()
@@ -105,7 +105,7 @@ public:
         m_coll_taps_p[i] = m_coll_taps[i];
       }
 
-      if (m_ind_taps_p == nullptr){
+      if (m_ind_taps_p == nullptr) {
         m_ind_taps_p = new int16_t[m_ind_taps.size()];
       }
       for (size_t i = 0; i < m_ind_taps.size(); ++i) {
@@ -117,37 +117,37 @@ public:
         m_coll_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
       }
       if (m_ind_primfind_dest == nullptr) {
-        m_ind_primfind_dest = new uint16_t[100000];  // NOLINT(build/unsigned)
+        m_ind_primfind_dest = new uint16_t[100000]; // NOLINT(build/unsigned)
       }
 
       TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold
              << " exponent:" << m_coll_tap_exponent;
 
       m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
-          nullptr,
-          swtpg::FRAMES_PER_MSG,
-          0,
-          swtpg::REGISTERS_PER_FRAME,
-          m_coll_primfind_dest,
-          m_coll_taps_p,
-          (uint8_t)m_coll_taps.size(), // NOLINT(build/unsigned)
-          m_coll_tap_exponent,
-          m_coll_threshold,
-          0,
-          0);
+        nullptr,
+        swtpg::FRAMES_PER_MSG,
+        0,
+        swtpg::REGISTERS_PER_FRAME,
+        m_coll_primfind_dest,
+        m_coll_taps_p,
+        (uint8_t)m_coll_taps.size(), // NOLINT(build/unsigned)
+        m_coll_tap_exponent,
+        m_coll_threshold,
+        0,
+        0);
 
       m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
-          nullptr,
-          swtpg::FRAMES_PER_MSG,
-          0,
-          10,
-          m_ind_primfind_dest,
-          m_ind_taps_p,
-          (uint8_t)m_ind_taps.size(), // NOLINT(build/unsigned)
-          m_ind_tap_exponent,
-          m_ind_threshold,
-          0,
-          0);
+        nullptr,
+        swtpg::FRAMES_PER_MSG,
+        0,
+        10,
+        m_ind_primfind_dest,
+        m_ind_taps_p,
+        (uint8_t)m_ind_taps.size(), // NOLINT(build/unsigned)
+        m_ind_tap_exponent,
+        m_ind_threshold,
+        0,
+        0);
     }
 
     while (!m_tp_buffer.empty()) {
@@ -229,8 +229,8 @@ public:
 
     unsigned int crateloc = crate; // NOLINT(build/unsigned)
     unsigned int offline =         // NOLINT(build/unsigned)
-        channelMap.GetOfflineNumberFromDetectorElements(
-            crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
+      channelMap.GetOfflineNumberFromDetectorElements(
+        crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
     // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
     //        crate, slot, fiber, fiberloc, chloc, offline);
     return offline;
@@ -283,13 +283,11 @@ public:
       m_channel_map.reset(new swtpg::PdspChannelMapService(channel_map_rce, channel_map_felix));
 
       m_induction_items_to_process =
-          std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
-
-
+        std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
-          std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
+        std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
       // Add function for checking if frame error rate is correct
     }
 
@@ -385,7 +383,7 @@ protected:
     err_msg_t msg;
     for (int i = 0; i < fp->frames_per_element; ++i) {
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
-      if (wfh->wib_errors){
+      if (wfh->wib_errors) {
         m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
         msg.apa_number = m_geoid.region_id;
         msg.link_number = m_geoid.element_id;
@@ -395,15 +393,9 @@ protected:
       wf++;
     }
 
-    //TLOG() << "There are errors in the frame";
-      // Does not consider that there could also be a timestamp error in which case
-      // the passed timestamp here would be incorrect
-    //m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, m_current_ts));
-
-    //TLOG() << "Frame is error free";
-    // Further error handling
-}
-
+    // Should the error also be added to the FrameErrorRegistry like this:
+    // m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, m_current_ts));
+  }
 
   /**
    * Pipeline Stage 3.: Do software TPG
@@ -489,7 +481,7 @@ protected:
           // This channel had a hit ending here, so we can create and output the hit here
           const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
           uint64_t tp_t_begin =                                                        // NOLINT(build/unsigned)
-              timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);       // NOLINT(build/unsigned)
+            timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);       // NOLINT(build/unsigned)
           uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);      // NOLINT(build/unsigned)
 
           // May be needed for TPSet:
@@ -513,7 +505,7 @@ protected:
           trigprim.adc_integral = hit_charge[i];
           trigprim.adc_peak = hit_charge[i] / 20;
           trigprim.detid =
-              m_fiber_no; // TODO: convert crate/slot/fiber to GeoID Roland Sipos rsipos@cern.ch July-22-2021
+            m_fiber_no; // TODO: convert crate/slot/fiber to GeoID Roland Sipos rsipos@cern.ch July-22-2021
           trigprim.type = triggeralgs::TriggerPrimitive::Type::kTPC;
           trigprim.algorithm = triggeralgs::TriggerPrimitive::Algorithm::kTPCDefault;
           trigprim.version = 1;
@@ -673,19 +665,19 @@ private:
     }
   };
   std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator>
-      m_tp_buffer;
+    m_tp_buffer;
 
   dataformats::GeoID m_geoid;
   uint64_t m_tp_timeout = 10000;       // NOLINT(build/unsigned)
   uint64_t m_tpset_window_size = 1000; // NOLINT(build/unsigned)
   uint64_t m_next_tpset_seqno = 0;     // NOLINT(build/unsigned)
 
-  std::atomic<uint64_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_sent_tpsets{ 0 }; // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_frame_error_count{ 0 };// NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_sent_tps{ 0 };          // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_sent_tpsets{ 0 };       // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_dropped_tps{ 0 };       // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_hits{ 0 };          // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_tps{ 0 };           // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_frame_error_count{ 0 }; // NOLINT(build/unsigned)
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };

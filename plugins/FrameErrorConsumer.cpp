@@ -31,8 +31,7 @@ public:
 
   void packet_callback(std::unique_ptr<dunedaq::readout::datalinkhandler::ErrorMessage>& packet) override
   {
-//    auto ts = packet->timestamp;
-//    TLOG() << "FrameErrorConsumer consumed error with timestamp: " << ts;
+    // Handle ErrorMessage
   }
 
 };

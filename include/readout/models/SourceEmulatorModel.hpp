@@ -203,19 +203,17 @@ protected:
         // This part can't be made generic, as frame header access is not uniform between frame types
         // Better alternative would be:
         // auto fptr = payload.begin();
-        auto fptr = reinterpret_cast<dataformats::WIBFrame*>(payload.begin());  // NOLINT
-        for (int i = 0; i < rptr->frames_per_element ; ++i) {
+        auto fptr = reinterpret_cast<dataformats::WIBFrame*>(payload.begin()); // NOLINT
+        for (int i = 0; i < rptr->frames_per_element; ++i) {
           auto header = fptr->get_wib_header();
           bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
           frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
           header->wib_errors = 0;
-          if (set_frame_error){
+          if (set_frame_error) {
             header->wib_errors = 1 << 0;
           }
           fptr++;
         }
-
-
 
         // queue in to actual DAQSink
         try {
