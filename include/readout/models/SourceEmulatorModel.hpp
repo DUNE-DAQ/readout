@@ -24,8 +24,6 @@
 
 #include "readout/utils/ReusableThread.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
-
 #include <functional>
 #include <memory>
 #include <random>
@@ -113,7 +111,7 @@ public:
       }
 
       m_frame_errors_length = m_link_conf.random_population_size;
-      m_frame_error_rate = m_link_conf.frame_error_rate;
+      m_frame_error_rate = m_link_conf.emu_frame_error_rate;
       if (m_frame_error_rate == 0.0) {
         m_frame_errors = std::vector<bool>(1);
       } else {
@@ -199,21 +197,14 @@ protected:
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
         // Introducing frame errors
-
-        // This part can't be made generic, as frame header access is not uniform between frame types
-        // Better alternative would be:
-        // auto fptr = payload.begin();
-        auto fptr = reinterpret_cast<dataformats::WIBFrame*>(payload.begin()); // NOLINT
+        uint16_t fake_frames = 0;
         for (int i = 0; i < rptr->frames_per_element; ++i) {
-          auto header = fptr->get_wib_header();
-          bool set_frame_error = m_frame_errors[frame_error_index]; // NOLINT(runtime/threadsafe_fn)
           frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
-          header->wib_errors = 0;
-          if (set_frame_error) {
-            header->wib_errors = 1 << 0;
-          }
-          fptr++;
+          bool tmp = m_frame_errors[frame_error_index];
+          fake_frames <<= 1;
+          fake_frames |= tmp;
         }
+        payload.fake_frame_errors(1, fake_frames);
 
         // queue in to actual DAQSink
         try {

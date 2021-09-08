@@ -54,6 +54,7 @@ public:
   using constframeptr = const types::WIB_SUPERCHUNK_STRUCT*;
   using wibframeptr = dunedaq::dataformats::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
+  using err_msg_t = dunedaq::readout::datalinkhandler::ErrorMessage;
 
   // Channel map funciton type
   typedef int (*chan_map_fn_t)(int);
@@ -246,9 +247,14 @@ public:
       if (queue_index.find("tpset_out") != queue_index.end()) {
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
       }
-      if (queue_index.find("errors") != queue_index.end()) {
-        m_err_sink.reset(new appfwk::DAQSink<std::unique_ptr<err_msg_t>>(queue_index["errors"].inst));
+      if (queue_index.find("error_messages") != queue_index.end()) {
+        m_err_msg_sink.reset(new appfwk::DAQSink<std::unique_ptr<err_msg_t>>(queue_index["error_messages"].inst));
       }
+      if (queue_index.find("errored_frames") != queue_index.end()){
+        m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
+      }
+      m_errored_frame_current = dataformats::WIBFrame();
+      m_errored_frame_current.get_wib_header()->wib_errors = 0;
     } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, "tp queue", "DefaultRequestHandlerModel", excpt);
     }
@@ -388,13 +394,26 @@ protected:
         msg.apa_number = m_geoid.region_id;
         msg.link_number = m_geoid.element_id;
         msg.timestamp = wfh->get_timestamp();
-        m_err_sink->push(std::make_unique<err_msg_t>(msg));
+        m_err_msg_sink->push(std::make_unique<err_msg_t>(msg));
+
+//        if (wfh->wib_errors != m_errored_frame_current.get_wib_header()->wib_errors) {
+//          if (!m_first_frame_err)
+//            m_err_frame_sink->push(m_errored_frame_current);
+//          m_err_frame_sink->push(*wf);
+//          m_errored_frame_current = *wf;
+//          m_first_frame_err = true;
+//        } else {
+//          m_first_frame_err = false;
+//        }
+//         m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, wfh->get_timestamp()));
+//      } else {
+//        if (!m_first_frame_err)
+//          m_err_frame_sink->push(m_errored_frame_current);
+//        m_first_frame_err = true;
       }
       wf++;
+      m_previous_ts = wfh->get_timestamp();
     }
-
-    // Should the error also be added to the FrameErrorRegistry like this:
-    // m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, m_current_ts));
   }
 
   /**
@@ -622,6 +641,9 @@ private:
 
   bool m_first_coll = true;
   bool m_first_ind = true;
+  bool m_first_frame_err = false;
+
+  dataformats::WIBFrame m_errored_frame_current;
 
   InductionItemToProcess m_dummy_induction_item;
 
@@ -650,11 +672,10 @@ private:
   int16_t* m_ind_taps_p;
   std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
-  using err_msg_t = dunedaq::readout::datalinkhandler::ErrorMessage;
-
   std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
-  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<err_msg_t>>> m_err_sink;
+  std::unique_ptr<appfwk::DAQSink<std::unique_ptr<err_msg_t>>> m_err_msg_sink;
+  std::unique_ptr<appfwk::DAQSink<dataformats::WIBFrame>> m_err_frame_sink;
 
   class Comparator
   {

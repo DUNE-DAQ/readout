@@ -113,6 +113,18 @@ struct WIB_SUPERCHUNK_STRUCT
     }
   }
 
+  void fake_frame_errors(uint16_t fake_errors, uint16_t fake_frames_int)
+  {
+    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
+    std::bitset<16> fake_frames_bits(fake_frames_int);
+    for (int i = 0; i < frames_per_element; ++i) {
+      wf->set_wib_errors(0);
+      if (fake_frames_bits[i])
+        wf->set_wib_errors(fake_errors);
+      wf++;
+    }
+  }
+
   FrameType* begin()
   {
     return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
@@ -176,6 +188,11 @@ struct WIB2_SUPERCHUNK_STRUCT
     }
   }
 
+  void fake_frame_errors(uint16_t fake_errors, uint16_t fake_frames)
+  {
+    // Set error bits in header
+  }
+
   FrameType* begin()
   {
     return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
@@ -236,6 +253,11 @@ struct DAPHNE_SUPERCHUNK_STRUCT
       df->header.timestamp_wf_2 = ts_next >> 32;
       ts_next += offset;
     }
+  }
+
+  void fake_frame_errors(uint16_t fake_errors, uint16_t fake_frames)
+  {
+    // Set frame error bits in header
   }
 
   FrameType* begin()
