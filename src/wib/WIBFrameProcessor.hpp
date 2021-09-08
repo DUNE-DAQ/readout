@@ -250,7 +250,7 @@ public:
       if (queue_index.find("error_messages") != queue_index.end()) {
         m_err_msg_sink.reset(new appfwk::DAQSink<std::unique_ptr<err_msg_t>>(queue_index["error_messages"].inst));
       }
-      if (queue_index.find("errored_frames") != queue_index.end()){
+      if (queue_index.find("errored_frames") != queue_index.end()) {
         m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
       }
       m_errored_frame_current = dataformats::WIBFrame();
@@ -396,20 +396,20 @@ protected:
         msg.timestamp = wfh->get_timestamp();
         m_err_msg_sink->push(std::make_unique<err_msg_t>(msg));
 
-//        if (wfh->wib_errors != m_errored_frame_current.get_wib_header()->wib_errors) {
-//          if (!m_first_frame_err)
-//            m_err_frame_sink->push(m_errored_frame_current);
-//          m_err_frame_sink->push(*wf);
-//          m_errored_frame_current = *wf;
-//          m_first_frame_err = true;
-//        } else {
-//          m_first_frame_err = false;
-//        }
-//         m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, wfh->get_timestamp()));
-//      } else {
-//        if (!m_first_frame_err)
-//          m_err_frame_sink->push(m_errored_frame_current);
-//        m_first_frame_err = true;
+        if (wfh->wib_errors != m_errored_frame_current.get_wib_header()->wib_errors) {
+          if (!m_first_frame_err)
+            m_err_frame_sink->push(m_errored_frame_current);
+          m_err_frame_sink->push(*wf);
+          m_errored_frame_current = *wf;
+          m_first_frame_err = true;
+        } else {
+          m_first_frame_err = false;
+        }
+        m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, wfh->get_timestamp()));
+      } else {
+        if (!m_first_frame_err)
+          m_err_frame_sink->push(m_errored_frame_current);
+        m_first_frame_err = true;
       }
       wf++;
       m_previous_ts = wfh->get_timestamp();
