@@ -21,6 +21,7 @@
 #include "readout/concepts/SourceEmulatorConcept.hpp"
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
+#include "readout/utils/ErrorBitGenerator.hpp"
 
 #include "readout/utils/ReusableThread.hpp"
 
@@ -110,16 +111,21 @@ public:
         m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
+
+//      if (m_frame_error_rate == 0.0) {
+//        m_frame_errors = std::vector<bool>(1);
+//      } else {
+//        m_frame_errors = std::vector<bool>(m_frame_errors_length);
+//      }
+//      for (size_t i = 0; i < m_frame_errors.size(); ++i) {
+//        m_frame_errors[i] = dis(mt) < m_frame_error_rate;
+//      }
+
       m_frame_errors_length = m_link_conf.random_population_size;
       m_frame_error_rate = m_link_conf.emu_frame_error_rate;
-      if (m_frame_error_rate == 0.0) {
-        m_frame_errors = std::vector<bool>(1);
-      } else {
-        m_frame_errors = std::vector<bool>(m_frame_errors_length);
-      }
-      for (size_t i = 0; i < m_frame_errors.size(); ++i) {
-        m_frame_errors[i] = dis(mt) < m_frame_error_rate;
-      }
+      m_error_bit_generator = ErrorBitGenerator(m_frame_error_rate);
+      TLOG() << "M_FRAME_ERROR_RATE: " << m_frame_error_rate;
+      m_error_bit_generator.generate();
 
       m_is_configured = true;
     }
@@ -197,14 +203,18 @@ protected:
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
         // Introducing frame errors
-        uint16_t fake_frames = 0;
+//        uint16_t fake_frames = 0;
+//        for (int i = 0; i < rptr->frames_per_element; ++i) {
+//          frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
+//          bool tmp = m_frame_errors[frame_error_index];
+//          fake_frames <<= 1;
+//          fake_frames |= tmp;
+//        }
+        uint16_t frame_errs[rptr->frames_per_element];
         for (int i = 0; i < rptr->frames_per_element; ++i) {
-          frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
-          bool tmp = m_frame_errors[frame_error_index];
-          fake_frames <<= 1;
-          fake_frames |= tmp;
+          frame_errs[i] = m_error_bit_generator.next();
         }
-        payload.fake_frame_errors(1, fake_frames);
+        payload.fake_frame_errors(frame_errs);
 
         // queue in to actual DAQSink
         try {
@@ -258,6 +268,7 @@ private:
 
   std::unique_ptr<RateLimiter> m_rate_limiter;
   std::unique_ptr<FileSourceBuffer> m_file_source;
+  ErrorBitGenerator m_error_bit_generator;
 
   ReusableThread m_producer_thread;
 
