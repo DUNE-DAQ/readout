@@ -111,16 +111,6 @@ public:
         m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
-
-//      if (m_frame_error_rate == 0.0) {
-//        m_frame_errors = std::vector<bool>(1);
-//      } else {
-//        m_frame_errors = std::vector<bool>(m_frame_errors_length);
-//      }
-//      for (size_t i = 0; i < m_frame_errors.size(); ++i) {
-//        m_frame_errors[i] = dis(mt) < m_frame_error_rate;
-//      }
-
       m_frame_errors_length = m_link_conf.random_population_size;
       m_frame_error_rate = m_link_conf.emu_frame_error_rate;
       m_error_bit_generator = ErrorBitGenerator(m_frame_error_rate);

@@ -57,7 +57,7 @@ public:
 
   void generate()
   {
-    TLOG() << "M_ERROR_RATE: " << m_error_rate;
+//    TLOG() << "M_ERROR_RATE: " << m_error_rate;
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_int_distribution<uint16_t> err_bit_dis(0, 65535);
@@ -68,9 +68,9 @@ public:
     }
     for (int i = 0; i < 1000; ++i) {
       m_error_occurrences[i] = duration_dis(mt) * m_error_rate;
-      TLOG() << "M_ERROR_OCCURRENCES_" << i << ": " << m_error_occurrences[i];
+//      TLOG() << "M_ERROR_OCCURRENCES_" << i << ": " << m_error_occurrences[i];
       m_no_error_occurrences[i] = duration_dis(mt) * (1 - m_error_rate);
-      TLOG() << "M_NO_ERROR_OCCURRENCES_" << i << ": " << m_no_error_occurrences;
+//      TLOG() << "M_NO_ERROR_OCCURRENCES_" << i << ": " << m_no_error_occurrences;
     }
   }
 

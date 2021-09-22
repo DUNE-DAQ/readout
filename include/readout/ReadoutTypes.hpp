@@ -117,7 +117,7 @@ struct WIB_SUPERCHUNK_STRUCT
   {
     auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
     for (int i = 0; i < frames_per_element; ++i) {
-      wf->set_wib_errors(0);//fake_errors[i]);
+      wf->set_wib_errors(fake_errors[i]);
       wf++;
     }
   }
