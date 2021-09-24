@@ -56,6 +56,7 @@ daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout 
 daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 daq_add_plugin(FrameErrorConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(ErroredFrameConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
 
 ##############################################################################
 # Integration tests

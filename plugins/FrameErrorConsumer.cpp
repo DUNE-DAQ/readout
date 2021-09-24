@@ -1,5 +1,5 @@
 /**
- * @file FrameErrorConsumer.cpp Module that consumes frames with errors from a queue
+ * @file FrameErrorConsumer.cpp Module that consumes ErrorMessages from a queue
  *
  * This is part of the DUNE DAQ , copyright 2020.
  * Licencing/copyright details are in the COPYING file that you should have

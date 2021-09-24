@@ -125,10 +125,14 @@ def generate(
                                             app.QueueInfo(name="input", inst=f"tpset_link_{idx}", dir="input")
                                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
-                 mspec("frame_error_consumer", "FrameErrorConsumer", [
+                mspec("frame_error_consumer", "FrameErrorConsumer", [
                                             app.QueueInfo(name="input_queue", inst="frame_error_msg_q", dir="input")
                                             ])
-         ]
+        ] + [
+                mspec("errored_frame_consumer", "ErroredFrameConsumer", [
+                                            app.QueueInfo(name="input_queue", inst="errored_frames_q", dir="input")
+                                            ])
+        ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
 
@@ -209,7 +213,8 @@ def generate(
             ("fragment_consumer", startpars),
             ("tp_handler_.*", startpars),
             ("tpset_publisher_.*", startpars),
-            ("frame_error_consumer", startpars)
+            ("frame_error_consumer", startpars),
+            ("errored_frame_consumer", startpars)
         ])
 
     jstr = json.dumps(startcmd.pod(), indent=4, sort_keys=True)
@@ -224,7 +229,8 @@ def generate(
             ("fragment_consumer", None),
             ("tp_handler_.*", None),
             ("tpset_publisher_.*", None),
-            ("frame_error_consumer", None)
+            ("frame_error_consumer", None),
+            ("errored_frame_consumer", None)
         ])
 
     jstr = json.dumps(stopcmd.pod(), indent=4, sort_keys=True)
