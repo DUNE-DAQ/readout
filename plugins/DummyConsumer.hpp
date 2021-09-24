@@ -13,7 +13,7 @@
 #include "appfwk/DAQSource.hpp"
 #include "dfmessages/TimeSync.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/ReusableThread.hpp"
 
 #include <atomic>
 #include <fstream>
@@ -51,7 +51,7 @@ private:
   std::unique_ptr<source_t> m_input_queue;
 
   // Threading
-  ReusableThread m_work_thread;
+  toolbox::ReusableThread m_work_thread;
   std::atomic<bool> m_run_marker;
 
   // Stats

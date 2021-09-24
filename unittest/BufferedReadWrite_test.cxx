@@ -15,8 +15,8 @@
 
 #include "logging/Logging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/utils/BufferedFileReader.hpp"
-#include "readout/utils/BufferedFileWriter.hpp"
+#include "toolbox/BufferedFileReader.hpp"
+#include "toolbox/BufferedFileWriter.hpp"
 
 #include <cstdio>
 #include <string>
@@ -27,7 +27,9 @@ using namespace dunedaq::readout;
 BOOST_AUTO_TEST_SUITE(BufferedReadWrite_test)
 
 void
-test_read_write(BufferedFileWriter<int>& writer, BufferedFileReader<int>& reader, uint numbers_to_write)
+test_read_write(dunedaq::toolbox::BufferedFileWriter<int>& writer,
+                dunedaq::toolbox::BufferedFileReader<int>& reader,
+                uint numbers_to_write)
 {
   std::vector<int> numbers(numbers_to_write / sizeof(int));
 
@@ -62,9 +64,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_one_int)
 {
   TLOG() << "Trying to write and read one int" << std::endl;
   remove("test.out");
-  BufferedFileWriter<int> writer;
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
   writer.open("test.out", 4096);
-  BufferedFileReader<int> reader;
+  dunedaq::toolbox::BufferedFileReader<int> reader;
   reader.open("test.out", 4096);
   uint numbers_to_write = 1;
 
@@ -75,9 +77,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_extended)
 {
   TLOG() << "Trying to read and write more ints" << std::endl;
   remove("test.out");
-  BufferedFileWriter<int> writer;
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
   writer.open("test.out", 4096);
-  BufferedFileReader<int> reader;
+  dunedaq::toolbox::BufferedFileReader<int> reader;
   reader.open("test.out", 4096);
   uint numbers_to_write = 4096 * 4096;
 
@@ -88,9 +90,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zstd)
 {
   TLOG() << "Testing zstd compression" << std::endl;
   remove("test.out");
-  BufferedFileWriter<int> writer;
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "zstd");
-  BufferedFileReader<int> reader;
+  dunedaq::toolbox::BufferedFileReader<int> reader;
   reader.open("test.out", 4096, "zstd");
   uint numbers_to_write = 4096 * 4096;
 
@@ -101,9 +103,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_lzma)
 {
   TLOG() << "Testing lzma compression" << std::endl;
   remove("test.out");
-  BufferedFileWriter<int> writer;
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "lzma");
-  BufferedFileReader<int> reader;
+  dunedaq::toolbox::BufferedFileReader<int> reader;
   reader.open("test.out", 4096, "lzma");
   uint numbers_to_write = 4096 * 4096;
 
@@ -114,9 +116,9 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
 {
   TLOG() << "Testing zlib compression" << std::endl;
   remove("test.out");
-  BufferedFileWriter<int> writer;
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
   writer.open("test.out", 4096, "zlib");
-  BufferedFileReader<int> reader;
+  dunedaq::toolbox::BufferedFileReader<int> reader;
   reader.open("test.out", 4096, "zlib");
   uint numbers_to_write = 4096 * 4096;
 
@@ -126,11 +128,11 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 {
   TLOG() << "Try to read and write on uninitialized instances" << std::endl;
-  BufferedFileWriter<int> writer;
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
   bool write_successful = writer.write(42);
   BOOST_REQUIRE(!write_successful);
 
-  BufferedFileReader<int> reader;
+  dunedaq::toolbox::BufferedFileReader<int> reader;
   int value;
   bool read_successful = reader.read(value);
   BOOST_REQUIRE(!read_successful);
@@ -139,7 +141,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_already_closed)
 {
   TLOG() << "Try to write on closed writer" << std::endl;
-  BufferedFileWriter<int> writer("test.out", 4096);
+  dunedaq::toolbox::BufferedFileWriter<int> writer("test.out", 4096);
   writer.close();
   bool write_successful = writer.write(42);
   BOOST_REQUIRE(!write_successful);
@@ -150,11 +152,11 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_destructor)
   TLOG() << "Testing automatic closing on destruction" << std::endl;
   remove("test.out");
   {
-    BufferedFileWriter<int> writer("test.out", 4096);
+    dunedaq::toolbox::BufferedFileWriter<int> writer("test.out", 4096);
     bool write_successful = writer.write(42);
     BOOST_REQUIRE(write_successful);
   }
-  BufferedFileReader<int> reader("test.out", 4096);
+  dunedaq::toolbox::BufferedFileReader<int> reader("test.out", 4096);
   int value;
   bool read_successful = reader.read(value);
   BOOST_REQUIRE(read_successful);
@@ -169,7 +171,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_superchunk)
 {
   remove("test.out");
   TLOG() << "Read and write superchunks" << std::endl;
-  BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> writer("test.out", 8388608);
+  dunedaq::toolbox::BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> writer("test.out", 8388608);
 
   std::vector<types::WIB_SUPERCHUNK_STRUCT> chunks(100000);
   for (uint i = 0; i < chunks.size(); ++i) {
@@ -179,7 +181,7 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_superchunk)
   }
   writer.close();
 
-  BufferedFileReader<types::WIB_SUPERCHUNK_STRUCT> reader("test.out", 8388608);
+  dunedaq::toolbox::BufferedFileReader<types::WIB_SUPERCHUNK_STRUCT> reader("test.out", 8388608);
   types::WIB_SUPERCHUNK_STRUCT chunk;
   for (uint i = 0; i < chunks.size(); ++i) {
     bool read_successful = reader.read(chunk);

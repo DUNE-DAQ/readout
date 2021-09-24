@@ -10,20 +10,24 @@
 
 #include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSource.hpp"
-#include "appfwk/ThreadHelper.hpp"
+#include "toolbox/ThreadHelper.hpp"
+#include "readout/ReadoutIssues.hpp"
+#include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
 #include "readout/concepts/RecorderConcept.hpp"
 #include "readout/datarecorder/Nljs.hpp"
 #include "readout/datarecorder/Structs.hpp"
 #include "readout/datarecorderinfo/InfoStructs.hpp"
-#include "readout/utils/BufferedFileWriter.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/BufferedFileWriter.hpp"
+#include "toolbox/ReusableThread.hpp"
 
 #include <atomic>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
+
+using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
 namespace dunedaq {
 namespace readout {
@@ -117,10 +121,10 @@ private:
 
   // Internal
   datarecorder::Conf m_conf;
-  BufferedFileWriter<ReadoutType> m_buffered_writer;
+  toolbox::BufferedFileWriter<ReadoutType> m_buffered_writer;
 
   // Threading
-  ReusableThread m_work_thread;
+  toolbox::ReusableThread m_work_thread;
   std::atomic<bool> m_run_marker;
 
   // Stats

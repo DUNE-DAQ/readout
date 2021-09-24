@@ -33,23 +33,9 @@ ERS_DECLARE_ISSUE(readout,
                   ((dataformats::GeoID)geoid)((std::string)conferror))
 
 ERS_DECLARE_ISSUE(readout,
-                  BufferedReaderWriterConfigurationError,
-                  "Configuration Error: " << conferror,
-                  ((std::string)conferror))
-
-ERS_DECLARE_ISSUE(readout,
                   DataRecorderConfigurationError,
                   "Configuration Error: " << conferror,
                   ((std::string)conferror))
-
-ERS_DECLARE_ISSUE(readout, GenericConfigurationError, "Configuration Error: " << conferror, ((std::string)conferror))
-
-ERS_DECLARE_ISSUE(readout, CannotOpenFile, "Couldn't open binary file: " << filename, ((std::string)filename))
-
-ERS_DECLARE_ISSUE(readout,
-                  BufferedReaderWriterCannotOpenFile,
-                  "Couldn't open file: " << filename,
-                  ((std::string)filename))
 
 ERS_DECLARE_ISSUE_BASE(readout,
                        CannotReadFile,

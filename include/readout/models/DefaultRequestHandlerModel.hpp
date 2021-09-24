@@ -11,8 +11,8 @@
 
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/RequestHandlerConcept.hpp"
-#include "readout/utils/BufferedFileWriter.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/BufferedFileWriter.hpp"
+#include "toolbox/ReusableThread.hpp"
 
 #include "readout/datalinkhandler/Nljs.hpp"
 
@@ -619,10 +619,10 @@ protected:
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
   // Data recording
-  BufferedFileWriter<ReadoutType> m_buffered_writer;
-  ReusableThread m_recording_thread;
+  toolbox::BufferedFileWriter<ReadoutType> m_buffered_writer;
+  toolbox::ReusableThread m_recording_thread;
 
-  ReusableThread m_cleanup_thread;
+  toolbox::ReusableThread m_cleanup_thread;
 
   // Bookkeeping of OOB requests
   std::map<dfmessages::DataRequest, int> m_request_counter;

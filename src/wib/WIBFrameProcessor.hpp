@@ -12,7 +12,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/ReusableThread.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"

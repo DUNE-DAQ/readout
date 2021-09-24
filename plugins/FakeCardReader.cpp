@@ -12,6 +12,7 @@
 #include "CreateSourceEmulator.hpp"
 #include "FakeCardReader.hpp"
 #include "readout/ReadoutIssues.hpp"
+#include "toolbox/Issues.hpp"
 #include "readout/models/SourceEmulatorModel.hpp"
 
 #include "appfwk/app/Nljs.hpp"
@@ -106,18 +107,18 @@ FakeCardReader::do_conf(const data_t& args)
     for (const auto& emu_conf : m_cfg.link_confs) {
       if (m_source_emus.find(emu_conf.queue_name) == m_source_emus.end()) {
         TLOG() << "Cannot find queue: " << emu_conf.queue_name << std::endl;
-        throw GenericConfigurationError(ERS_HERE, "Cannot find queue: " + emu_conf.queue_name);
+        throw toolbox::GenericConfigurationError(ERS_HERE, "Cannot find queue: " + emu_conf.queue_name);
       }
       if (m_source_emus[emu_conf.queue_name]->is_configured()) {
         TLOG() << "Emulator for queue name " << emu_conf.queue_name << " was already configured";
-        throw GenericConfigurationError(ERS_HERE, "Emulator configured twice: " + emu_conf.queue_name);
+        throw toolbox::GenericConfigurationError(ERS_HERE, "Emulator configured twice: " + emu_conf.queue_name);
       }
       m_source_emus[emu_conf.queue_name]->conf(args, emu_conf);
     }
 
     for (auto& [name, emu] : m_source_emus) {
       if (!emu->is_configured()) {
-        throw GenericConfigurationError(ERS_HERE, "Not all links were configured");
+        throw toolbox::GenericConfigurationError(ERS_HERE, "Not all links were configured");
       }
     }
 

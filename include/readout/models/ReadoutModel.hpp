@@ -39,7 +39,7 @@
 #include "readout/concepts/RequestHandlerConcept.hpp"
 
 #include "readout/ReadoutIssues.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/ReusableThread.hpp"
 
 #include <functional>
 #include <memory>
@@ -365,7 +365,7 @@ private:
   std::atomic<int> m_num_payloads_overwritten{ 0 };
 
   // CONSUMER
-  ReusableThread m_consumer_thread;
+  toolbox::ReusableThread m_consumer_thread;
 
   // RAW SOURCE
   std::chrono::milliseconds m_source_queue_timeout_ms;
@@ -391,7 +391,7 @@ private:
 
   // REQUEST HANDLER:
   std::unique_ptr<RequestHandlerType> m_request_handler_impl;
-  ReusableThread m_requester_thread;
+  toolbox::ReusableThread m_requester_thread;
 
   std::unique_ptr<FrameErrorRegistry> m_error_registry;
 
@@ -399,7 +399,7 @@ private:
   std::chrono::milliseconds m_timesync_queue_timeout_ms;
   using timesync_sink_qt = appfwk::DAQSink<dfmessages::TimeSync>;
   std::unique_ptr<timesync_sink_qt> m_timesync_sink;
-  ReusableThread m_timesync_thread;
+  toolbox::ReusableThread m_timesync_thread;
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };

@@ -16,7 +16,7 @@
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
 #include "readout/datalinkhandler/Nljs.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/ReusableThread.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
 
@@ -113,7 +113,7 @@ public:
   template<typename Task>
   void add_postprocess_task(Task&& task)
   {
-    m_post_process_threads.emplace_back(std::make_unique<ReusableThread>(0));
+    m_post_process_threads.emplace_back(std::make_unique<toolbox::ReusableThread>(0));
     m_post_process_functions.push_back(std::forward<Task>(task));
   }
 
@@ -152,7 +152,7 @@ protected:
 
   std::vector<std::function<void(const ReadoutType*)>> m_post_process_functions;
   std::vector<std::unique_ptr<folly::ProducerConsumerQueue<const ReadoutType*>>> m_items_to_postprocess_queues;
-  std::vector<std::unique_ptr<ReusableThread>> m_post_process_threads;
+  std::vector<std::unique_ptr<toolbox::ReusableThread>> m_post_process_threads;
 
   size_t m_postprocess_queue_sizes;
   uint32_t m_this_link_number; // NOLINT(build/unsigned)

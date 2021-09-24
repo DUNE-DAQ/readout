@@ -6,7 +6,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "readout/utils/RateLimiter.hpp"
+#include "toolbox/RateLimiter.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -24,6 +24,7 @@
 #include <vector>
 
 using namespace dunedaq::readout;
+using namespace dunedaq::toolbox;
 using namespace folly;
 
 int

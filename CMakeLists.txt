@@ -7,6 +7,7 @@ daq_setup_environment()
 
 find_package(appfwk REQUIRED)
 find_package(logging REQUIRED)
+find_package(toolbox REQUIRED)
 find_package(opmonlib REQUIRED)
 find_package(dataformats REQUIRED)
 find_package(dfmessages REQUIRED)
@@ -33,6 +34,7 @@ set(READOUT_DEPENDENCIES
   dfmessages::dfmessages
   triggeralgs::triggeralgs
   trigger::trigger
+  toolbox::toolbox
 )
 
 ##############################################################################
@@ -66,11 +68,10 @@ daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk read
 
 ##############################################################################
 # Integration tests
-daq_add_application(readout_test_ratelimiter test_ratelimiter_app.cxx TEST LINK_LIBRARIES readout)
 daq_add_application(readout_test_lb_allocation test_lb_allocation_app.cxx TEST LINK_LIBRARIES readout)
+daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_bufferedfilewriter test_bufferedfilewriter_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_bufferedfilereader test_bufferedfilereader_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
-daq_add_application(readout_test_skiplist test_skiplist_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 daq_add_application(readout_test_fast_expand_wib2frame test_fast_expand_wib2frame_app.cxx TEST LINK_LIBRARIES readout ${BOOST_LIBS})
 
 

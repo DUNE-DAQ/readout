@@ -27,7 +27,7 @@
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/datalinkhandler/Structs.hpp"
-#include "readout/ReadoutIssues.hpp"
+#include "toolbox/Issues.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -204,7 +204,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 #ifdef WITH_LIBNUMA_SUPPORT
       records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size, numa_node));
 #else
-      throw GenericConfigurationError(ERS_HERE, "NUMA allocation was requested but program was built without USE_LIBNUMA");
+      throw toolbox::GenericConfigurationError(ERS_HERE, "NUMA allocation was requested but program was built without USE_LIBNUMA");
 #endif
 
     } else if (!numa_aware && !intrinsic_allocator && alignment_size == 0) {

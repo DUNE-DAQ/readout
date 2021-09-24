@@ -6,10 +6,10 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "readout/utils/BufferedFileReader.hpp"
+#include "toolbox/BufferedFileReader.hpp"
+#include "readout/ReadoutTypes.hpp"
 
 #include "logging/Logging.hpp"
-#include "readout/ReadoutTypes.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -26,7 +26,7 @@ main(int argc, char* argv[])
     exit(1);
   }
   std::string filename(argv[1]);
-  BufferedFileReader<types::WIB_SUPERCHUNK_STRUCT> reader(filename, 8388608);
+  dunedaq::toolbox::BufferedFileReader<types::WIB_SUPERCHUNK_STRUCT> reader(filename, 8388608);
   types::WIB_SUPERCHUNK_STRUCT chunk;
   for (uint i = 0; i < sizeof(chunk); ++i) {
     (reinterpret_cast<char*>(&chunk))[i] = static_cast<char>(i); // NOLINT

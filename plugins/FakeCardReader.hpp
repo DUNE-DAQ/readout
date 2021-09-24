@@ -17,10 +17,10 @@
 #include "readout/ReadoutTypes.hpp"
 #include "readout/concepts/SourceEmulatorConcept.hpp"
 #include "readout/fakecardreader/Structs.hpp"
-#include "readout/utils/ReusableThread.hpp"
+#include "toolbox/ReusableThread.hpp"
 //#include "CreateSourceEmulator.hpp"
-#include "readout/utils/FileSourceBuffer.hpp"
-#include "readout/utils/RateLimiter.hpp"
+#include "toolbox/FileSourceBuffer.hpp"
+#include "toolbox/RateLimiter.hpp"
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
@@ -76,7 +76,7 @@ private:
   std::vector<sink_t*> m_output_queues;
 
   // Internals
-  std::unique_ptr<FileSourceBuffer> m_source_buffer;
+  std::unique_ptr<toolbox::FileSourceBuffer> m_source_buffer;
 
   // Threading
   std::atomic<bool> m_run_marker;
