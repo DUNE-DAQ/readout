@@ -40,6 +40,7 @@ test_read_write(dunedaq::toolbox::BufferedFileWriter<int>& writer,
     BOOST_REQUIRE(write_successful);
   }
 
+  writer.flush();
   writer.close();
 
   int read_value;
@@ -125,17 +126,76 @@ BOOST_AUTO_TEST_CASE(BufferedReadWrite_zlib)
   test_read_write(writer, reader, numbers_to_write);
 }
 
+BOOST_AUTO_TEST_CASE(BufferedReadWrite_reopen)
+{
+  TLOG() << "Testing zlib compression" << std::endl;
+  remove("test.out");
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
+  writer.open("test.out", 4096, "zlib");
+  writer.open("test.out", 4096, "zlib");
+  dunedaq::toolbox::BufferedFileReader<int> reader;
+  reader.open("test.out", 4096, "zlib");
+  reader.open("test.out", 4096, "zlib");
+  uint numbers_to_write = 4096 * 4096;
+
+  test_read_write(writer, reader, numbers_to_write);
+}
+
+BOOST_AUTO_TEST_CASE(BufferedReadWrite_invalid_path)
+{
+  TLOG() << "Try to read and write on invalid filename";
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
+  BOOST_REQUIRE_EXCEPTION(writer.open("/bad_path/test.out", 4096, "lzma"),
+                          dunedaq::toolbox::BufferedReaderWriterCannotOpenFile,
+                          [&](dunedaq::toolbox::BufferedReaderWriterCannotOpenFile const&) { return true; });
+  bool write_successful = writer.write(42);
+  BOOST_REQUIRE(!write_successful);
+  BOOST_REQUIRE(!writer.is_open());
+
+  dunedaq::toolbox::BufferedFileReader<int> reader;
+  BOOST_REQUIRE_EXCEPTION(reader.open("/bad_path/test.out", 4096, "lzma"),
+                          dunedaq::toolbox::BufferedReaderWriterCannotOpenFile,
+                          [&](dunedaq::toolbox::BufferedReaderWriterCannotOpenFile const&) { return true; });
+  int value;
+  bool read_successful = reader.read(value);
+  BOOST_REQUIRE(!read_successful);
+  BOOST_REQUIRE(!reader.is_open());
+}
+
+BOOST_AUTO_TEST_CASE(BufferedReadWrite_bad_compression)
+{
+  TLOG() << "Try to read and write on invalid filename";
+  dunedaq::toolbox::BufferedFileWriter<int> writer;
+  BOOST_REQUIRE_EXCEPTION(writer.open("test.out", 4096, "bzip"),
+                          dunedaq::toolbox::BufferedReaderWriterConfigurationError,
+                          [&](dunedaq::toolbox::BufferedReaderWriterConfigurationError const&) { return true; });
+  bool write_successful = writer.write(42);
+  BOOST_REQUIRE(!write_successful);
+  BOOST_REQUIRE(!writer.is_open());
+
+  dunedaq::toolbox::BufferedFileReader<int> reader;
+  BOOST_REQUIRE_EXCEPTION(reader.open("test.out", 4096, "bzip"),
+                          dunedaq::toolbox::BufferedReaderWriterConfigurationError,
+                          [&](dunedaq::toolbox::BufferedReaderWriterConfigurationError const&) { return true; });
+  int value;
+  bool read_successful = reader.read(value);
+  BOOST_REQUIRE(!read_successful);
+  BOOST_REQUIRE(!reader.is_open());
+}
+
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_not_opened)
 {
   TLOG() << "Try to read and write on uninitialized instances" << std::endl;
   dunedaq::toolbox::BufferedFileWriter<int> writer;
   bool write_successful = writer.write(42);
   BOOST_REQUIRE(!write_successful);
+  BOOST_REQUIRE(!writer.is_open());
 
   dunedaq::toolbox::BufferedFileReader<int> reader;
   int value;
   bool read_successful = reader.read(value);
   BOOST_REQUIRE(!read_successful);
+  BOOST_REQUIRE(!reader.is_open());
 }
 
 BOOST_AUTO_TEST_CASE(BufferedReadWrite_already_closed)
