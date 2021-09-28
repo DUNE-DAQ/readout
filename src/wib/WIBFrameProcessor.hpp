@@ -248,7 +248,7 @@ public:
 
   void conf(const nlohmann::json& cfg) override
   {
-    auto config = cfg.get<datalinkhandler::Conf>();
+    auto config = cfg["rawdataprocessorconf"].get<readoutconfig::RawDataProcessorConf>();
     m_geoid.element_id = config.link_number;
     m_geoid.region_id = config.apa_number;
     m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
@@ -285,8 +285,10 @@ public:
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
   }
 
-  void get_info(datalinkhandlerinfo::Info& info)
+  void get_info(opmonlib::InfoCollector& ci, int level)
   {
+    readoutinfo::RawDataProcessorInfo info;
+
     info.num_tps_sent = m_sent_tps.exchange(0);
     info.num_tpsets_sent = m_sent_tpsets.exchange(0);
     info.num_tps_dropped = m_dropped_tps.exchange(0);
@@ -302,7 +304,8 @@ public:
     }
     m_t0 = now;
 
-    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(info);
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(ci, level);
+    ci.add(info);
   }
 
 protected:

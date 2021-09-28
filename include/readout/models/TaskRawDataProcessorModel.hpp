@@ -15,7 +15,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
-#include "readout/datalinkhandler/Nljs.hpp"
+#include "readout/readoutconfig/Nljs.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
@@ -45,7 +45,7 @@ public:
 
   void conf(const nlohmann::json& cfg) override
   {
-    auto config = cfg.get<datalinkhandler::Conf>();
+    auto config = cfg["rawdataprocessorconf"].get<readoutconfig::RawDataProcessorConf>();
     m_emulator_mode = config.emulator_mode;
     m_postprocess_queue_sizes = config.postprocess_queue_sizes;
     m_this_link_number = config.link_number;
@@ -84,7 +84,7 @@ public:
     }
   }
 
-  virtual void get_info(datalinkhandlerinfo::Info& /*info*/)
+  virtual void get_info(opmonlib::InfoCollector& /*ci*/, int /*level*/)
   {
     // No stats for now, extend later
   }
