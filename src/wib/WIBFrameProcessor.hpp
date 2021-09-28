@@ -24,10 +24,11 @@
 
 #include "tpg/DesignFIR.hpp"
 #include "tpg/FrameExpand.hpp"
-#include "tpg/PdspChannelMapService.hpp"
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
+
+#include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <atomic>
 #include <functional>
