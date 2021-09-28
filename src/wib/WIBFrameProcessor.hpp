@@ -249,8 +249,8 @@ public:
   void conf(const nlohmann::json& cfg) override
   {
     auto config = cfg["rawdataprocessorconf"].get<readoutconfig::RawDataProcessorConf>();
-    m_geoid.element_id = config.link_number;
-    m_geoid.region_id = config.apa_number;
+    m_geoid.element_id = config.element_id;
+    m_geoid.region_id = config.region_id;
     m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
 
     m_tp_timeout = config.tp_timeout;

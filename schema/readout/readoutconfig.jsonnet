@@ -16,11 +16,11 @@ local readoutconfig = {
     size: s.number("Size", "u8",
                    doc="A count of very many things"),
 
-    apa_number: s.number("APANumber", "u4",
-                         doc="An APA number"),
+    region_id: s.number("RegionID", "u4",
+                         doc="A region id (as part of a GeoID)"),
 
-    link_number: s.number("LinkNumber", "u4",
-                        doc="A link number"),
+    element_id: s.number("ElementID", "u4",
+                        doc="An element id (as part of a GeoID)"),
 
     count : s.number("Count", "i4",
                      doc="A count of not too many things"),
@@ -49,10 +49,10 @@ local readoutconfig = {
                             doc="Alignment size of LB allocation"),
             s.field("latency_buffer_preallocation", self.choice, false,
                             doc="Preallocate memory for the latency buffer"),
-            s.field("apa_number", self.apa_number, 0,
-                            doc="The APA number of this link"),
-            s.field("link_number", self.link_number, 0,
-                            doc="The link number of this link")],
+            s.field("region_id", self.region_id, 0,
+                            doc="The region id of this link"),
+            s.field("element_id", self.element_id, 0,
+                            doc="The element id of this link")],
             doc="Latency Buffer Config"),
 
     rawdataprocessorconf : s.record("RawDataProcessorConf", [
@@ -70,10 +70,10 @@ local readoutconfig = {
                             doc="Enable software TPG"),
             s.field("emulator_mode", self.choice, false,
                             doc="If the input data is from an emulator."),
-            s.field("apa_number", self.apa_number, 0,
-                            doc="The APA number of this link"),
-            s.field("link_number", self.link_number, 0,
-                            doc="The link number of this link")],
+            s.field("region_id", self.region_id, 0,
+                            doc="The region id of this link"),
+            s.field("element_id", self.element_id, 0,
+                            doc="The element id of this link")],
             doc="RawDataProcessor Config"),
 
     requesthandlerconf : s.record("RequestHandlerConf", [
@@ -99,10 +99,10 @@ local readoutconfig = {
                             doc="Percentage of current occupancy to pop from the latency buffer"),
             s.field("latency_buffer_size", self.size, 100000,
                             doc="Size of latency buffer"),
-            s.field("apa_number", self.apa_number, 0,
-                            doc="The APA number of this link"),
-            s.field("link_number", self.link_number, 0,
-                            doc="The link number of this link")],
+            s.field("region_id", self.region_id, 0,
+                            doc="The region id of this link"),
+            s.field("element_id", self.element_id, 0,
+                            doc="The element id of this link")],
             doc="Request Handler Config"),
 
     readoutmodelconf : s.record("ReadoutModelConf", [
@@ -110,9 +110,9 @@ local readoutconfig = {
                             doc="flag indicating whether to generate fake triggers: 1=true, 0=false "),
             s.field("source_queue_timeout_ms", self.count, 2000,
                             doc="Timeout for source queue"),
-            s.field("apa_number", self.apa_number, 0,
+            s.field("region_id", self.region_id, 0,
                             doc="The APA number of this link"),
-            s.field("link_number", self.link_number, 0,
+            s.field("element_id", self.element_id, 0,
                             doc="The link number of this link")
     ], doc="Readout Model Config"),
 

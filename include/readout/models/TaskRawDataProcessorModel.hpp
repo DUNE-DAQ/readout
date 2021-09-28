@@ -48,7 +48,7 @@ public:
     auto config = cfg["rawdataprocessorconf"].get<readoutconfig::RawDataProcessorConf>();
     m_emulator_mode = config.emulator_mode;
     m_postprocess_queue_sizes = config.postprocess_queue_sizes;
-    m_this_link_number = config.link_number;
+    m_this_link_number = config.element_id;
 
     for (size_t i = 0; i < m_post_process_functions.size(); ++i) {
       m_items_to_postprocess_queues.push_back(
@@ -56,8 +56,8 @@ public:
       m_post_process_threads.back()->set_name("postprocess-" + std::to_string(i), m_this_link_number);
     }
 
-    m_geoid.element_id = config.link_number;
-    m_geoid.region_id = config.apa_number;
+    m_geoid.element_id = config.element_id;
+    m_geoid.region_id = config.region_id;
     m_geoid.system_type = ReadoutType::system_type;
   }
 

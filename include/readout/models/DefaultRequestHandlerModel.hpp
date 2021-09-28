@@ -107,8 +107,8 @@ public:
     m_retry_count = conf.retry_count;
     m_fragment_queue_timeout = conf.fragment_queue_timeout_ms;
     m_output_file = conf.output_file;
-    m_geoid.element_id = conf.link_number;
-    m_geoid.region_id = conf.apa_number;
+    m_geoid.element_id = conf.element_id;
+    m_geoid.region_id = conf.region_id;
     m_geoid.system_type = ReadoutType::system_type;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
@@ -128,8 +128,8 @@ public:
       m_buffered_writer.open(conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
     }
 
-    m_recording_thread.set_name("recording", conf.link_number);
-    m_cleanup_thread.set_name("cleanup", conf.link_number);
+    m_recording_thread.set_name("recording", conf.element_id);
+    m_cleanup_thread.set_name("cleanup", conf.element_id);
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)

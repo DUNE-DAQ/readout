@@ -111,8 +111,8 @@ public:
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
-    m_geoid.element_id = conf.link_number;
-    m_geoid.region_id = conf.apa_number;
+    m_geoid.element_id = conf.element_id;
+    m_geoid.region_id = conf.region_id;
     m_geoid.system_type = ReadoutType::system_type;
 
     // Configure implementations:
@@ -126,9 +126,9 @@ public:
     }
 
     // Configure threads:
-    m_consumer_thread.set_name("consumer", conf.link_number);
-    m_timesync_thread.set_name("timesync", conf.link_number);
-    m_requester_thread.set_name("requests", conf.link_number);
+    m_consumer_thread.set_name("consumer", conf.element_id);
+    m_timesync_thread.set_name("timesync", conf.element_id);
+    m_requester_thread.set_name("requests", conf.element_id);
   }
 
   void start(const nlohmann::json& args)
