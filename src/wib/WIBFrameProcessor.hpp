@@ -255,10 +255,8 @@ public:
       if (queue_index.find("errored_frames") != queue_index.end()) {
         m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
       }
-      m_errored_frame_last = dataformats::WIBFrame();
-      m_errored_frame_last.get_wib_header()->wib_errors = 0;
       m_err_frame_map = std::make_unique<folly::AtomicHashMap<uint32_t,
-      std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits);
+      std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits); //NOLINT(build/unsigned)
       for (int i = 0; i < m_num_frame_error_bits; ++i) {
         m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_max_queued_errored_frames));
       }
@@ -393,7 +391,7 @@ protected:
     if (!fp)
       return;
 
-    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp)); // NOLINT
+    auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp)); // NOLINT
     err_msg_t msg;
     for (int i = 0; i < fp->frames_per_element; ++i) {
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
@@ -404,40 +402,34 @@ protected:
         msg.link_number = m_geoid.element_id;
         msg.timestamp = wfh->get_timestamp();
         m_err_msg_sink->push(std::make_unique<err_msg_t>(msg));
-
-        if (wfh->wib_errors != m_errored_frame_last.get_wib_header()->wib_errors) {
-          if (!m_first_frame_err)
-            m_err_frame_sink->push(m_errored_frame_last);
-          m_err_frame_sink->push(*wf);
-          m_errored_frame_last = *wf;
-          m_first_frame_err = true;
-        } else {
-          m_first_frame_err = false;
-        }
         m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts, wfh->get_timestamp()));
+      }
 
-        // Buffering of errored frames
-        m_current_frame_buffered = false;
-        for (int j = 0; j < m_num_frame_error_bits; ++j) {
-          if (wfh->wib_errors & (1 << i)){
-            if (!m_current_frame_buffered && (m_error_occurrence_counters[1 << i] < m_max_queued_errored_frames)){
-              m_err_frame_map->find(1 << i)->second[m_error_occurrence_counters[1 << i]] = *wf;
-              m_current_frame_buffered = true;
-            }
-            m_error_occurrence_counters[1 << i]++;
-            m_no_error_occurrence_counters[1 << i] = 0;
-            if (m_error_occurrence_counters[1 << i] >= m_max_queued_errored_frames)
-              std::async(std::launch::async, BufferToQueue(), this, (1 << i));
-          } else {
-            if (m_no_error_occurrence_counters[1 << i] >= m_num_frames_to_reset_errors){
-              std::async(std::launch::async, BufferToQueue(), this, (1 << i));
-            }
+      // Buffering of errored frames
+      m_current_frame_buffered = false;
+      for (int j = 0; j < m_num_frame_error_bits; ++j) {
+        if (wfh->wib_errors & (1 << j)){
+          if (!m_current_frame_buffered
+          && (m_error_occurrence_counters[j] < m_max_queued_errored_frames)
+          && m_run_buffering[j]){
+            m_err_frame_map->find(1 << j)->second[m_error_occurrence_counters[j]] = *wf;
+            m_current_frame_buffered = true;
+          }
+          m_error_occurrence_counters[j]++;
+          m_no_error_occurrence_counters[j] = 0;
+          if (m_error_occurrence_counters[j] >= m_max_queued_errored_frames
+          && m_run_buffering[j]){
+            m_run_buffering[j] = false;
+            std::async(std::launch::async, BufferToQueue(), this, (1 << j));
+          }
+        } else {
+          m_no_error_occurrence_counters[j]++;
+          if (m_no_error_occurrence_counters[j] >= m_num_frames_to_reset_errors
+          && m_error_occurrence_counters[j] != 0){
+            std::async(std::launch::async, BufferToQueue(), this, (1 << j));
+            m_run_buffering[j] = true;
           }
         }
-      } else {
-        if (!m_first_frame_err)
-          m_err_frame_sink->push(m_errored_frame_last);
-        m_first_frame_err = true;
       }
       wf++;
       m_previous_ts = wfh->get_timestamp();
@@ -651,6 +643,7 @@ private:
         wfp->m_err_frame_sink->push(wfp->m_err_frame_map->find(map_index)->second[i]);
       }
       wfp->m_error_occurrence_counters[counter_index] = 0;
+      wfp->m_no_error_occurrence_counters[counter_index] = 0;
     }
   };
 
@@ -697,15 +690,16 @@ private:
   uint32_t m_offline_channel_base_induction; // NOLINT(build/unsigned)
 
   // Frame error check
-  std::unique_ptr<folly::AtomicHashMap<uint32_t, std::unique_ptr<dataformats::WIBFrame[]>>> m_err_frame_map;
-  dataformats::WIBFrame m_errored_frame_last;
+  std::unique_ptr<folly::AtomicHashMap<uint32_t,
+  std::unique_ptr<dataformats::WIBFrame[]>>> m_err_frame_map; // NOLINT(build/unsigned)
   bool m_first_frame_err = false;
   bool m_current_frame_buffered = false;
   int m_max_queued_errored_frames = 100;
   const int m_num_frame_error_bits = 16;
-  int m_error_occurrence_counters[16];
-  int m_no_error_occurrence_counters[16];
+  int m_error_occurrence_counters[16] = { 0 };
+  int m_no_error_occurrence_counters[16] = { 0 };
   int m_num_frames_to_reset_errors = 100;
+  bool m_run_buffering[16] = { true };
 
   // Collection
   const uint16_t m_coll_threshold = 5;                    // units of sigma // NOLINT(build/unsigned)

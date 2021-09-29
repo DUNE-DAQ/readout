@@ -5,8 +5,8 @@
  * received with this code.
  */
 
-#ifndef READOUT_INCLUDE_READOUT_UTILS_ERRORBITGENERATOR_HPP
-#define READOUT_INCLUDE_READOUT_UTILS_ERRORBITGENERATOR_HPP
+#ifndef READOUT_INCLUDE_READOUT_UTILS_ERRORBITGENERATOR_HPP_
+#define READOUT_INCLUDE_READOUT_UTILS_ERRORBITGENERATOR_HPP_
 
 #include <random>
 #include <unistd.h>
@@ -34,7 +34,7 @@ public:
     , m_occurrence_count(0)
     , m_set_error_bits(true)
   {}
-  uint16_t next()
+  uint16_t next() // NOLINT(build/unsigned)
   {
     if (m_occurrence_count >= m_current_occurrence) {
       if (m_set_error_bits) {
@@ -43,8 +43,7 @@ public:
         m_set_error_bits = false;
         m_current_occurrence = m_no_error_occurrences[m_no_error_occurrences_index];
         m_occurrence_count = 0;
-      }
-      else {
+      } else {
         m_no_error_occurrences_index = (m_no_error_occurrences_index + 1) % 1000;
         m_set_error_bits = true;
         m_current_occurrence = m_error_occurrences[m_error_occurrences_index];
@@ -60,7 +59,7 @@ public:
 //    TLOG() << "M_ERROR_RATE: " << m_error_rate;
     std::random_device rd;
     std::mt19937 mt(rd());
-    std::uniform_int_distribution<uint16_t> err_bit_dis(0, 65535);
+    std::uniform_int_distribution<uint16_t> err_bit_dis(0, 65535);  // NOLINT(build/unsigned)
     std::uniform_int_distribution<int> duration_dis(1, 1000000);
 
     for (int i = 0; i < 1000; ++i) {
@@ -77,7 +76,7 @@ public:
 private:
   double m_error_rate;
   uint16_t m_error_bits[1000];
-  int m_error_bits_index;
+  int m_error_bits_index; // NOLINT(build/unsigned)
   int m_error_occurrences[1000];
   int m_error_occurrences_index;
   int m_no_error_occurrences[1000];
@@ -86,7 +85,8 @@ private:
   int m_occurrence_count;
   bool m_set_error_bits;
 };
-}
-}
+
+} // namespace readout
+} // namespace dunedaq
 
 #endif // READOUT_INCLUDE_READOUT_UTILS_ERRORBITGENERATOR_HPP_

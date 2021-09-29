@@ -29,7 +29,7 @@ public:
   : DummyConsumer<std::unique_ptr<dunedaq::readout::datalinkhandler::ErrorMessage>>(name)
   {}
 
-  void packet_callback(std::unique_ptr<dunedaq::readout::datalinkhandler::ErrorMessage>& packet) override
+  void packet_callback(std::unique_ptr<dunedaq::readout::datalinkhandler::ErrorMessage>& /*packet*/) override
   {
     // Handle ErrorMessage
   }

@@ -172,7 +172,6 @@ protected:
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
     uint64_t timestamp = ts_0; // NOLINT(build/unsigned)
     int dropout_index = 0;
-    int frame_error_index = 0;
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
@@ -193,16 +192,9 @@ protected:
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
         // Introducing frame errors
-//        uint16_t fake_frames = 0;
-//        for (int i = 0; i < rptr->frames_per_element; ++i) {
-//          frame_error_index = (frame_error_index + 1) % m_frame_errors.size();
-//          bool tmp = m_frame_errors[frame_error_index];
-//          fake_frames <<= 1;
-//          fake_frames |= tmp;
-//        }
-        uint16_t frame_errs[rptr->frames_per_element];
+        uint16_t frame_errs[rptr->frames_per_element];  // NOLINT(build/unsigned)
         for (int i = 0; i < rptr->frames_per_element; ++i) {
-          frame_errs[i] = m_error_bit_generator.next();
+          frame_errs[i] = 1;
         }
         payload.fake_frame_errors(frame_errs);
 
