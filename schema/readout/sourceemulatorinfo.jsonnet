@@ -3,7 +3,7 @@
 // for operational monitoring
 
 local moo = import "moo.jsonnet";
-local s = moo.oschema.schema("dunedaq.readout.fakecardreaderinfo");
+local s = moo.oschema.schema("dunedaq.readout.sourceemulatorinfo");
 
 local info = {
     uint8  : s.number("uint8", "u8",

@@ -25,8 +25,8 @@
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
 #include "readout/concepts/LatencyBufferConcept.hpp"
-#include "readout/datalinkhandler/Nljs.hpp"
-#include "readout/datalinkhandler/Structs.hpp"
+#include "readout/readoutconfig/Nljs.hpp"
+#include "readout/readoutconfig/Structs.hpp"
 #include "readout/ReadoutIssues.hpp"
 
 #include "logging/Logging.hpp"
@@ -392,7 +392,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   void conf(const nlohmann::json& cfg) override
   {
-    auto conf = cfg.get<datalinkhandler::Conf>();
+    auto conf = cfg["latencybufferconf"].get<readoutconfig::LatencyBufferConf>();
     assert(conf.latency_buffer_size >= 2);
     free_memory();
 

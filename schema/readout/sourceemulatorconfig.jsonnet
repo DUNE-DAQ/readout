@@ -8,11 +8,11 @@
 local moo = import "moo.jsonnet";
 
 // A schema builder in the given path (namespace)
-local ns = "dunedaq.readout.fakecardreader";
+local ns = "dunedaq.readout.sourceemulatorconfig";
 local s = moo.oschema.schema(ns);
 
 // Object structure used by the test/fake producer module
-local fakecardreader = {
+local sourceemulatorconfig = {
     uint4  : s.number("uint4", "u4",
                      doc="An unsigned of 4 bytes"),
 
@@ -74,4 +74,4 @@ local fakecardreader = {
 
 };
 
-moo.oschema.sort_select(fakecardreader, ns)
+moo.oschema.sort_select(sourceemulatorconfig, ns)

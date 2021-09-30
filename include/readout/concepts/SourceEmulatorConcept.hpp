@@ -10,7 +10,6 @@
 #define READOUT_INCLUDE_READOUT_CONCEPTS_SOURCEEMULATORCONCEPT_HPP_
 
 #include "opmonlib/InfoCollector.hpp"
-#include "readout/fakecardreaderinfo/InfoNljs.hpp"
 
 #include "readout/utils/RateLimiter.hpp"
 
@@ -39,7 +38,7 @@ public:
   virtual void start(const nlohmann::json& /*args*/) = 0;
   virtual void stop(const nlohmann::json& /*args*/) = 0;
   virtual void scrap(const nlohmann::json& /*args*/) = 0;
-  virtual void get_info(fakecardreaderinfo::Info& fcr) = 0;
+  virtual void get_info(opmonlib::InfoCollector& ci, int level) = 0;
   virtual bool is_configured() = 0;
 
 private:

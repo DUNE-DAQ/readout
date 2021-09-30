@@ -24,10 +24,11 @@
 
 #include "tpg/DesignFIR.hpp"
 #include "tpg/FrameExpand.hpp"
-#include "tpg/PdspChannelMapService.hpp"
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
+
+#include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <atomic>
 #include <functional>
@@ -247,9 +248,9 @@ public:
 
   void conf(const nlohmann::json& cfg) override
   {
-    auto config = cfg.get<datalinkhandler::Conf>();
-    m_geoid.element_id = config.link_number;
-    m_geoid.region_id = config.apa_number;
+    auto config = cfg["rawdataprocessorconf"].get<readoutconfig::RawDataProcessorConf>();
+    m_geoid.element_id = config.element_id;
+    m_geoid.region_id = config.region_id;
     m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
 
     m_tp_timeout = config.tp_timeout;
@@ -274,7 +275,7 @@ public:
       m_channel_map.reset(new swtpg::PdspChannelMapService(channel_map_rce, channel_map_felix));
 
       m_induction_items_to_process =
-        std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
+        std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, false, 0, true, 64); // 64 byte aligned
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
@@ -284,8 +285,10 @@ public:
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
   }
 
-  void get_info(datalinkhandlerinfo::Info& info)
+  void get_info(opmonlib::InfoCollector& ci, int level)
   {
+    readoutinfo::RawDataProcessorInfo info;
+
     info.num_tps_sent = m_sent_tps.exchange(0);
     info.num_tpsets_sent = m_sent_tpsets.exchange(0);
     info.num_tps_dropped = m_dropped_tps.exchange(0);
@@ -301,7 +304,8 @@ public:
     }
     m_t0 = now;
 
-    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(info);
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::get_info(ci, level);
+    ci.add(info);
   }
 
 protected:

@@ -17,7 +17,7 @@
 
 #include "logging/Logging.hpp"
 
-#include "PdspChannelMapService.hpp"
+#include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <limits>
 #include <sstream>
