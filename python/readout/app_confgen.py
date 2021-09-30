@@ -155,7 +155,7 @@ def generate(
                         apa_number = 0,
                         link_number = idx,
                         enable_software_tpg = ENABLE_SOFTWARE_TPG,
-                        output_file = f"/mnt/md0/output_{idx}.out",
+                        output_file = f"output_{idx}.out",
                         stream_buffer_size = 8388608,
                         enable_raw_recording = True
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
