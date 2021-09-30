@@ -14,7 +14,7 @@
 #include "readout/utils/BufferedFileWriter.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
-#include "readout/datalinkhandler/Nljs.hpp"
+#include "readout/readoutconfig/Nljs.hpp"
 
 #include "appfwk/Issues.hpp"
 #include "dataformats/Fragment.hpp"
@@ -99,7 +99,7 @@ public:
 
   void conf(const nlohmann::json& args)
   {
-    auto conf = args.get<datalinkhandler::Conf>();
+    auto conf = args["requesthandlerconf"].get<readoutconfig::RequestHandlerConf>();
     m_pop_limit_pct = conf.pop_limit_pct;
     m_pop_size_pct = conf.pop_size_pct;
     m_buffer_capacity = conf.latency_buffer_size;
@@ -107,6 +107,9 @@ public:
     m_retry_count = conf.retry_count;
     m_fragment_queue_timeout = conf.fragment_queue_timeout_ms;
     m_output_file = conf.output_file;
+    m_geoid.element_id = conf.element_id;
+    m_geoid.region_id = conf.region_id;
+    m_geoid.system_type = ReadoutType::system_type;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -115,10 +118,6 @@ public:
       m_pop_limit_size = m_pop_limit_pct * m_buffer_capacity;
       m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
     }
-
-    m_geoid.element_id = conf.link_number;
-    m_geoid.region_id = conf.apa_number;
-    m_geoid.system_type = ReadoutType::system_type;
 
     if (conf.enable_raw_recording) {
       std::string output_file = conf.output_file;
@@ -129,8 +128,8 @@ public:
       m_buffered_writer.open(conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
     }
 
-    m_recording_thread.set_name("recording", conf.link_number);
-    m_cleanup_thread.set_name("cleanup", conf.link_number);
+    m_recording_thread.set_name("recording", conf.element_id);
+    m_cleanup_thread.set_name("cleanup", conf.element_id);
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)
@@ -182,7 +181,7 @@ public:
 
   void record(const nlohmann::json& args) override
   {
-    auto conf = args.get<datalinkhandler::RecordingParams>();
+    auto conf = args.get<readoutconfig::RecordingParams>();
     if (m_recording.load()) {
       ers::error(CommandError(ERS_HERE, m_geoid, "A recording is still running, no new recording was started!"));
       return;
@@ -301,8 +300,9 @@ public:
     });
   }
 
-  void get_info(datalinkhandlerinfo::Info& info) override
+  void get_info(opmonlib::InfoCollector& ci, int /*level*/) override
   {
+    readoutinfo::RequestHandlerInfo info;
     info.num_requests_found = m_num_requests_found.exchange(0);
     info.num_requests_bad = m_num_requests_bad.exchange(0);
     info.num_requests_old_window = m_num_requests_old_window.exchange(0);
@@ -353,6 +353,8 @@ public:
     }
 
     m_t0 = now;
+
+    ci.add(info);
   }
 
 protected:
