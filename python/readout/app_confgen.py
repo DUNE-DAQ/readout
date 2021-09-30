@@ -150,26 +150,26 @@ def generate(
                         readoutmodelconf= rconf.ReadoutModelConf(
                             source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                             fake_trigger_flag=1,
-                            apa_number = 0,
-                            link_number = idx,
+                            region_id = 0,
+                            element_id = idx,
                         ),
                         latencybufferconf= rconf.LatencyBufferConf(
                             latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
-                            apa_number = 0,
-                            link_number = idx,
+                            region_id = 0,
+                            element_id = idx,
                         ),
                         rawdataprocessorconf= rconf.RawDataProcessorConf(
-                            apa_number = 0,
-                            link_number = idx,
+                            region_id = 0,
+                            element_id = idx,
                             enable_software_tpg = ENABLE_SOFTWARE_TPG,
                         ),
                         requesthandlerconf= rconf.RequestHandlerConf(
                             latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
                             pop_limit_pct = 0.8,
                             pop_size_pct = 0.1,
-                            apa_number = 0,
-                            link_number = idx,
-                            output_file = f"/mnt/md0/output_{idx}.out",
+                            region_id = 0,
+                            element_id = idx,
+                            output_file = f"output_{idx}.out",
                             stream_buffer_size = 8388608,
                             enable_raw_recording = True
                         )
@@ -179,26 +179,26 @@ def generate(
                     readoutmodelconf= rconf.ReadoutModelConf(
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
-                        apa_number = 0,
-                        link_number = idx,
+                        region_id = 0,
+                        element_id = idx,
                     ),
                     latencybufferconf= rconf.LatencyBufferConf(
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
-                        apa_number = 0,
-                        link_number = idx,
+                        region_id = 0,
+                        element_id = idx,
                     ),
                     rawdataprocessorconf= rconf.RawDataProcessorConf(
-                        apa_number = 0,
-                        link_number = idx,
+                        region_id = 0,
+                        element_id = idx,
                         enable_software_tpg = ENABLE_SOFTWARE_TPG,
                     ),
                     requesthandlerconf= rconf.RequestHandlerConf(
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
                         pop_limit_pct = 0.8,
                         pop_size_pct = 0.1,
-                        apa_number = 0,
-                        link_number = idx,
-                        output_file = f"/mnt/md0/output_{idx}.out",
+                        region_id = 0,
+                        element_id = idx,
+                        output_file = f"output_{idx}.out",
                         stream_buffer_size = 8388608,
                         enable_raw_recording = False
                     )
