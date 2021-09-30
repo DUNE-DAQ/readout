@@ -10,7 +10,7 @@ moo.otypes.load_types('rcif/cmd.jsonnet')
 moo.otypes.load_types('appfwk/cmd.jsonnet')
 moo.otypes.load_types('appfwk/app.jsonnet')
 moo.otypes.load_types('readout/fakecardreader.jsonnet')
-moo.otypes.load_types('readout/readoutconfig.jsonnet')
+moo.otypes.load_types('readout/datalinkhandler.jsonnet')
 moo.otypes.load_types('readout/datarecorder.jsonnet')
 moo.otypes.load_types('nwqueueadapters/queuetonetwork.jsonnet')
 moo.otypes.load_types('nwqueueadapters/networkobjectsender.jsonnet')
@@ -21,7 +21,7 @@ import dunedaq.rcif.cmd as rccmd # AddressedCmd,
 import dunedaq.appfwk.app as app # AddressedCmd, 
 import dunedaq.appfwk.cmd as cmd # AddressedCmd, 
 import dunedaq.readout.fakecardreader as fcr
-import dunedaq.readout.readoutconfig as rconf
+import dunedaq.readout.datalinkhandler as dlh
 import dunedaq.readout.datarecorder as bfs
 import dunedaq.nwqueueadapters.queuetonetwork as qton
 import dunedaq.nwqueueadapters.networkobjectsender as nos
@@ -42,7 +42,8 @@ def generate(
         DATA_RATE_SLOWDOWN_FACTOR = 1,
         ENABLE_SOFTWARE_TPG=False,
         RUN_NUMBER = 333, 
-        DATA_FILE="./frames.bin"
+        DATA_FILE="./frames.bin",
+        TP_DATA_FILE="./tp_frames.bin"
     ):
 
     # Define modules and queues
@@ -53,6 +54,9 @@ def generate(
             app.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
+            app.QueueSpec(inst=f"data_requests_{idx}", kind='FollySPSCQueue', capacity=1000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
+        ] + [
             app.QueueSpec(inst=f"{FRONTEND_TYPE}_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
@@ -62,12 +66,18 @@ def generate(
             app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
+            app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=100000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
+        ] + [
             app.QueueSpec(inst=f"tp_data_requests", kind='FollySPSCQueue', capacity=1000)
         ] + [
             app.QueueSpec(inst="tp_recording_link", kind='FollySPSCQueue', capacity=1000)
         ] + [
             app.QueueSpec(inst=f"tpset_link_{idx}", kind='FollySPSCQueue', capacity=10000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
+        ] + [
+            app.QueueSpec(inst=f"tpset_link_{idx}", kind='FollySPSCQueue', capacity=10000)
+                for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
         ]
     
 
@@ -94,6 +104,16 @@ def generate(
                             app.QueueInfo(name="tpset_out", inst=f"tpset_link_{idx}", dir="output")
                 ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
+                mspec(f"datahandler_{idx}", "DataLinkHandler", [
+                            app.QueueInfo(name="raw_input", inst=f"tp_link_{idx}", dir="input"),
+                            app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
+                            app.QueueInfo(name="data_requests_0", inst=f"data_requests_{idx}", dir="input"),
+                            app.QueueInfo(name="data_response_0", inst="data_fragments_q", dir="output"),
+                            app.QueueInfo(name="raw_recording", inst=f"tp_recording_link_{idx}", dir="output"),
+                            app.QueueInfo(name="tp_out", inst=f"tp_queue_{idx}", dir="output"),
+                            app.QueueInfo(name="tpset_out", inst=f"tpset_link_{idx}", dir="output")
+                ]) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)        
+        ] + [
                 mspec(f"timesync_consumer", "TimeSyncConsumer", [
                                             app.QueueInfo(name="input_queue", inst=f"time_sync_q", dir="input")
                                             ])
@@ -110,9 +130,21 @@ def generate(
                                             app.QueueInfo(name="raw_recording", inst="tp_recording_link", dir="output")
                                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
+                mspec(f"tp_handler_{idx}", "DataLinkHandler", [
+                                            app.QueueInfo(name="raw_input", inst=f"tp_queue_{idx}", dir="input"),
+                                            app.QueueInfo(name="timesync", inst="time_sync_q", dir="output"),
+                                            app.QueueInfo(name="requests", inst="tp_data_requests", dir="input"),
+                                            app.QueueInfo(name="fragments", inst="data_fragments_q", dir="output"),
+                                            app.QueueInfo(name="raw_recording", inst="tp_recording_link", dir="output")
+                                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
+        ] + [
                 mspec(f"tpset_publisher_{idx}", "QueueToNetwork", [
                                             app.QueueInfo(name="input", inst=f"tpset_link_{idx}", dir="input")
                                             ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+        ] + [
+                mspec(f"tpset_publisher_{idx}", "QueueToNetwork", [
+                                            app.QueueInfo(name="input", inst=f"tpset_link_{idx}", dir="input")
+                                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
         ]
 
     init_specs = app.Init(queues=queue_specs, modules=mod_specs)
@@ -140,69 +172,37 @@ def generate(
                                 geoid=fcr.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
+                                tp_data_filename=TP_DATA_FILE,
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
                             # input_limit=10485100, # default
                             queue_timeout_ms = QUEUE_POP_WAIT_MS,
 			                set_t0_to = 0
                         )),
             ] + [
-                (f"datahandler_{idx}", rconf.Conf(
-                        readoutmodelconf= rconf.ReadoutModelConf(
-                            source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
-                            fake_trigger_flag=1,
-                            region_id = 0,
-                            element_id = idx,
-                        ),
-                        latencybufferconf= rconf.LatencyBufferConf(
-                            latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
-                            region_id = 0,
-                            element_id = idx,
-                        ),
-                        rawdataprocessorconf= rconf.RawDataProcessorConf(
-                            region_id = 0,
-                            element_id = idx,
-                            enable_software_tpg = ENABLE_SOFTWARE_TPG,
-                        ),
-                        requesthandlerconf= rconf.RequestHandlerConf(
-                            latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
-                            pop_limit_pct = 0.8,
-                            pop_size_pct = 0.1,
-                            region_id = 0,
-                            element_id = idx,
-                            output_file = f"output_{idx}.out",
-                            stream_buffer_size = 8388608,
-                            enable_raw_recording = True
-                        )
-                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
-            ] + [
-                (f"tp_handler_{idx}", rconf.Conf(
-                    readoutmodelconf= rconf.ReadoutModelConf(
+                (f"datahandler_{idx}", dlh.Conf(
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
-                        region_id = 0,
-                        element_id = idx,
-                    ),
-                    latencybufferconf= rconf.LatencyBufferConf(
-                        latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
-                        region_id = 0,
-                        element_id = idx,
-                    ),
-                    rawdataprocessorconf= rconf.RawDataProcessorConf(
-                        region_id = 0,
-                        element_id = idx,
-                        enable_software_tpg = ENABLE_SOFTWARE_TPG,
-                    ),
-                    requesthandlerconf= rconf.RequestHandlerConf(
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
                         pop_limit_pct = 0.8,
                         pop_size_pct = 0.1,
-                        region_id = 0,
-                        element_id = idx,
-                        output_file = f"output_{idx}.out",
+                        apa_number = 0,
+                        link_number = idx,
+                        enable_software_tpg = ENABLE_SOFTWARE_TPG,
+                        output_file = f"/mnt/md0/output_{idx}.out",
                         stream_buffer_size = 8388608,
+                        enable_raw_recording = True
+                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+            ] + [
+                (f"tp_handler_{idx}", dlh.Conf(
+                        source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
+                        fake_trigger_flag=1,
+                        latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
+                        pop_limit_pct = 0.8,
+                        pop_size_pct = 0.1,
+                        apa_number = 0,
+                        link_number = 0,
                         enable_raw_recording = False
-                    )
-                )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"tpset_publisher_{idx}", qton.Conf(msg_type="dunedaq::trigger::TPSet",
                            msg_module_name="TPSetNQ",
@@ -256,7 +256,7 @@ def generate(
     cmd_seq = [initcmd, confcmd, startcmd, stopcmd, scrapcmd]
 
     record_cmd = mrccmd("record", "RUNNING", "RUNNING", [
-        ("datahandler_.*", rconf.RecordingParams(
+        ("datahandler_.*", dlh.RecordingParams(
             duration=10
         ))
     ])
@@ -284,9 +284,9 @@ if __name__ == '__main__':
     @click.option('-g', '--enable-software-tpg', is_flag=True)
     @click.option('-r', '--run-number', default=333)
     @click.option('-d', '--data-file', type=click.Path(), default='./frames.bin')
-    # @click.option('--tp-data-file') TBA
+    @click.option('--tp-data-file', type=click.Path(), default='./tp_frames.bin')
     @click.argument('json_file', type=click.Path(), default='fake_readout.json')
-    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, enable_software_tpg, run_number, data_file, json_file):
+    def cli(frontend_type, number_of_data_producers, number_of_tp_producers, data_rate_slowdown_factor, enable_software_tpg, run_number, data_file, tp_data_file, json_file):
         """
           JSON_FILE: Input raw data file.
           JSON_FILE: Output json configuration file.
@@ -301,6 +301,7 @@ if __name__ == '__main__':
                     ENABLE_SOFTWARE_TPG = enable_software_tpg,
                     RUN_NUMBER = run_number, 
                     DATA_FILE = data_file,
+                    TP_DATA_FILE = tp_data_file
                 ))
 
         print(f"'{json_file}' generation completed.")

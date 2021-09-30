@@ -103,9 +103,9 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       if (inst.find("tp") != std::string::npos) {
         TLOG(TLVL_WORK_STEPS) << "Creating readout for tp";
         auto readout_model = std::make_unique<ReadoutModel<
-          types::TP_READOUT_TYPE,
-          EmptyFragmentRequestHandlerModel<types::TP_READOUT_TYPE, BinarySearchQueueModel<types::TP_READOUT_TYPE>>,
-          BinarySearchQueueModel<types::TP_READOUT_TYPE>,
+          types::RAW_WIB_TP_TYPE,
+          EmptyFragmentRequestHandlerModel<types::RAW_WIB_TP_TYPE, BinarySearchQueueModel<types::RAW_WIB_TP_TYPE>>,
+          BinarySearchQueueModel<types::RAW_WIB_TP_TYPE>,
           WIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);

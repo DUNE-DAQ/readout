@@ -52,6 +52,8 @@ local sourceemulatorconfig = {
             doc="Slowdown factor"),
         s.field("data_filename", self.string, "/tmp/frames.bin",
             doc="Data file that contains user payloads"),
+        s.field("tp_data_filename", self.string, "/tmp/tp_frames.bin",
+            doc="Data file that contains raw WIB TP user payloads"),
         s.field("queue_name", self.string,
             doc="Name of the output queue"),
         s.field("random_population_size", self.uint4, 10000,

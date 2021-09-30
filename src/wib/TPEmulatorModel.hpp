@@ -24,6 +24,7 @@
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
 
+#include "readout/ReadoutTypes.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -42,7 +43,7 @@ namespace readout {
 class TPEmulatorModel : public SourceEmulatorConcept
 {
 public:
-  using sink_t = appfwk::DAQSink<dataformats::RawWIBTp>;
+  using sink_t = appfwk::DAQSink<types::RAW_WIB_TP_TYPE>;
 
   // Very bad, use these from readout types, when RAW_WIB_TP is introduced
   static const constexpr std::size_t WIB_FRAME_SIZE = 464;
@@ -91,7 +92,7 @@ public:
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, RAW_WIB_TP_SUBFRAME_SIZE);
 
       try {
-        m_file_source->read(m_link_conf.data_filename);
+        m_file_source->read(m_link_conf.tp_data_filename);
       } catch (const ers::Issue& ex) {
         ers::fatal(ex);
         throw ConfigurationError(ERS_HERE, m_geoid, "", ex);
@@ -151,63 +152,84 @@ protected:
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "Number of raw WIB TP elements to read from buffer: " << num_elem
                                  << "; rwtpptr is: " << rwtpptr;
 
-    uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : rwtpptr->get_header()->get_timestamp(); // NOLINT
+    uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : rwtpptr->get_timestamp(); // NOLINT
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the raw WIB TP source file: " << ts_0;
-    uint64_t ts_next = ts_0; // NOLINT
 
     while (m_run_marker.load()) {
       // Which element to push to the buffer
-      if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE) ||
-          static_cast<uint>((offset + 1) * RAW_WIB_TP_SUBFRAME_SIZE) > source.size()) { // NOLINT(build/unsigned)
+      if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE)) { // NOLINT(build/unsigned)
         offset = 0;
       }
 
-      // Count number of subframes in a TP frame
-      int n = 1;
-      while (offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE < source.size() &&
-             reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
-                                                  + offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE)
-                 ->word3 != 0xDEADBEEF) {
-        n++;
-      }
       // Create next TP frame
-      std::unique_ptr<types::RAW_WIB_TP_STRUCT> payload_ptr = std::make_unique<types::RAW_WIB_TP_STRUCT>();
-      for (int i = 0; i < n; ++i) {
-        auto* sp = reinterpret_cast<types::TpSubframe*>(                      // NOLINT
-          ((uint8_t*)source.data()) + offset + i * RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT
-        if (!m_found_tp_header) {
-          dunedaq::dataformats::TpHeader* tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
-          tfh->set_timestamp(ts_next);
-          ts_next += 1600;
-          m_found_tp_header = true;
-          payload_ptr->head = *tfh;
-          continue;
+      types::RAW_WIB_TP_TYPE payload_type_ptr;
+      dunedaq::dataformats::RawWIBTp* payload_ptr = &(payload_type_ptr.rwtp);
+      ::memcpy(static_cast<void*>(&payload_ptr->m_head),
+               static_cast<void*>(source.data() + offset),
+               payload_ptr->get_header_size());
+      int nhits = payload_ptr->get_nhits();
+      uint16_t padding = payload_ptr->get_padding_3(); // NOLINT
+
+      if (padding == 48879) { // padding hex is BEEF, new format
+        payload_ptr->set_nhits(nhits);
+        ::memcpy(static_cast<void*>(payload_ptr),
+                 static_cast<void*>(source.data() + offset),
+                 payload_ptr->get_frame_size());
+      } else { // old TP format
+        // Count number of subframes in a TP frame
+        int n = 1;
+        while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
+               + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
+          n++;
         }
-        if (sp->word3 == 0xDEADBEEF) {
-          const dunedaq::dataformats::TpPedinfo* tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp); // NOLINT
-          m_found_tp_header = false;
-          payload_ptr->ped = *tpi;
-          continue;
-        }
-        dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp); // NOLINT
-        payload_ptr->block.set_tp(*td);
+
+        int bsize = n * RAW_WIB_TP_SUBFRAME_SIZE;
+        std::vector<char> tmpbuffer(bsize);
+        static const int m_nhits = n - 2;
+
+        // add header block 
+        ::memcpy(static_cast<void*>(tmpbuffer.data() + 0),
+                 static_cast<void*>(source.data() + offset),
+                 RAW_WIB_TP_SUBFRAME_SIZE);
+
+        // add pedinfo block 
+        ::memcpy(static_cast<void*>(tmpbuffer.data() + RAW_WIB_TP_SUBFRAME_SIZE),
+                 static_cast<void*>(source.data() + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE),
+                 RAW_WIB_TP_SUBFRAME_SIZE);
+
+        // add TP hits 
+        ::memcpy(static_cast<void*>(tmpbuffer.data() + 2*RAW_WIB_TP_SUBFRAME_SIZE),
+                 static_cast<void*>(source.data() + offset + RAW_WIB_TP_SUBFRAME_SIZE),
+                 m_nhits*RAW_WIB_TP_SUBFRAME_SIZE);
+
+        // copy old frame to new frame 
+        payload_ptr->set_nhits(m_nhits); // reserve space
+        ::memcpy(static_cast<void*>(payload_ptr),
+                 static_cast<void*>(tmpbuffer.data()),
+                 payload_ptr->get_frame_size());
+
+        // old format lacks number of hits
+        payload_ptr->set_nhits(m_nhits); // explicitly set number of hits in new format
       }
+      nhits = payload_ptr->get_nhits(); // NOLINT
+    
+      offset += payload_ptr->get_frame_size();
 
       // queue in to actual DAQSink
       try {
-        m_raw_data_sink->push(std::move(payload_ptr), m_sink_queue_timeout_ms);
+        m_raw_data_sink->push(payload_type_ptr, m_sink_queue_timeout_ms);
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // std::runtime_error("Queue timed out...");
       }
 
       // Count packet and limit rate if needed.
-      offset += n * RAW_WIB_TP_SUBFRAME_SIZE;
       // if (m_alloc_) { free(m_data_); }
       ++m_packet_count;
       ++m_packet_count_tot;
       m_rate_limiter->limit();
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";
+
   }
 
 private:
@@ -228,7 +250,7 @@ private:
 
   // RAW SINK
   std::chrono::milliseconds m_sink_queue_timeout_ms;
-  using raw_sink_qt = appfwk::DAQSink<std::unique_ptr<types::RAW_WIB_TP_STRUCT>>;
+  using raw_sink_qt = appfwk::DAQSink<types::RAW_WIB_TP_TYPE>;
   std::unique_ptr<raw_sink_qt> m_raw_data_sink;
 
   bool m_sink_is_set = false;

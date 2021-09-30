@@ -18,6 +18,7 @@
 #include "dataformats/daphne/DAPHNEFrame.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
+#include "RawWIBTp.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <cstdint> // uint_t types
@@ -315,11 +316,43 @@ struct VariableSizePayloadWrapper
 };
 
 // raw WIB TP
-struct RAW_WIB_TP_STRUCT
+struct RAW_WIB_TP_TYPE
 {
-  dunedaq::dataformats::TpHeader head;
-  dunedaq::dataformats::TpDataBlock block;
-  dunedaq::dataformats::TpPedinfo ped;
+  using FrameType = dunedaq::dataformats::RawWIBTp; 
+
+  FrameType rwtp; 
+
+  bool operator<(const RAW_WIB_TP_TYPE& other) const { return this->rwtp.get_timestamp() < other.rwtp.get_timestamp(); }
+
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
+    return rwtp.get_timestamp();
+  }
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    rwtp.set_timestamp(ts);
+  }
+
+  FrameType* begin()
+  {
+    return reinterpret_cast<FrameType*>(&rwtp); // NOLINT
+  }
+  FrameType* end()
+  {
+    return (reinterpret_cast<FrameType*>(&rwtp) + rwtp.get_frame_size()); // NOLINT
+  }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  // raw WIB TP frames are variable size
+  static const constexpr size_t frame_size = 36;
+  static const constexpr uint8_t frames_per_element = 3; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = 12;
+  //const size_t frame_size_tmp = rwtp.get_frame_size();
+  //const uint8_t frames_per_element = rwtp.get_frame_size() / (rwtp.get_nhits() + 2); // NOLINT(build/unsigned)
+  //const size_t element_size = 3;
+
 };
 
 struct TpSubframe
