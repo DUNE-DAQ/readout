@@ -28,7 +28,8 @@
 #include "dfmessages/TimeSync.hpp"
 
 #include "readout/ReadoutLogging.hpp"
-#include "readout/datalinkhandler/Structs.hpp"
+#include "readout/concepts/ReadoutConcept.hpp"
+#include "readout/datalinkhandler/Nljs.hpp"
 #include "readout/datalinkhandlerinfo/InfoNljs.hpp"
 
 #include "readout/FrameErrorRegistry.hpp"
@@ -121,7 +122,7 @@ public:
     // m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
     m_request_handler_impl->conf(args);
     try {
-      m_latency_buffer_impl->resize(m_latency_buffer_size);
+      m_latency_buffer_impl->conf(args);
     } catch (const std::bad_alloc& be) {
       ers::error(ConfigurationError(ERS_HERE, m_geoid, "Latency Buffer can't be allocated with size!"));
     }
@@ -161,16 +162,16 @@ public:
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Stoppping threads...";
     m_request_handler_impl->stop(args);
     while (!m_timesync_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     while (!m_consumer_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     while (!m_requester_thread.get_readiness()) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Flushing latency buffer with occupancy: " << m_latency_buffer_impl->occupancy();
-    m_latency_buffer_impl->pop(m_latency_buffer_impl->occupancy());
+    m_latency_buffer_impl->flush();
     m_raw_processor_impl->stop(args);
     m_raw_processor_impl->reset_last_daq_time();
   }
@@ -185,6 +186,7 @@ public:
     dli.sum_requests = m_sum_requests.load();
     dli.num_requests = m_num_requests.exchange(0);
     dli.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
+    dli.num_buffer_elements = m_latency_buffer_impl->occupancy();
 
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);
@@ -249,7 +251,7 @@ private:
         ++m_stats_packet_count;
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         ++m_rawq_timeout_count;
-        //ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
+        // ers::error(QueueTimeoutError(ERS_HERE, " raw source "));
       }
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Consumer thread joins... ";

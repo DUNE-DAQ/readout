@@ -9,7 +9,10 @@
 #define READOUT_INCLUDE_READOUT_MODELS_SKIPLISTLATENCYBUFFERMODEL_HPP_
 
 #include "readout/ReadoutIssues.hpp"
+#include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
+
+#include "logging/Logging.hpp"
 
 #include "folly/ConcurrentSkipList.h"
 
@@ -69,7 +72,11 @@ public:
     SkipListTIter m_iter;
   };
 
-  void resize(size_t /*new_size*/) override {}
+  void conf(const nlohmann::json& /*cfg*/) override
+  {
+    // Reset datastructure
+    m_skip_list = folly::ConcurrentSkipList<T>::createInstance(unconfigured_head_height);
+  }
 
   size_t occupancy() const override
   {
@@ -80,6 +87,8 @@ public:
     }
     return occupancy;
   }
+
+  void flush() override { pop(occupancy()); }
 
   std::shared_ptr<SkipListT>& get_skip_list() { return std::ref(m_skip_list); }
 

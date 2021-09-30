@@ -61,9 +61,6 @@ def generate(
             app.QueueSpec(inst=f"tp_link_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)
         ] + [
-            app.QueueSpec(inst=f"{FRONTEND_TYPE}_recording_link_{idx}", kind='FollySPSCQueue', capacity=100000)
-                for idx in range(NUMBER_OF_DATA_PRODUCERS)
-        ] + [
             app.QueueSpec(inst=f"tp_queue_{idx}", kind='FollySPSCQueue', capacity=100000)
                 for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
@@ -100,10 +97,6 @@ def generate(
                             app.QueueInfo(name="error_messages", inst="frame_error_msg_q", dir="output"),
                             app.QueueInfo(name="errored_frames", inst="errored_frames_q", dir="output")
                 ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
-        ] + [
-                mspec(f"data_recorder_{idx}", "DataRecorder", [
-                            app.QueueInfo(name="raw_recording", inst=f"{FRONTEND_TYPE}_recording_link_{idx}", dir="input")
-                            ]) for idx in range(NUMBER_OF_DATA_PRODUCERS)
         ] + [
                 mspec(f"timesync_consumer", "TimeSyncConsumer", [
                                             app.QueueInfo(name="input_queue", inst=f"time_sync_q", dir="input")
@@ -174,11 +167,9 @@ def generate(
                         apa_number = 0,
                         link_number = idx,
                         enable_software_tpg = ENABLE_SOFTWARE_TPG,
-                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
-            ] + [
-                (f"data_recorder_{idx}", bfs.Conf(
-                        output_file = f"output_{idx}.out",
-                        stream_buffer_size = 8388608
+                        output_file = f"/mnt/md0/output_{idx}.out",
+                        stream_buffer_size = 8388608,
+                        enable_raw_recording = True
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"tp_handler_{idx}", dlh.Conf(
@@ -188,7 +179,8 @@ def generate(
                         pop_limit_pct = 0.8,
                         pop_size_pct = 0.1,
                         apa_number = 0,
-                        link_number = 0
+                        link_number = 0,
+                        enable_raw_recording = False
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"tpset_publisher_{idx}", qton.Conf(msg_type="dunedaq::trigger::TPSet",

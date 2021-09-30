@@ -56,7 +56,8 @@ public:
                           std::chrono::milliseconds(
                             DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::m_fragment_queue_timeout));
     } catch (const ers::Issue& excpt) {
-      ers::warning(CannotWriteToQueue(ERS_HERE, DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::m_geoid, "fragment queue"));
+      ers::warning(CannotWriteToQueue(
+        ERS_HERE, DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>::m_geoid, "fragment queue"));
     }
   }
 };

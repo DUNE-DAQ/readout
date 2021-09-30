@@ -25,12 +25,12 @@
 
 #include "tpg/DesignFIR.hpp"
 #include "tpg/FrameExpand.hpp"
-#include "tpg/PdspChannelMapService.hpp"
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
 
 #include "folly/AtomicHashMap.h"
+#include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <atomic>
 #include <bitset>
@@ -295,7 +295,7 @@ public:
       m_channel_map.reset(new swtpg::PdspChannelMapService(channel_map_rce, channel_map_felix));
 
       m_induction_items_to_process =
-        std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, 64); // 64 byte aligned
+          std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, false, 0, true, 64); // 64 byte aligned
 
       // Setup parallel post-processing
       TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_postprocess_task(
