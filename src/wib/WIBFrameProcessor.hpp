@@ -13,6 +13,7 @@
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
+#include "readout/utils/TPHandler.hpp"
 
 #include "dataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
@@ -89,6 +90,9 @@ public:
   {
     // Reset software TPG resources
     if (m_sw_tpg_enabled) {
+      m_tphandler->reset();
+      m_tps_dropped = 0;
+
       m_coll_taps = swtpg::firwin_int(7, 0.1, m_coll_multiplier);
       m_coll_taps.push_back(0);
       m_ind_taps = swtpg::firwin_int(7, 0.1, m_ind_multiplier);
@@ -146,9 +150,6 @@ public:
         0);
     }
 
-    while (!m_tp_buffer.empty()) {
-      m_tp_buffer.pop();
-    }
 
     // Reset timestamp check
     m_previous_ts = 0;
@@ -163,11 +164,7 @@ public:
     m_new_hits = 0;
     m_new_tps = 0;
     m_coll_hits_count.exchange(0);
-    m_num_tps_pushed.exchange(0);
-    m_next_tpset_seqno = 0;
-    m_sent_tps = 0;
-    m_sent_tpsets = 0;
-    m_dropped_tps = 0;
+
     inherited::start(args);
   }
 
@@ -253,11 +250,10 @@ public:
     m_geoid.region_id = config.region_id;
     m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
 
-    m_tp_timeout = config.tp_timeout;
-    m_tpset_window_size = config.tpset_window_size;
-
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
+
+      m_tphandler.reset(new TPHandler(*m_tp_sink, *m_tpset_sink, config.tp_timeout, config.tpset_window_size, m_geoid));
 
       const char* readout_share_cstr = getenv("READOUT_SHARE");
       if (!readout_share_cstr) {
@@ -289,9 +285,11 @@ public:
   {
     readoutinfo::RawDataProcessorInfo info;
 
-    info.num_tps_sent = m_sent_tps.exchange(0);
-    info.num_tpsets_sent = m_sent_tpsets.exchange(0);
-    info.num_tps_dropped = m_dropped_tps.exchange(0);
+    if (m_tphandler != nullptr) {
+      info.num_tps_sent = m_tphandler->get_and_reset_num_sent_tps();
+      info.num_tpsets_sent = m_tphandler->get_and_reset_num_sent_tpsets();
+      info.num_tps_dropped = m_tps_dropped.exchange(0);
+    }
 
     auto now = std::chrono::high_resolution_clock::now();
     if (m_sw_tpg_enabled) {
@@ -490,10 +488,8 @@ protected:
                    << " time_peak:" << (tp_t_begin + tp_t_end) / 2;
           }
 
-          if (trigprim.time_start + m_tp_timeout > timestamp + 300) {
-            m_tp_buffer.push(trigprim);
-          } else {
-            m_dropped_tps++;
+          if (!m_tphandler->add_tp(trigprim, timestamp)) {
+            m_tps_dropped++;
           }
 
           //} else {
@@ -518,36 +514,7 @@ protected:
       m_first_coll = false;
     }
 
-    // Check if we can send out a TPSet
-    if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tp_timeout < timestamp + 300) {
-      trigger::TPSet tpset;
-      tpset.start_time = (m_tp_buffer.top().time_start / m_tpset_window_size) * m_tpset_window_size;
-      tpset.end_time = tpset.start_time + m_tpset_window_size;
-      tpset.seqno = m_next_tpset_seqno++; // NOLINT(runtime/increment_decrement)
-      tpset.type = trigger::TPSet::Type::kPayload;
-      tpset.origin = m_geoid;
-
-      while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
-        triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
-        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp); // NOLINT
-        try {
-          m_tp_sink->push(*tp_readout_type);
-        } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-          ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tp_sink"));
-        }
-        tpset.objects.emplace_back(std::move(tp));
-        m_tp_buffer.pop();
-        m_sent_tps++;
-      }
-
-      try {
-        m_tpset_sink->push(std::move(tpset));
-        m_num_tps_pushed++;
-      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tpset_sink"));
-      }
-      m_sent_tpsets++;
-    }
+    m_tphandler->try_sending_tpsets(timestamp);
   }
 
   // Stage: induction hit finding port
@@ -627,26 +594,11 @@ private:
 
   std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
-
-  class Comparator
-  {
-  public:
-    bool operator()(triggeralgs::TriggerPrimitive& left, triggeralgs::TriggerPrimitive& right)
-    {
-      return left.time_start > right.time_start;
-    }
-  };
-  std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator>
-    m_tp_buffer;
+  std::unique_ptr<TPHandler> m_tphandler;
 
   dataformats::GeoID m_geoid;
-  uint64_t m_tp_timeout = 10000;       // NOLINT(build/unsigned)
-  uint64_t m_tpset_window_size = 1000; // NOLINT(build/unsigned)
-  uint64_t m_next_tpset_seqno = 0;     // NOLINT(build/unsigned)
+  std::atomic<size_t> m_tps_dropped{ 0 };
 
-  std::atomic<uint64_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_sent_tpsets{ 0 }; // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_dropped_tps{ 0 }; // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
 
