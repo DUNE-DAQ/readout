@@ -24,10 +24,18 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
+#include "readout/concepts/LatencyBufferConcept.hpp"
+#include "readout/readoutconfig/Nljs.hpp"
+#include "readout/readoutconfig/Structs.hpp"
+#include "readout/ReadoutIssues.hpp"
+
+#include "logging/Logging.hpp"
+
 #include <folly/lang/Align.h>
 
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <cstdlib>
 #include <cxxabi.h>
 #include <iomanip>
@@ -37,8 +45,15 @@
 #include <mutex>
 #include <new>
 #include <stdexcept>
+#include <thread>
 #include <type_traits>
 #include <utility>
+
+#include <xmmintrin.h>
+
+#ifdef WITH_LIBNUMA_SUPPORT
+  #include <numa.h>
+#endif
 
 namespace dunedaq {
 namespace readout {
@@ -58,7 +73,11 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   IterableQueueModel()
     : LatencyBufferConcept<T>()
-    , aligned_allocator_(false)
+    , numa_aware_(false)
+    , numa_node_(0)
+    , intrinsic_allocator_(false)
+    , alignment_size_(0)
+    , invalid_configuration_requested_(false)
     , size_(2)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * 2)))
     , readIndex_(0)
@@ -70,9 +89,13 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   // Also, note that the number of usable slots in the queue at any
   // given time is actually (size-1), so if you start with an empty queue,
   // isFull() will return true after size-1 insertions.
-  explicit IterableQueueModel(size_t size)
+  explicit IterableQueueModel(std::size_t size)
     : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
-    , aligned_allocator_(false)
+    , numa_aware_(false)
+    , numa_node_(0)
+    , intrinsic_allocator_(false)
+    , alignment_size_(0)
+    , invalid_configuration_requested_(false)
     , size_(size)
     , records_(static_cast<T*>(std::malloc(sizeof(T) * size)))
     , readIndex_(0)
@@ -98,16 +121,23 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   // size must be >= 2.
   // Aligned strategies
-  IterableQueueModel(size_t size, size_t alignment_size)
+  IterableQueueModel(std::size_t size,
+                     bool numa_aware = false,
+                     uint8_t numa_node = 0, // NOLINT (build/unsigned)
+                     bool intrinsic_allocator = false,
+                     std::size_t alignment_size = 0)
     : LatencyBufferConcept<T>() // NOLINT(build/unsigned)
-    , aligned_allocator_(true)
+    , numa_aware_(numa_aware)
+    , numa_node_(numa_node)
+    , intrinsic_allocator_(intrinsic_allocator)
+    , alignment_size_(alignment_size)
+    , invalid_configuration_requested_(false)
     , size_(size)
     , readIndex_(0)
     , writeIndex_(0)
   {
     assert(size >= 2);
-    // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
-    records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
+    allocate_memory(size, numa_aware, numa_node, intrinsic_allocator, alignment_size);
 
     if (!records_) {
       throw std::bad_alloc();
@@ -126,14 +156,16 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 #endif
   }
 
-  ~IterableQueueModel()
+  ~IterableQueueModel() { free_memory(); }
+
+  void free_memory()
   {
     // We need to destruct anything that may still exist in our queue.
     // (No real synchronization needed at destructor time: only one
     // thread can be doing this.)
     if (!std::is_trivially_destructible<T>::value) {
-      size_t readIndex = readIndex_;
-      size_t endIndex = writeIndex_;
+      std::size_t readIndex = readIndex_;
+      std::size_t endIndex = writeIndex_;
       while (readIndex != endIndex) {
         records_[readIndex].~T();
         if (++readIndex == size_) { // NOLINT(runtime/increment_decrement)
@@ -141,7 +173,54 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
         }
       }
     }
-    std::free(records_);
+
+    if (intrinsic_allocator_) {
+      _mm_free(records_);
+    } else if (numa_aware_) {
+#ifdef WITH_LIBNUMA_SUPPORT
+      numa_free(records_, sizeof(T) * size_);
+#endif
+    } else {
+      std::free(records_);
+    }
+  }
+
+  void allocate_memory(std::size_t size,
+                       bool numa_aware = false,
+                       uint8_t numa_node = 0, // NOLINT (build/unsigned)
+                       bool intrinsic_allocator = false,
+                       std::size_t alignment_size = 0)
+  {
+    assert(size >= 2);
+    // TODO: check for valid alignment sizes! | July-21-2021 | Roland Sipos | rsipos@cern.ch
+
+    if (intrinsic_allocator && alignment_size > 0) { // _mm allocator
+      records_ = static_cast<T*>(_mm_malloc(sizeof(T) * size, alignment_size));
+
+    } else if (!intrinsic_allocator && alignment_size > 0) { // std aligned allocator
+      records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
+
+    } else if (numa_aware && numa_node >= 0 && numa_node < 8) { // numa allocator from libnuma
+#ifdef WITH_LIBNUMA_SUPPORT
+      records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size, numa_node));
+#else
+      throw GenericConfigurationError(ERS_HERE, "NUMA allocation was requested but program was built without USE_LIBNUMA");
+#endif
+
+    } else if (!numa_aware && !intrinsic_allocator && alignment_size == 0) {
+      // Standard allocator
+      records_ = static_cast<T*>(std::malloc(sizeof(T) * size));
+
+    } else {
+      // Let it fail, as expected combination might be invalid
+      // records_ = static_cast<T*>(std::malloc(sizeof(T) * size_);
+    }
+
+    size_ = size;
+    numa_aware_ = numa_aware;
+    numa_node_ = numa_node;
+    intrinsic_allocator_ = intrinsic_allocator;
+    alignment_size_ = alignment_size;
   }
 
   bool put(T& record) { return write_(record); }
@@ -183,9 +262,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   }
 
   // RS: Will this work?
-  void pop(size_t x)
+  void pop(std::size_t x)
   {
-    for (size_t i = 0; i < x; i++) {
+    for (std::size_t i = 0; i < x; i++) {
       popFront();
     }
   }
@@ -213,18 +292,18 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
   // * If called by producer, then true size may be less (because consumer may
   //   be removing items concurrently).
   // * It is undefined to call this from any other thread.
-  size_t occupancy() const override
+  std::size_t occupancy() const override
   {
     int ret = static_cast<int>(writeIndex_.load(std::memory_order_acquire)) -
               static_cast<int>(readIndex_.load(std::memory_order_acquire));
     if (ret < 0) {
       ret += static_cast<int>(size_);
     }
-    return static_cast<size_t>(ret);
+    return static_cast<std::size_t>(ret);
   }
 
   // maximum number of items in the queue.
-  size_t capacity() const { return size_ - 1; }
+  std::size_t capacity() const { return size_ - 1; }
 
   struct Iterator
   {
@@ -311,30 +390,34 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
   }
 
-  void resize(size_t new_size) override
+  void conf(const nlohmann::json& cfg) override
   {
-    assert(new_size >= 2);
-    if (!std::is_trivially_destructible<T>::value) {
-      size_t readIndex = readIndex_;
-      size_t endIndex = writeIndex_;
-      while (readIndex != endIndex) {
-        records_[readIndex].~T();
-        if (++readIndex == size_) { // NOLINT(runtime/increment_decrement)
-          readIndex = 0;
-        }
-      }
-    }
-    std::free(records_);
+    auto conf = cfg["latencybufferconf"].get<readoutconfig::LatencyBufferConf>();
+    assert(conf.latency_buffer_size >= 2);
+    free_memory();
 
-    size_ = new_size;
-    records_ = static_cast<T*>(std::malloc(sizeof(T) * new_size));
+    allocate_memory(conf.latency_buffer_size,
+                    conf.latency_buffer_numa_aware,
+                    conf.latency_buffer_numa_node,
+                    conf.latency_buffer_intrinsic_allocator,
+                    conf.latency_buffer_alignment_size);
     readIndex_ = 0;
     writeIndex_ = 0;
 
     if (!records_) {
       throw std::bad_alloc();
     }
+
+    if (conf.latency_buffer_preallocation) {
+      T element;
+      for (size_t i = 0; i < size_ - 1; ++i) {
+        write_(element);
+      }
+      flush();
+    }
   }
+
+  void flush() override { pop(occupancy()); }
 
 protected:
   template<class... Args>
@@ -370,7 +453,12 @@ protected:
   // (Assuming cache line size of 64, so we use a cache line pair size of 128 )
   std::atomic<int> overflow_ctr{ 0 };
 
-  bool aligned_allocator_;
+  // NUMA awareness and aligned allocator usage
+  bool numa_aware_;
+  uint8_t numa_node_; // NOLINT (build/unsigned)
+  bool intrinsic_allocator_;
+  std::size_t alignment_size_;
+  bool invalid_configuration_requested_;
 
   std::thread ptrlogger;
 

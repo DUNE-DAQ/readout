@@ -15,7 +15,8 @@
 
 #include "opmonlib/InfoCollector.hpp"
 
-#include "readout/fakecardreader/Structs.hpp"
+#include "readout/sourceemulatorconfig/Nljs.hpp"
+#include "readout/sourceemulatorinfo/InfoNljs.hpp"
 
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/SourceEmulatorConcept.hpp"
@@ -143,10 +144,13 @@ public:
     }
   }
 
-  void get_info(fakecardreaderinfo::Info& fcr)
+  void get_info(opmonlib::InfoCollector& ci, int /*level*/)
   {
-    fcr.packets += m_packet_count_tot.load();
-    fcr.new_packets += m_packet_count.exchange(0);
+    sourceemulatorinfo::Info info;
+    info.packets = m_packet_count_tot.load();
+    info.new_packets = m_packet_count.exchange(0);
+
+    ci.add(info);
   }
 
 protected:
@@ -235,7 +239,7 @@ private:
   std::atomic<int> m_packet_count{ 0 };
   std::atomic<int> m_packet_count_tot{ 0 };
 
-  fakecardreader::Conf m_cfg;
+  sourceemulatorconfig::Conf m_cfg;
 
   // RAW SINK
   std::chrono::milliseconds m_sink_queue_timeout_ms;
@@ -243,9 +247,9 @@ private:
   std::unique_ptr<raw_sink_qt> m_raw_data_sink;
 
   bool m_sink_is_set = false;
-  using module_conf_t = dunedaq::readout::fakecardreader::Conf;
+  using module_conf_t = dunedaq::readout::sourceemulatorconfig::Conf;
   module_conf_t m_conf;
-  using link_conf_t = dunedaq::readout::fakecardreader::LinkConfiguration;
+  using link_conf_t = dunedaq::readout::sourceemulatorconfig::LinkConfiguration;
   link_conf_t m_link_conf;
 
   std::unique_ptr<RateLimiter> m_rate_limiter;

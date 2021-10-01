@@ -6,8 +6,7 @@
  * received with this code.
  */
 #include "readout/ReadoutLogging.hpp"
-#include "readout/fakecardreader/Nljs.hpp"
-#include "readout/fakecardreaderinfo/InfoNljs.hpp"
+#include "readout/sourceemulatorconfig/Nljs.hpp"
 
 #include "CreateSourceEmulator.hpp"
 #include "FakeCardReader.hpp"
@@ -39,8 +38,6 @@ FakeCardReader::FakeCardReader(const std::string& name)
   : DAQModule(name)
   , m_configured(false)
   , m_run_marker{ false }
-  , m_packet_count{ 0 }
-  , m_packet_count_tot{ 0 }
 {
   register_command("conf", &FakeCardReader::do_conf);
   register_command("scrap", &FakeCardReader::do_scrap);
@@ -79,18 +76,12 @@ FakeCardReader::init(const data_t& args)
 }
 
 void
-FakeCardReader::get_info(opmonlib::InfoCollector& ci, int /*level*/)
+FakeCardReader::get_info(opmonlib::InfoCollector& ci, int level)
 {
-  fakecardreaderinfo::Info fcr;
-
-  fcr.packets = m_packet_count_tot.load();
-  fcr.new_packets = m_packet_count.exchange(0);
 
   for (auto& [name, emu] : m_source_emus) {
-    emu->get_info(fcr);
+    emu->get_info(ci, level);
   }
-
-  ci.add(fcr);
 }
 
 void
@@ -101,7 +92,7 @@ FakeCardReader::do_conf(const data_t& args)
   if (m_configured) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "This module is already configured!";
   } else {
-    m_cfg = args.get<fakecardreader::Conf>();
+    m_cfg = args.get<sourceemulatorconfig::Conf>();
 
     for (const auto& emu_conf : m_cfg.link_confs) {
       if (m_source_emus.find(emu_conf.queue_name) == m_source_emus.end()) {
@@ -144,12 +135,9 @@ FakeCardReader::do_scrap(const data_t& args)
 void
 FakeCardReader::do_start(const data_t& args)
 {
-  m_packet_count_tot = 0;
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering do_start() method";
 
   m_run_marker.store(true);
-  m_packet_count = 0;
-  m_packet_count_tot = 0;
 
   for (auto& [name, emu] : m_source_emus) {
     emu->start(args);

@@ -11,6 +11,7 @@
 #include "appfwk/DAQSink.hpp"
 #include "dataformats/Fragment.hpp"
 #include "dfmessages/DataRequest.hpp"
+#include "opmonlib/InfoCollector.hpp"
 
 #include <map>
 #include <memory>
@@ -37,7 +38,7 @@ public:
   virtual void start(const nlohmann::json& args) = 0;
   virtual void stop(const nlohmann::json& args) = 0;
   virtual void record(const nlohmann::json& args) = 0;
-  virtual void get_info(datalinkhandlerinfo::Info&) = 0;
+  virtual void get_info(opmonlib::InfoCollector& ci, int level) = 0;
 
   //! Check if cleanup is necessary and execute it if necessary
   virtual void cleanup_check() = 0;
@@ -83,9 +84,6 @@ protected:
     dfmessages::DataRequest data_request;
     std::unique_ptr<dataformats::Fragment> fragment;
   };
-
-  // Bookkeeping of OOB requests
-  std::map<dfmessages::DataRequest, int> m_request_counter;
 
   virtual void cleanup() = 0;
   virtual RequestResult data_request(dfmessages::DataRequest /*dr*/) = 0;
