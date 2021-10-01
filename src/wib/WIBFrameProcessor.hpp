@@ -344,7 +344,7 @@ protected:
     // Check timestamp
     if (m_current_ts - m_previous_ts != 300) {
       ++m_ts_error_ctr;
-      m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts + 300, m_current_ts));
+      m_error_registry->add_error("MISSING_FRAMES", FrameErrorRegistry::ErrorInterval(m_previous_ts + 300, m_current_ts));
       if (m_first_ts_missmatch) { // log once
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
                                      << " current: " + std::to_string(m_current_ts);

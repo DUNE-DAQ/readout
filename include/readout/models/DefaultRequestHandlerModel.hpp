@@ -527,7 +527,7 @@ protected:
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         ReadoutType request_element;
         request_element.set_timestamp(start_win_ts);
-        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true)
+        auto start_iter = m_error_registry->has_error("MISSING_FRAMES") ? m_latency_buffer->lower_bound(request_element, true)
                                                         : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
