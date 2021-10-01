@@ -249,20 +249,15 @@ public:
       if (queue_index.find("tpset_out") != queue_index.end()) {
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
       }
-      if (queue_index.find("error_messages") != queue_index.end()) {
-        m_err_msg_sink.reset(new appfwk::DAQSink<std::unique_ptr<err_msg_t>>(queue_index["error_messages"].inst));
-      }
-      if (queue_index.find("errored_frames") != queue_index.end()) {
-        m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
-      }
-      m_err_frame_map = std::make_unique<folly::AtomicHashMap<uint32_t,
-      std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits); //NOLINT(build/unsigned)
-      for (int i = 0; i < m_num_frame_error_bits; ++i) {
-        m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_max_queued_errored_frames));
-      }
-
+      m_err_msg_sink.reset(new appfwk::DAQSink<std::unique_ptr<err_msg_t>>(queue_index["error_messages"].inst));
+      m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
     } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, "tp queue", "DefaultRequestHandlerModel", excpt);
+    }
+    m_err_frame_map = std::make_unique<folly::AtomicHashMap<uint32_t,
+    std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits); //NOLINT(build/unsigned)
+    for (int i = 0; i < m_num_frame_error_bits; ++i) {
+      m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_max_queued_errored_frames));
     }
   }
 
