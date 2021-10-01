@@ -392,7 +392,11 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   void conf(const nlohmann::json& cfg) override
   {
+<<<<<<< HEAD
     auto conf = cfg["latencybufferconf"].get<readoutconfig::LatencyBufferConf>();
+=======
+    auto conf = cfg.get<datalinkhandler::Conf>();
+>>>>>>> 6c779f7be78de1f555f03b133f93a6864b818e69
     assert(conf.latency_buffer_size >= 2);
     free_memory();
 

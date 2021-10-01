@@ -110,6 +110,7 @@ public:
     m_geoid.element_id = conf.element_id;
     m_geoid.region_id = conf.region_id;
     m_geoid.system_type = ReadoutType::system_type;
+
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -130,6 +131,18 @@ public:
 
     m_recording_thread.set_name("recording", conf.element_id);
     m_cleanup_thread.set_name("cleanup", conf.element_id);
+
+    if (conf.enable_raw_recording) {
+      std::string output_file = conf.output_file;
+      if (remove(output_file.c_str()) == 0) {
+        TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
+      }
+
+      m_buffered_writer.open(conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+    }
+
+    m_recording_thread.set_name("recording", conf.link_number);
+    m_cleanup_thread.set_name("cleanup", conf.link_number);
 
     std::ostringstream oss;
     oss << "RequestHandler configured. " << std::fixed << std::setprecision(2)

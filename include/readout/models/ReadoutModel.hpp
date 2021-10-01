@@ -29,6 +29,7 @@
 
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
+
 #include "readout/readoutconfig/Nljs.hpp"
 #include "readout/readoutinfo/InfoNljs.hpp"
 
@@ -178,6 +179,7 @@ public:
 
   void get_info(opmonlib::InfoCollector& ci, int level)
   {
+<<<<<<< HEAD
     readoutinfo::ReadoutInfo ri;
     ri.sum_payloads = m_sum_payloads.load();
     ri.num_payloads = m_num_payloads.exchange(0);
@@ -185,6 +187,15 @@ public:
     ri.num_requests = m_num_requests.exchange(0);
     ri.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
     ri.num_buffer_elements = m_latency_buffer_impl->occupancy();
+=======
+    datalinkhandlerinfo::Info dli;
+    dli.sum_payloads = m_sum_payloads.load();
+    dli.num_payloads = m_num_payloads.exchange(0);
+    dli.sum_requests = m_sum_requests.load();
+    dli.num_requests = m_num_requests.exchange(0);
+    dli.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
+    dli.num_buffer_elements = m_latency_buffer_impl->occupancy();
+>>>>>>> 6c779f7be78de1f555f03b133f93a6864b818e69
 
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);

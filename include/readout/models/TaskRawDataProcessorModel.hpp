@@ -15,7 +15,11 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/RawDataProcessorConcept.hpp"
+<<<<<<< HEAD
 #include "readout/readoutconfig/Nljs.hpp"
+=======
+#include "readout/datalinkhandler/Nljs.hpp"
+>>>>>>> 6c779f7be78de1f555f03b133f93a6864b818e69
 #include "readout/utils/ReusableThread.hpp"
 
 #include <folly/ProducerConsumerQueue.h>
