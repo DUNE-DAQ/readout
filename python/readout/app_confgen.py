@@ -9,7 +9,7 @@ moo.otypes.load_types('cmdlib/cmd.jsonnet')
 moo.otypes.load_types('rcif/cmd.jsonnet')
 moo.otypes.load_types('appfwk/cmd.jsonnet')
 moo.otypes.load_types('appfwk/app.jsonnet')
-moo.otypes.load_types('readout/fakecardreader.jsonnet')
+moo.otypes.load_types('readout/sourceemulatorconfig.jsonnet')
 moo.otypes.load_types('readout/readoutconfig.jsonnet')
 moo.otypes.load_types('readout/datarecorder.jsonnet')
 moo.otypes.load_types('nwqueueadapters/queuetonetwork.jsonnet')
@@ -20,7 +20,7 @@ import dunedaq.cmdlib.cmd as basecmd # AddressedCmd,
 import dunedaq.rcif.cmd as rccmd # AddressedCmd, 
 import dunedaq.appfwk.app as app # AddressedCmd, 
 import dunedaq.appfwk.cmd as cmd # AddressedCmd, 
-import dunedaq.readout.fakecardreader as fcr
+import dunedaq.readout.sourceemulatorconfig as sec
 import dunedaq.readout.readoutconfig as rconf
 import dunedaq.readout.datarecorder as bfs
 import dunedaq.nwqueueadapters.queuetonetwork as qton
@@ -127,17 +127,16 @@ def generate(
         data=init_specs
     )
 
-
     confcmd = mrccmd("conf", "INITIAL", "CONFIGURED", [
-                ("fake_source",fcr.Conf(
-                            link_confs=[fcr.LinkConfiguration(
-                                geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                ("fake_source",sec.Conf(
+                            link_confs=[sec.LinkConfiguration(
+                                geoid=sec.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
                                 data_filename=DATA_FILE
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS)]
-                            + [fcr.LinkConfiguration(
-                                geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                            + [sec.LinkConfiguration(
+                                geoid=sec.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
