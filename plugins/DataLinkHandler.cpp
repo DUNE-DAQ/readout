@@ -43,7 +43,8 @@ DataLinkHandler::init(const data_t& args)
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Entering init() method";
   m_readout_impl = createReadout(args, m_run_marker);
   if (m_readout_impl == nullptr) {
-    TLOG() << get_name() << "Initialize readout implementation FAILED...";
+    TLOG() << get_name() << "Initialize readout implementation FAILED! "
+           << "Failed to find specialization for given queue setup!";
     throw FailedReadoutInitialization(ERS_HERE, get_name(), args.dump()); // 4 json ident
   }
   TLOG_DEBUG(TLVL_ENTER_EXIT_METHODS) << get_name() << ": Exiting init() method";
