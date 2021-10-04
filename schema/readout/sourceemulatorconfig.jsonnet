@@ -22,6 +22,9 @@ local sourceemulatorconfig = {
     khz  : s.number("khz", "f8",
                      doc="A frequency in kHz"),
 
+    double8 : s.number("double8", "f8",
+                     doc="floating point of 8 bytes"),
+
     slowdown_t : s.number("slowdown_t", "f8",
                      doc="Slowdown factor"),
   
@@ -55,7 +58,9 @@ local sourceemulatorconfig = {
         s.field("queue_name", self.string,
             doc="Name of the output queue"),
         s.field("random_population_size", self.uint4, 10000,
-            doc="Size of the random population")
+            doc="Size of the random population"),
+        s.field("emu_frame_error_rate", self.double8, 0.0,
+            doc="Rate of faked errors in frame header"),
         ], doc="Configuration for one link"),
 
     link_conf_list : s.sequence("link_conf_list", self.link_conf, doc="Link configuration list"),

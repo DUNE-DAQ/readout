@@ -73,7 +73,11 @@ local readoutconfig = {
             s.field("region_id", self.region_id, 0,
                             doc="The region id of this link"),
             s.field("element_id", self.element_id, 0,
-                            doc="The element id of this link")],
+                            doc="The element id of this link"),
+            s.field("max_queued_errored_frames", self.size, 100,
+                            doc="Maximum number of frames queued per error type"),
+            s.field("num_error_reset", self.size, 100,
+                            doc="Number of error free frames required to reset buffering of errored frames")],
             doc="RawDataProcessor Config"),
 
     requesthandlerconf : s.record("RequestHandlerConf", [

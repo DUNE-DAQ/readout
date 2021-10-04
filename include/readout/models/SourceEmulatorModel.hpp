@@ -22,6 +22,7 @@
 #include "readout/concepts/SourceEmulatorConcept.hpp"
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
+#include "readout/utils/ErrorBitGenerator.hpp"
 
 #include "readout/utils/ReusableThread.hpp"
 
@@ -48,10 +49,12 @@ public:
                                std::atomic<bool>& run_marker,
                                uint64_t time_tick_diff, // NOLINT(build/unsigned)
                                double dropout_rate,
+                               double frame_error_rate,
                                double rate_khz)
     : m_run_marker(run_marker)
     , m_time_tick_diff(time_tick_diff)
     , m_dropout_rate(dropout_rate)
+    , m_frame_error_rate(frame_error_rate)
     , m_packet_count{ 0 }
     , m_sink_queue_timeout_ms(0)
     , m_raw_data_sink(nullptr)
@@ -95,7 +98,7 @@ public:
         ers::fatal(ex);
         throw ConfigurationError(ERS_HERE, m_geoid, "", ex);
       }
-
+      m_dropouts_length = m_link_conf.random_population_size;
       if (m_dropout_rate == 0.0) {
         m_dropouts = std::vector<bool>(1);
       } else {
@@ -105,7 +108,10 @@ public:
         m_dropouts[i] = dis(mt) >= m_dropout_rate;
       }
 
-      m_dropouts_length = m_link_conf.random_population_size;
+      m_frame_errors_length = m_link_conf.random_population_size;
+      m_frame_error_rate = m_link_conf.emu_frame_error_rate;
+      m_error_bit_generator = ErrorBitGenerator(m_frame_error_rate);
+      m_error_bit_generator.generate();
 
       m_is_configured = true;
     }
@@ -185,6 +191,19 @@ protected:
         // Fake timestamp
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
+        // Introducing frame errors
+        uint16_t frame_errs[rptr->frames_per_element];  // NOLINT(build/unsigned)
+        for (int i = 0; i < rptr->frames_per_element; ++i) {
+//          frame_errs[i] = m_error_bit_generator.next();
+          if (f_count % 99 == 0){
+            frame_errs[i] = 1;
+          } else {
+            frame_errs[i] = 0;
+          }
+          f_count++;
+        }
+        payload.fake_frame_errors(frame_errs);
+
         // queue in to actual DAQSink
         try {
           m_raw_data_sink->push(std::move(payload), m_sink_queue_timeout_ms);
@@ -207,6 +226,7 @@ protected:
   }
 
 private:
+  int f_count = 0;
   // Constuctor params
   std::atomic<bool>& m_run_marker;
 
@@ -216,6 +236,7 @@ private:
 
   uint64_t m_time_tick_diff; // NOLINT(build/unsigned)
   double m_dropout_rate;
+  double m_frame_error_rate;
 
   // STATS
   std::atomic<int> m_packet_count{ 0 };
@@ -236,6 +257,7 @@ private:
 
   std::unique_ptr<RateLimiter> m_rate_limiter;
   std::unique_ptr<FileSourceBuffer> m_file_source;
+  ErrorBitGenerator m_error_bit_generator;
 
   ReusableThread m_producer_thread;
 
@@ -244,8 +266,10 @@ private:
   double m_rate_khz;
 
   std::vector<bool> m_dropouts; // Random population
+  std::vector<bool> m_frame_errors;
 
   uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
+  uint m_frame_errors_length = 10000;
   dataformats::GeoID m_geoid;
 };
 
