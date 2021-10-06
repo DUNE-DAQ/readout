@@ -22,6 +22,7 @@
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -97,6 +98,7 @@ struct WIB_SUPERCHUNK_STRUCT
     return reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
   }
 
+  // RS -> WHY????
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
     reinterpret_cast<dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
@@ -113,11 +115,11 @@ struct WIB_SUPERCHUNK_STRUCT
     }
   }
 
-  void fake_frame_errors(uint16_t* fake_errors) // NOLINT(build/unsigned)
+  void fake_frame_errors(std::vector<uint16_t>* fake_errors) // NOLINT(build/unsigned)
   {
     auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
     for (int i = 0; i < frames_per_element; ++i) {
-      wf->set_wib_errors(fake_errors[i]);
+      wf->set_wib_errors((*fake_errors)[i]);
       wf++;
     }
   }
@@ -185,7 +187,7 @@ struct WIB2_SUPERCHUNK_STRUCT
     }
   }
 
-  void fake_frame_errors(uint16_t* /*fake_errors*/) // NOLINT
+  void fake_frame_errors(std::vector<uint16_t>* /*fake_errors*/) // NOLINT
   {
     // Set error bits in header
   }
@@ -252,7 +254,7 @@ struct DAPHNE_SUPERCHUNK_STRUCT
     }
   }
 
-  void fake_frame_errors(uint16_t* /*fake_errors*/) // NOLINT
+  void fake_frame_errors(std::vector<uint16_t>* /*fake_errors*/) // NOLINT
   {
     // Set frame error bits in header
   }

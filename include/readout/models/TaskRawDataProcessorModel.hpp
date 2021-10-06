@@ -26,6 +26,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
@@ -117,10 +118,20 @@ public:
     m_post_process_functions.push_back(std::forward<Task>(task));
   }
 
+  int t_count = 0;
   void invoke_all_preprocess_functions(ReadoutType* item)
   {
     for (auto&& task : m_preprocess_functions) {
-      task(item);
+      if (t_count < 100){
+        auto t1 = std::chrono::high_resolution_clock::now();
+        task(item);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        auto dur = std::chrono::duration_cast<std::chrono::microseconds>(t2-t1);
+        TLOG() << "preprocessing task execution time: " << dur.count();
+      } else {
+        task(item);
+      }
+      t_count++;
     }
   }
 

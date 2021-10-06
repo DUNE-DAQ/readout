@@ -33,6 +33,9 @@
 #include <utility>
 #include <vector>
 
+#include <chrono>
+#include "unistd.h"
+
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 
@@ -192,17 +195,17 @@ protected:
         payload.fake_timestamp(timestamp, m_time_tick_diff);
 
         // Introducing frame errors
-        uint16_t frame_errs[rptr->frames_per_element];  // NOLINT(build/unsigned)
-        for (int i = 0; i < rptr->frames_per_element; ++i) {
-//          frame_errs[i] = m_error_bit_generator.next();
-          if (f_count % 99 == 0){
-            frame_errs[i] = 1;
-          } else {
-            frame_errs[i] = 0;
-          }
-          f_count++;
+        std::vector<uint16_t> frame_errs;  // NOLINT(build/unsigned)
+        for (int i = 0; i < rptr->frames_per_element; ++i){
+          frame_errs.push_back(m_error_bit_generator.next());
+//          if (f_count % 100 == 0){
+//            frame_errs.push_back(1);
+//          } else {
+//            frame_errs.push_back(0);
+//          }
+//          f_count++;
         }
-        payload.fake_frame_errors(frame_errs);
+//        payload.fake_frame_errors(&frame_errs);
 
         // queue in to actual DAQSink
         try {

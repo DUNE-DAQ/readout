@@ -92,7 +92,6 @@ public:
 
   void start(const nlohmann::json& args) override
   {
-    TLOG() << "m_max_queued_errored_frames: " << m_max_queued_errored_frames;
     // Reset software TPG resources
     if (m_sw_tpg_enabled) {
       m_coll_taps = swtpg::firwin_int(7, 0.1, m_coll_multiplier);
@@ -292,7 +291,6 @@ public:
         std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
     }
 
-    TLOG() << "config.max_queued_errored_frames: " << config.max_queued_errored_frames;
     m_err_frame_map = std::make_unique<folly::AtomicHashMap<uint32_t, //NOLINT(build/unsigned)
     std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits);
     for (int i = 0; i < m_num_frame_error_bits; ++i) {
@@ -390,9 +388,14 @@ protected:
     if (!fp)
       return;
 
-    auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp)); // NOLINT
+//    auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp)); // NOLINT
     for (int i = 0; i < fp->frames_per_element; ++i) {
+      auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      if (wfh->wib_errors) {
+        m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
+      }
+
         m_current_frame_buffered = false;
         for (int j = 0; j < m_num_frame_error_bits; ++j) {
           if (wfh->wib_errors & (1 << j)){
@@ -406,7 +409,6 @@ protected:
             m_no_error_occurrence_counters[j] = 0;
             if (m_error_occurrence_counters[j] >= m_max_queued_errored_frames
             && m_run_buffering[j]){
-              TLOG() << "m_error_occurrence_counter is more than max queued errors which is: " << m_max_queued_errored_frames;
               m_run_buffering[j] = false;
               std::async(std::launch::async, BufferToQueue(), this, (1 << j));
             }
@@ -419,7 +421,7 @@ protected:
           }
         }
       }
-      wf++;
+//      wf++;
     }
   }
 
@@ -616,7 +618,6 @@ protected:
   }
 
 private:
-  int BTQ_count = 0;
   struct BufferToQueue
   {
     void operator()(WIBFrameProcessor* wfp, int map_index)
@@ -624,7 +625,6 @@ private:
       int counter_index = __builtin_ctz(map_index);
       if (!wfp || map_index > wfp->m_num_frame_error_bits)
         return;
-      TLOG() << "BTQ_count is: " << wfp->BTQ_count;
       int num_buffered_frames = (wfp->m_error_occurrence_counters[counter_index] < 100 ?
           wfp->m_error_occurrence_counters[counter_index] : 100);
       wfp->m_error_occurrence_counters[counter_index] = wfp->m_max_queued_errored_frames;

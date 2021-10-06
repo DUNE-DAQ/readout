@@ -34,8 +34,8 @@ public:
   {
     if (packet.get_wib_header()->wib_errors){
       m_error_count += std::bitset<16>(packet.get_wib_header()->wib_errors).count();
-      TLOG() << "ErrorFrameConsumer recieved errors: " << std::bitset<16>(packet.get_wib_header()->wib_errors)
-          << " Total number of errors are: " << m_error_count;
+//      TLOG() << "bitset: " << std::bitset<16>(packet.get_wib_header()->wib_errors)
+//          << " error count: " << m_error_count;
     }
   }
 private:
