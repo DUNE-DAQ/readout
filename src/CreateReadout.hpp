@@ -23,10 +23,11 @@
 
 #include "daphne/DAPHNEFrameProcessor.hpp"
 #include "daphne/DAPHNEListRequestHandler.hpp"
-#include "pacman/PACMANFrameProcessor.hpp"
-#include "pacman/PACMANListRequestHandler.hpp"
+//#include "pacman/PACMANFrameProcessor.hpp"
+//#include "pacman/PACMANListRequestHandler.hpp"
 #include "wib/WIBFrameProcessor.hpp"
-#include "wib/WIBTriggerPrimitiveProcessor.hpp"
+#include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
+#include "wib/RAWWIBTriggerPrimitiveProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
@@ -100,17 +101,29 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
-      if (inst.find("tp") != std::string::npos) {
-        TLOG(TLVL_WORK_STEPS) << "Creating readout for tp";
+      if (inst.find("sw_tp") != std::string::npos) {
+        TLOG(TLVL_WORK_STEPS) << "Creating readout for sw tp";
         auto readout_model = std::make_unique<ReadoutModel<
-          types::RAW_WIB_TP_TYPE,
-          EmptyFragmentRequestHandlerModel<types::RAW_WIB_TP_TYPE, BinarySearchQueueModel<types::RAW_WIB_TP_TYPE>>,
-          BinarySearchQueueModel<types::RAW_WIB_TP_TYPE>,
-          WIBTriggerPrimitiveProcessor>>(run_marker);
+          types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
+          EmptyFragmentRequestHandlerModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT, BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+          BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+          SWWIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }
 
+      if (inst.find("raw_tp") != std::string::npos) {
+        TLOG(TLVL_WORK_STEPS) << "Creating readout for raw tp";
+        auto readout_model = std::make_unique<ReadoutModel<
+            types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT,
+            EmptyFragmentRequestHandlerModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT, BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+            BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+            RAWWIBTriggerPrimitiveProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      /*
       // IF ND LAr PACMAN
       if (inst.find("pacman") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pacman";
@@ -121,6 +134,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         readout_model->init(args);
         return std::move(readout_model);
       }
+       */
 
       // IF variadic
       if (inst.find("varsize") != std::string::npos) {

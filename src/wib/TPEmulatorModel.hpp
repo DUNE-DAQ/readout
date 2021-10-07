@@ -43,7 +43,7 @@ namespace readout {
 class TPEmulatorModel : public SourceEmulatorConcept
 {
 public:
-  using sink_t = appfwk::DAQSink<types::RAW_WIB_TP_TYPE>;
+  using sink_t = appfwk::DAQSink<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>;
 
   // Very bad, use these from readout types, when RAW_WIB_TP is introduced
   static const constexpr std::size_t WIB_FRAME_SIZE = 464;
@@ -162,19 +162,19 @@ protected:
       }
 
       // Create next TP frame
-      types::RAW_WIB_TP_TYPE payload_type_ptr;
-      dunedaq::dataformats::RawWIBTp* payload_ptr = &(payload_type_ptr.rwtp);
-      ::memcpy(static_cast<void*>(&payload_ptr->m_head),
+      types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT payload_wrapper;
+      payload_wrapper.rwtp.reset(new types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT::FrameType());
+      ::memcpy(static_cast<void*>(&payload_wrapper.rwtp->m_head),
                static_cast<void*>(source.data() + offset),
-               payload_ptr->get_header_size());
-      int nhits = payload_ptr->get_nhits();
-      uint16_t padding = payload_ptr->get_padding_3(); // NOLINT
+               payload_wrapper.rwtp->get_header_size());
+      int nhits = payload_wrapper.rwtp->get_nhits();
+      uint16_t padding = payload_wrapper.rwtp->get_padding_3(); // NOLINT
 
       if (padding == 48879) { // padding hex is BEEF, new format
-        payload_ptr->set_nhits(nhits);
-        ::memcpy(static_cast<void*>(payload_ptr),
+        payload_wrapper.rwtp->set_nhits(nhits);
+        ::memcpy(static_cast<void*>(payload_wrapper.rwtp.get()),
                  static_cast<void*>(source.data() + offset),
-                 payload_ptr->get_frame_size());
+                 payload_wrapper.rwtp->get_frame_size());
       } else { // old TP format
         // Count number of subframes in a TP frame
         int n = 1;
@@ -203,21 +203,21 @@ protected:
                  m_nhits*RAW_WIB_TP_SUBFRAME_SIZE);
 
         // copy old frame to new frame 
-        payload_ptr->set_nhits(m_nhits); // reserve space
-        ::memcpy(static_cast<void*>(payload_ptr),
+        payload_wrapper.rwtp->set_nhits(m_nhits); // reserve space
+        ::memcpy(static_cast<void*>(payload_wrapper.rwtp.get()),
                  static_cast<void*>(tmpbuffer.data()),
-                 payload_ptr->get_frame_size());
+                 payload_wrapper.rwtp->get_frame_size());
 
         // old format lacks number of hits
-        payload_ptr->set_nhits(m_nhits); // explicitly set number of hits in new format
+        payload_wrapper.rwtp->set_nhits(m_nhits); // explicitly set number of hits in new format
       }
-      nhits = payload_ptr->get_nhits(); // NOLINT
+      nhits = payload_wrapper.rwtp->get_nhits(); // NOLINT
     
-      offset += payload_ptr->get_frame_size();
+      offset += payload_wrapper.rwtp->get_frame_size();
 
       // queue in to actual DAQSink
       try {
-        m_raw_data_sink->push(payload_type_ptr, m_sink_queue_timeout_ms);
+        m_raw_data_sink->push(std::move(payload_wrapper), m_sink_queue_timeout_ms);
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // std::runtime_error("Queue timed out...");
       }
@@ -250,7 +250,7 @@ private:
 
   // RAW SINK
   std::chrono::milliseconds m_sink_queue_timeout_ms;
-  using raw_sink_qt = appfwk::DAQSink<types::RAW_WIB_TP_TYPE>;
+  using raw_sink_qt = appfwk::DAQSink<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>;
   std::unique_ptr<raw_sink_qt> m_raw_data_sink;
 
   bool m_sink_is_set = false;

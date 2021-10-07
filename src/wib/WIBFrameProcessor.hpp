@@ -236,7 +236,7 @@ public:
     try {
       auto queue_index = appfwk::queue_index(args, {});
       if (queue_index.find("tp_out") != queue_index.end()) {
-        m_tp_sink.reset(new appfwk::DAQSink<types::TP_READOUT_TYPE>(queue_index["tp_out"].inst));
+        m_tp_sink.reset(new appfwk::DAQSink<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>(queue_index["tp_out"].inst));
       }
       if (queue_index.find("tpset_out") != queue_index.end()) {
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
@@ -318,7 +318,7 @@ protected:
 
   void postprocess_example(const types::WIB_SUPERCHUNK_STRUCT* fp)
   {
-    TLOG() << "Postprocessing: " << fp->get_timestamp();
+    TLOG() << "Postprocessing: " << fp->get_first_timestamp();
   }
 
   /**
@@ -529,7 +529,7 @@ protected:
 
       while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
         triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
-        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp); // NOLINT
+        types::SW_WIB_TRIGGERPRIMITIVE_STRUCT* tp_readout_type = reinterpret_cast<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT*>(&tp); // NOLINT
         try {
           m_tp_sink->push(*tp_readout_type);
         } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
@@ -625,7 +625,7 @@ private:
   int16_t* m_ind_taps_p;
   std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
-  std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
+  std::unique_ptr<appfwk::DAQSink<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
 
   class Comparator

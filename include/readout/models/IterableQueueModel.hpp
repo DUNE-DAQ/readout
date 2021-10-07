@@ -223,9 +223,27 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     alignment_size_ = alignment_size;
   }
 
-  bool put(T& record) { return write_(record); }
+  //bool put(T& record) { return write(record); }
 
-  bool write(T&& record) override { return write_(std::move(record)); }
+  bool write(T&& record) override
+  {
+    auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+    auto nextRecord = currentWrite + 1;
+    if (nextRecord == size_) {
+      nextRecord = 0;
+    }
+
+    if (nextRecord != readIndex_.load(std::memory_order_acquire)) {
+      records_[currentWrite] = std::move(record);
+      writeIndex_.store(nextRecord, std::memory_order_release);
+      return true;
+    }
+    // queue is full
+
+    ++overflow_ctr;
+
+    return false;
+  }
 
   // move (or copy) the value at the front of the queue to given variable
   bool read(T& record) override
@@ -409,9 +427,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
 
     if (conf.latency_buffer_preallocation) {
-      T element;
       for (size_t i = 0; i < size_ - 1; ++i) {
-        write_(element);
+        T element;
+        write_(std::move(element));
       }
       flush();
     }
