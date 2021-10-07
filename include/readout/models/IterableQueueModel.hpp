@@ -234,7 +234,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
 
     if (nextRecord != readIndex_.load(std::memory_order_acquire)) {
-      records_[currentWrite] = std::move(record);
+      new (&records_[currentWrite]) T(std::move(record));
       writeIndex_.store(nextRecord, std::memory_order_release);
       return true;
     }
