@@ -318,7 +318,7 @@ protected:
 
   void postprocess_example(const types::WIB_SUPERCHUNK_STRUCT* fp)
   {
-    TLOG() << "Postprocessing: " << fp->get_timestamp();
+    TLOG() << "Postprocessing: " << fp->get_first_timestamp();
   }
 
   /**

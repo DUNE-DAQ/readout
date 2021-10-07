@@ -23,8 +23,8 @@
 
 #include "daphne/DAPHNEFrameProcessor.hpp"
 #include "daphne/DAPHNEListRequestHandler.hpp"
-#include "pacman/PACMANFrameProcessor.hpp"
-#include "pacman/PACMANListRequestHandler.hpp"
+//#include "pacman/PACMANFrameProcessor.hpp"
+//#include "pacman/PACMANListRequestHandler.hpp"
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib/WIBTriggerPrimitiveProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
@@ -111,6 +111,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
+      /*
       // IF ND LAr PACMAN
       if (inst.find("pacman") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pacman";
@@ -121,6 +122,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         readout_model->init(args);
         return std::move(readout_model);
       }
+       */
 
       // IF variadic
       if (inst.find("varsize") != std::string::npos) {
