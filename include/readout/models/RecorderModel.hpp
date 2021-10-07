@@ -10,7 +10,6 @@
 
 #include "appfwk/DAQModuleHelper.hpp"
 #include "appfwk/DAQSource.hpp"
-#include "toolbox/ThreadHelper.hpp"
 #include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
@@ -20,6 +19,7 @@
 #include "readout/datarecorderinfo/InfoStructs.hpp"
 #include "toolbox/BufferedFileWriter.hpp"
 #include "toolbox/ReusableThread.hpp"
+#include "toolbox/ThreadHelper.hpp"
 
 #include <atomic>
 #include <fstream>

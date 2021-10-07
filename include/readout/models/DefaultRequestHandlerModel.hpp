@@ -36,13 +36,13 @@
 #include <future>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <memory>
 #include <queue>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-#include <map>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -364,8 +364,8 @@ protected:
     fh.size = sizeof(fh);
     fh.trigger_number = dr.trigger_number;
     fh.trigger_timestamp = dr.trigger_timestamp;
-    fh.window_begin = dr.window_begin;
-    fh.window_end = dr.window_end;
+    fh.window_begin = dr.request_information.window_begin;
+    fh.window_end = dr.request_information.window_end;
     fh.run_number = dr.run_number;
     fh.sequence_number = dr.sequence_number;
     fh.element_id = { m_geoid.system_type, m_geoid.region_id, m_geoid.element_id };
@@ -445,7 +445,7 @@ protected:
 
         size_t size = m_waiting_requests.size();
         for (size_t i = 0; i < size;) {
-          if (m_waiting_requests[i].request.window_end < newest_ts) {
+          if (m_waiting_requests[i].request.request_information.window_end < newest_ts) {
             issue_request(m_waiting_requests[i].request, *(m_waiting_requests[i].fragment_sink));
             std::swap(m_waiting_requests[i], m_waiting_requests.back());
             m_waiting_requests.pop_back();
@@ -514,8 +514,8 @@ protected:
       uint64_t last_ts = front_frame->get_timestamp();  // NOLINT(build/unsigned)
       uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
 
-      uint64_t start_win_ts = dr.window_begin; // NOLINT(build/unsigned)
-      uint64_t end_win_ts = dr.window_end;     // NOLINT(build/unsigned)
+      uint64_t start_win_ts = dr.request_information.window_begin; // NOLINT(build/unsigned)
+      uint64_t end_win_ts = dr.request_information.window_end;     // NOLINT(build/unsigned)
       TLOG_DEBUG(TLVL_WORK_STEPS) << "Data request for "
                                   << "Trigger TS=" << dr.trigger_timestamp << " "
                                   << "Oldest stored TS=" << last_ts << " "

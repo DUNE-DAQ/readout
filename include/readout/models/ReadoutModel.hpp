@@ -279,11 +279,12 @@ private:
             dr.trigger_timestamp = timesyncmsg.daq_time > 500 * us ? timesyncmsg.daq_time - 500 * us : 0;
             auto width = 300000;
             uint offset = 100;
-            dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
-            dr.window_end = dr.window_begin + width;
+            dr.request_information.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
+            dr.request_information.window_end = dr.request_information.window_begin + width;
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
-                                        << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
-                                        << " window_end=" << dr.window_end;
+                                        << " ts=" << dr.trigger_timestamp
+                                        << " window_begin=" << dr.request_information.window_begin
+                                        << " window_end=" << dr.request_information.window_end;
             for (size_t i = 0; i < m_data_response_queues.size(); ++i) {
               m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
             }
