@@ -287,13 +287,13 @@ static_assert(sizeof(struct DAPHNE_SUPERCHUNK_STRUCT) == DAPHNE_SUPERCHUNK_SIZE,
               "Check your assumptions on DAPHNE_SUPERCHUNK_STRUCT");
 
 const constexpr std::size_t TP_SIZE = sizeof(triggeralgs::TriggerPrimitive);
-struct TP_READOUT_TYPE
+struct SW_WIB_TRIGGERPRIMITIVE_STRUCT
 {
-  using FrameType = TP_READOUT_TYPE;
+  using FrameType = SW_WIB_TRIGGERPRIMITIVE_STRUCT;
   // data
   triggeralgs::TriggerPrimitive tp;
   // comparable based on start timestamp
-  bool operator<(const TP_READOUT_TYPE& other) const { return this->tp.time_start < other.tp.time_start; }
+  bool operator<(const SW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->tp.time_start < other.tp.time_start; }
 
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
@@ -336,7 +336,7 @@ struct TP_READOUT_TYPE
   static const constexpr uint64_t expected_tick_difference = 25; // NOLINT(build/unsigned)
 };
 
-static_assert(sizeof(struct TP_READOUT_TYPE) == sizeof(triggeralgs::TriggerPrimitive),
+static_assert(sizeof(struct SW_WIB_TRIGGERPRIMITIVE_STRUCT) == sizeof(triggeralgs::TriggerPrimitive),
               "Check your assumptions on TP_READOUT_TYPE");
 
 /**
