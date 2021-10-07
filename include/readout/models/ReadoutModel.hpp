@@ -29,8 +29,8 @@
 
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
-#include "readout/datalinkhandler/Nljs.hpp"
-#include "readout/datalinkhandlerinfo/InfoNljs.hpp"
+#include "readout/readoutconfig/Nljs.hpp"
+#include "readout/readoutinfo/InfoNljs.hpp"
 
 #include "readout/FrameErrorRegistry.hpp"
 
@@ -72,7 +72,6 @@ public:
     , m_consumer_thread(0)
     , m_source_queue_timeout_ms(0)
     , m_raw_data_source(nullptr)
-    , m_latency_buffer_size(0)
     , m_latency_buffer_impl(nullptr)
     , m_raw_processor_impl(nullptr)
     , m_requester_thread(0)
@@ -103,18 +102,17 @@ public:
 
   void conf(const nlohmann::json& args)
   {
-    auto conf = args.get<datalinkhandler::Conf>();
+    auto conf = args["readoutmodelconf"].get<readoutconfig::ReadoutModelConf>();
     if (conf.fake_trigger_flag == 0) {
       m_fake_trigger = false;
     } else {
       m_fake_trigger = true;
     }
-    m_latency_buffer_size = conf.latency_buffer_size;
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
     TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
-    m_geoid.element_id = conf.link_number;
-    m_geoid.region_id = conf.apa_number;
+    m_geoid.element_id = conf.element_id;
+    m_geoid.region_id = conf.region_id;
     m_geoid.system_type = ReadoutType::system_type;
 
     // Configure implementations:
@@ -128,9 +126,9 @@ public:
     }
 
     // Configure threads:
-    m_consumer_thread.set_name("consumer", conf.link_number);
-    m_timesync_thread.set_name("timesync", conf.link_number);
-    m_requester_thread.set_name("requests", conf.link_number);
+    m_consumer_thread.set_name("consumer", conf.element_id);
+    m_timesync_thread.set_name("timesync", conf.element_id);
+    m_requester_thread.set_name("requests", conf.element_id);
   }
 
   void start(const nlohmann::json& args)
@@ -178,15 +176,15 @@ public:
 
   void record(const nlohmann::json& args) override { m_request_handler_impl->record(args); }
 
-  void get_info(opmonlib::InfoCollector& ci, int /*level*/)
+  void get_info(opmonlib::InfoCollector& ci, int level)
   {
-    datalinkhandlerinfo::Info dli;
-    dli.sum_payloads = m_sum_payloads.load();
-    dli.num_payloads = m_num_payloads.exchange(0);
-    dli.sum_requests = m_sum_requests.load();
-    dli.num_requests = m_num_requests.exchange(0);
-    dli.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
-    dli.num_buffer_elements = m_latency_buffer_impl->occupancy();
+    readoutinfo::ReadoutInfo ri;
+    ri.sum_payloads = m_sum_payloads.load();
+    ri.num_payloads = m_num_payloads.exchange(0);
+    ri.sum_requests = m_sum_requests.load();
+    ri.num_requests = m_num_requests.exchange(0);
+    ri.num_payloads_overwritten = m_num_payloads_overwritten.exchange(0);
+    ri.num_buffer_elements = m_latency_buffer_impl->occupancy();
 
     auto now = std::chrono::high_resolution_clock::now();
     int new_packets = m_stats_packet_count.exchange(0);
@@ -199,13 +197,13 @@ public:
     }
     m_t0 = now;
 
-    dli.rate_payloads_consumed = new_packets / seconds / 1000.;
-    dli.num_raw_queue_timeouts = rawq_timeouts;
+    ri.rate_payloads_consumed = new_packets / seconds / 1000.;
+    ri.num_raw_queue_timeouts = rawq_timeouts;
 
-    m_request_handler_impl->get_info(dli);
-    m_raw_processor_impl->get_info(dli);
+    ci.add(ri);
 
-    ci.add(dli);
+    m_request_handler_impl->get_info(ci, level);
+    m_raw_processor_impl->get_info(ci, level);
   }
 
 private:
@@ -383,7 +381,6 @@ private:
   std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
 
   // LATENCY BUFFER:
-  size_t m_latency_buffer_size;
   std::unique_ptr<LatencyBufferType> m_latency_buffer_impl;
 
   // RAW PROCESSING:

@@ -9,8 +9,8 @@ moo.otypes.load_types('cmdlib/cmd.jsonnet')
 moo.otypes.load_types('rcif/cmd.jsonnet')
 moo.otypes.load_types('appfwk/cmd.jsonnet')
 moo.otypes.load_types('appfwk/app.jsonnet')
-moo.otypes.load_types('readout/fakecardreader.jsonnet')
-moo.otypes.load_types('readout/datalinkhandler.jsonnet')
+moo.otypes.load_types('readout/sourceemulatorconfig.jsonnet')
+moo.otypes.load_types('readout/readoutconfig.jsonnet')
 moo.otypes.load_types('readout/datarecorder.jsonnet')
 moo.otypes.load_types('nwqueueadapters/queuetonetwork.jsonnet')
 moo.otypes.load_types('nwqueueadapters/networkobjectsender.jsonnet')
@@ -20,8 +20,8 @@ import dunedaq.cmdlib.cmd as basecmd # AddressedCmd,
 import dunedaq.rcif.cmd as rccmd # AddressedCmd, 
 import dunedaq.appfwk.app as app # AddressedCmd, 
 import dunedaq.appfwk.cmd as cmd # AddressedCmd, 
-import dunedaq.readout.fakecardreader as fcr
-import dunedaq.readout.datalinkhandler as dlh
+import dunedaq.readout.sourceemulatorconfig as sec
+import dunedaq.readout.readoutconfig as rconf
 import dunedaq.readout.datarecorder as bfs
 import dunedaq.nwqueueadapters.queuetonetwork as qton
 import dunedaq.nwqueueadapters.networkobjectsender as nos
@@ -127,17 +127,16 @@ def generate(
         data=init_specs
     )
 
-
     confcmd = mrccmd("conf", "INITIAL", "CONFIGURED", [
-                ("fake_source",fcr.Conf(
-                            link_confs=[fcr.LinkConfiguration(
-                                geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                ("fake_source",sec.Conf(
+                            link_confs=[sec.LinkConfiguration(
+                                geoid=sec.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
                                 data_filename=DATA_FILE
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS)]
-                            + [fcr.LinkConfiguration(
-                                geoid=fcr.GeoID(system="TPC", region=0, element=idx),
+                            + [sec.LinkConfiguration(
+                                geoid=sec.GeoID(system="TPC", region=0, element=idx),
                                 slowdown=DATA_RATE_SLOWDOWN_FACTOR,
                                 queue_name=f"output_{idx}",
                             ) for idx in range(NUMBER_OF_DATA_PRODUCERS, NUMBER_OF_DATA_PRODUCERS+NUMBER_OF_TP_PRODUCERS)],
@@ -146,30 +145,63 @@ def generate(
 			                set_t0_to = 0
                         )),
             ] + [
-                (f"datahandler_{idx}", dlh.Conf(
-                        source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
-                        fake_trigger_flag=1,
-                        latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
-                        pop_limit_pct = 0.8,
-                        pop_size_pct = 0.1,
-                        apa_number = 0,
-                        link_number = idx,
-                        enable_software_tpg = ENABLE_SOFTWARE_TPG,
-                        output_file = f"/mnt/md0/output_{idx}.out",
-                        stream_buffer_size = 8388608,
-                        enable_raw_recording = True
+                (f"datahandler_{idx}", rconf.Conf(
+                        readoutmodelconf= rconf.ReadoutModelConf(
+                            source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
+                            fake_trigger_flag=1,
+                            region_id = 0,
+                            element_id = idx,
+                        ),
+                        latencybufferconf= rconf.LatencyBufferConf(
+                            latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
+                            region_id = 0,
+                            element_id = idx,
+                        ),
+                        rawdataprocessorconf= rconf.RawDataProcessorConf(
+                            region_id = 0,
+                            element_id = idx,
+                            enable_software_tpg = ENABLE_SOFTWARE_TPG,
+                        ),
+                        requesthandlerconf= rconf.RequestHandlerConf(
+                            latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
+                            pop_limit_pct = 0.8,
+                            pop_size_pct = 0.1,
+                            region_id = 0,
+                            element_id = idx,
+                            output_file = f"output_{idx}.out",
+                            stream_buffer_size = 8388608,
+                            enable_raw_recording = True
+                        )
                         )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
-                (f"tp_handler_{idx}", dlh.Conf(
+                (f"tp_handler_{idx}", rconf.Conf(
+                    readoutmodelconf= rconf.ReadoutModelConf(
                         source_queue_timeout_ms= QUEUE_POP_WAIT_MS,
                         fake_trigger_flag=1,
+                        region_id = 0,
+                        element_id = idx,
+                    ),
+                    latencybufferconf= rconf.LatencyBufferConf(
+                        latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
+                        region_id = 0,
+                        element_id = idx,
+                    ),
+                    rawdataprocessorconf= rconf.RawDataProcessorConf(
+                        region_id = 0,
+                        element_id = idx,
+                        enable_software_tpg = ENABLE_SOFTWARE_TPG,
+                    ),
+                    requesthandlerconf= rconf.RequestHandlerConf(
                         latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),
                         pop_limit_pct = 0.8,
                         pop_size_pct = 0.1,
-                        apa_number = 0,
-                        link_number = 0,
+                        region_id = 0,
+                        element_id = idx,
+                        output_file = f"output_{idx}.out",
+                        stream_buffer_size = 8388608,
                         enable_raw_recording = False
-                        )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
+                    )
+                )) for idx in range(NUMBER_OF_DATA_PRODUCERS)
             ] + [
                 (f"tpset_publisher_{idx}", qton.Conf(msg_type="dunedaq::trigger::TPSet",
                            msg_module_name="TPSetNQ",
@@ -223,7 +255,7 @@ def generate(
     cmd_seq = [initcmd, confcmd, startcmd, stopcmd, scrapcmd]
 
     record_cmd = mrccmd("record", "RUNNING", "RUNNING", [
-        ("datahandler_.*", dlh.RecordingParams(
+        ("datahandler_.*", rconf.RecordingParams(
             duration=10
         ))
     ])

@@ -8,8 +8,7 @@
 #ifndef READOUT_INCLUDE_READOUT_CONCEPTS_RAWDATAPROCESSORCONCEPT_HPP_
 #define READOUT_INCLUDE_READOUT_CONCEPTS_RAWDATAPROCESSORCONCEPT_HPP_
 
-#include "readout/datalinkhandler/Structs.hpp"
-#include "readout/datalinkhandlerinfo/InfoStructs.hpp"
+#include "opmonlib/InfoCollector.hpp"
 #include <nlohmann/json.hpp>
 
 #include <string>
@@ -40,7 +39,7 @@ public:
   //! Set the emulator mode, if active, timestamps of processed packets are overwritten with new ones
   virtual void conf(const nlohmann::json& cfg) = 0;
   //! Get info from the raw processor
-  virtual void get_info(datalinkhandlerinfo::Info& info) = 0;
+  virtual void get_info(opmonlib::InfoCollector& ci, int level) = 0;
   //! Get newest timestamp of last seen packet
   virtual std::uint64_t get_last_daq_time() = 0; // NOLINT(build/unsigned)
   //! Preprocess one element

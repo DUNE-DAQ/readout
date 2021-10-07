@@ -16,7 +16,7 @@
 // package
 #include "readout/ReadoutTypes.hpp"
 #include "readout/concepts/SourceEmulatorConcept.hpp"
-#include "readout/fakecardreader/Structs.hpp"
+#include "readout/sourceemulatorconfig/Structs.hpp"
 #include "toolbox/ReusableThread.hpp"
 //#include "CreateSourceEmulator.hpp"
 #include "toolbox/FileSourceBuffer.hpp"
@@ -66,7 +66,7 @@ private:
 
   // Configuration
   bool m_configured;
-  using module_conf_t = fakecardreader::Conf;
+  using module_conf_t = sourceemulatorconfig::Conf;
   module_conf_t m_cfg;
 
   std::map<std::string, std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
@@ -81,9 +81,6 @@ private:
   // Threading
   std::atomic<bool> m_run_marker;
 
-  // Opmon
-  std::atomic<int> m_packet_count{ 0 };
-  std::atomic<int> m_packet_count_tot{ 0 };
 };
 
 } // namespace readout
