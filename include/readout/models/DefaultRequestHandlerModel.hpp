@@ -222,7 +222,7 @@ public:
 
             for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
               if ((*chunk_iter).get_first_timestamp() >= m_next_timestamp_to_record) {
-                if (!m_buffered_writer.write(*chunk_iter)) {
+                if (!m_buffered_writer.write(reinterpret_cast<char*>(chunk_iter->begin()), chunk_iter->get_payload_size())) {
                   ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
                 }
                 m_payloads_written++;
@@ -621,7 +621,7 @@ protected:
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
   // Data recording
-  BufferedFileWriter<ReadoutType> m_buffered_writer;
+  BufferedFileWriter<> m_buffered_writer;
   ReusableThread m_recording_thread;
 
   ReusableThread m_cleanup_thread;
