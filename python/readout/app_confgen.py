@@ -173,7 +173,6 @@ def generate(
                             element_id = idx,
                             enable_software_tpg = ENABLE_SOFTWARE_TPG,
                             max_queued_errored_frames = 100,
-                            num_error_reset = 100,
                         ),
                         requesthandlerconf= rconf.RequestHandlerConf(
                             latency_buffer_size = 3*CLOCK_SPEED_HZ/(25*12*DATA_RATE_SLOWDOWN_FACTOR),

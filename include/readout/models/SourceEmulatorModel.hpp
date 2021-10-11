@@ -198,14 +198,8 @@ protected:
         std::vector<uint16_t> frame_errs;  // NOLINT(build/unsigned)
         for (int i = 0; i < rptr->frames_per_element; ++i){
           frame_errs.push_back(m_error_bit_generator.next());
-//          if (f_count % 100 == 0){
-//            frame_errs.push_back(1);
-//          } else {
-//            frame_errs.push_back(0);
-//          }
-//          f_count++;
         }
-//        payload.fake_frame_errors(&frame_errs);
+        payload.fake_frame_errors(&frame_errs);
 
         // queue in to actual DAQSink
         try {
@@ -229,7 +223,6 @@ protected:
   }
 
 private:
-  int f_count = 0;
   // Constuctor params
   std::atomic<bool>& m_run_marker;
 

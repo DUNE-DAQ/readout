@@ -107,11 +107,12 @@ struct WIB_SUPERCHUNK_STRUCT
   void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
     for (unsigned int i = 0; i < 12; ++i) {
-      auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data)) + i * 464); // NOLINT
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
       wfh->set_timestamp(ts_next);
       ts_next += offset;
+      wf++;
     }
   }
 
