@@ -23,7 +23,6 @@
 #include "readout/utils/ErrorBitGenerator.hpp"
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
-
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -32,7 +31,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
 #include "unistd.h"
 #include <chrono>
 
@@ -196,7 +194,7 @@ protected:
 
         // Introducing frame errors
         std::vector<uint16_t> frame_errs; // NOLINT(build/unsigned)
-        for (int i = 0; i < rptr->get_num_frames(); ++i) {
+        for (size_t i = 0; i < rptr->get_num_frames(); ++i) {
           frame_errs.push_back(m_error_bit_generator.next());
         }
         payload.fake_frame_errors(&frame_errs);

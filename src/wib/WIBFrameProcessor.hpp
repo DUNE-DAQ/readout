@@ -287,13 +287,6 @@ public:
         std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
     }
 
-    m_err_frame_map =
-      std::make_unique<folly::AtomicHashMap<uint32_t, // NOLINT(build/unsigned)
-                                            std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits);
-    for (int i = 0; i < m_num_frame_error_bits; ++i) {
-      m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_error_counter_threshold));
-    }
-
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
   }
 
@@ -628,9 +621,6 @@ private:
   uint32_t m_offline_channel_base_induction; // NOLINT(build/unsigned)
 
   // Frame error check
-  std::unique_ptr<folly::AtomicHashMap<uint32_t, // NOLINT(build/unsigned)
-                                       std::unique_ptr<dataformats::WIBFrame[]>>>
-    m_err_frame_map;
   bool m_current_frame_pushed = false;
   int m_error_counter_threshold;
   const int m_num_frame_error_bits = 16;
