@@ -302,7 +302,8 @@ def generate(
                         region_id=0,
                         element_id=idx,
                         enable_software_tpg=ENABLE_SOFTWARE_TPG,
-                        max_queued_errored_frames=100,
+                        error_counter_threshold=100,
+                        error_reset_freq=10000,
                     ),
                     requesthandlerconf=rconf.RequestHandlerConf(
                         latency_buffer_size=3

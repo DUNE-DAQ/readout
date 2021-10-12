@@ -169,6 +169,8 @@ public:
     m_new_hits = 0;
     m_new_tps = 0;
     m_coll_hits_count.exchange(0);
+    m_frame_error_count = 0;
+    m_frames_processed = 0;
 
     inherited::start(args);
   }
@@ -255,7 +257,8 @@ public:
     m_geoid.element_id = config.element_id;
     m_geoid.region_id = config.region_id;
     m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
-    m_max_queued_errored_frames = config.max_queued_errored_frames;
+    m_error_counter_threshold = config.error_counter_threshold;
+    m_error_reset_freq = config.error_reset_freq;
 
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
@@ -288,7 +291,7 @@ public:
     m_err_frame_map = std::make_unique<folly::AtomicHashMap<uint32_t, //NOLINT(build/unsigned)
     std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits);
     for (int i = 0; i < m_num_frame_error_bits; ++i) {
-      m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_max_queued_errored_frames));
+      m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_error_counter_threshold));
     }
 
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::conf(cfg);
@@ -303,6 +306,7 @@ public:
       info.num_tpsets_sent = m_tphandler->get_and_reset_num_sent_tpsets();
       info.num_tps_dropped = m_tps_dropped.exchange(0);
     }
+    info.num_frame_errors = m_frame_error_count.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     if (m_sw_tpg_enabled) {
@@ -385,7 +389,14 @@ protected:
       return;
 
     auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp)); // NOLINT
-    for (int i = 0; i < fp->get_num_frames(); ++i) {
+    for (size_t i = 0; i < fp->get_num_frames(); ++i) {
+      if (m_frames_processed % 10000 == 0) {
+        for (int i = 0; i < m_num_frame_error_bits; ++i) {
+          if (m_error_occurrence_counters[i])
+            m_error_occurrence_counters[i]--;
+        }
+      }
+
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
       if (wfh->wib_errors) {
         m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
@@ -394,17 +405,21 @@ protected:
       m_current_frame_pushed = false;
       for (int j = 0; j < m_num_frame_error_bits; ++j) {
         if (wfh->wib_errors & (1 << j)){
-          m_error_occurrence_counters[j]++;
-          if (m_error_occurrence_counters[j] > m_max_queued_errored_frames) {
-            if (m_error_occurrence_counters[j] % 10000 == 0)
-              m_err_frame_sink->push(*wf);
-          } else if (m_current_frame_pushed) {
-            m_err_frame_sink->push(*wf);
-            m_current_frame_pushed = true;
+          if (m_error_occurrence_counters[j] < m_error_counter_threshold) {
+            m_error_occurrence_counters[j]++;
+            if (!m_current_frame_pushed) {
+              try {
+                m_err_frame_sink->push(*wf);
+                m_current_frame_pushed = true;
+              } catch (const ers::Issue& excpt) {
+                ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "Errored frame queue", excpt));
+              }
+            }
           }
         }
       }
     wf++;
+    m_frames_processed++;
     }
   }
 
@@ -616,9 +631,10 @@ private:
   std::unique_ptr<folly::AtomicHashMap<uint32_t, // NOLINT(build/unsigned)
   std::unique_ptr<dataformats::WIBFrame[]>>> m_err_frame_map;
   bool m_current_frame_pushed = false;
-  int m_max_queued_errored_frames;
+  int m_error_counter_threshold;
   const int m_num_frame_error_bits = 16;
   int m_error_occurrence_counters[16] = { 0 };
+  int m_error_reset_freq;
 
   // Collection
   const uint16_t m_coll_threshold = 5;                    // units of sigma // NOLINT(build/unsigned)
@@ -650,6 +666,7 @@ private:
   std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_frame_error_count{ 0 }; // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_frames_processed{ 0 };   // NOLINT(build/unsigned)
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
