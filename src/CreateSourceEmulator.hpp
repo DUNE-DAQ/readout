@@ -54,7 +54,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
 
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB2_SUPERCHUNK_STRUCT>>(
       qi.name, run_marker, wib2_time_tick_diff, wib2_dropout_rate, emu_frame_error_rate, wib2_rate_khz);
-    return std::move(source_emu_model);
+    return source_emu_model;
   }
 
   // IF WIB
@@ -62,7 +62,7 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake wib link";
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::WIB_SUPERCHUNK_STRUCT>>(
       qi.name, run_marker, wib_time_tick_diff, wib_dropout_rate, emu_frame_error_rate, wib_rate_khz);
-    return std::move(source_emu_model);
+    return source_emu_model;
   }
 
   // IF PDS
@@ -70,14 +70,14 @@ createSourceEmulator(const appfwk::app::QueueInfo qi, std::atomic<bool>& run_mar
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake pds link";
     auto source_emu_model = std::make_unique<SourceEmulatorModel<types::DAPHNE_SUPERCHUNK_STRUCT>>(
       qi.name, run_marker, daphne_time_tick_diff, daphne_dropout_rate, emu_frame_error_rate, daphne_rate_khz);
-    return std::move(source_emu_model);
+    return source_emu_model;
   }
 
   // TP link
   if (inst.find("tp") != std::string::npos) {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating fake tp link";
     auto source_emu_model = std::make_unique<TPEmulatorModel>(run_marker, 66.0);
-    return std::move(source_emu_model);
+    return source_emu_model;
   }
 
   return nullptr;
