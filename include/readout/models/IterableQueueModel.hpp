@@ -403,6 +403,11 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return &records_[currentLast];
   };
 
+  const T* end_of_buffer()
+  {
+    
+  }
+
   Iterator end()
   {
     return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
