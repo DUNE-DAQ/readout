@@ -20,13 +20,13 @@
 
 #include <folly/ProducerConsumerQueue.h>
 
+#include <chrono>
 #include <functional>
 #include <future>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <chrono>
 
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
 

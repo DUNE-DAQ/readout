@@ -58,7 +58,7 @@ public:
   {
     std::random_device rd;
     std::mt19937 mt(rd());
-    std::uniform_int_distribution<uint16_t> err_bit_dis(0, 65535);  // NOLINT(build/unsigned)
+    std::uniform_int_distribution<uint16_t> err_bit_dis(0, 65535); // NOLINT(build/unsigned)
     std::uniform_int_distribution<int> duration_dis(1, 100000);
 
     for (int i = 0; i < m_size; ++i) {

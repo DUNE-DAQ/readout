@@ -25,9 +25,9 @@
 #include "daphne/DAPHNEListRequestHandler.hpp"
 //#include "pacman/PACMANFrameProcessor.hpp"
 //#include "pacman/PACMANListRequestHandler.hpp"
-#include "wib/WIBFrameProcessor.hpp"
-#include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
 #include "wib/RAWWIBTriggerPrimitiveProcessor.hpp"
+#include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
+#include "wib/WIBFrameProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
@@ -103,22 +103,24 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
 
       if (inst.find("sw_tp") != std::string::npos) {
         TLOG(TLVL_WORK_STEPS) << "Creating readout for sw tp";
-        auto readout_model = std::make_unique<ReadoutModel<
-          types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
-          EmptyFragmentRequestHandlerModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT, BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
-          BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
-          SWWIBTriggerPrimitiveProcessor>>(run_marker);
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                       EmptyFragmentRequestHandlerModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                                                        BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+                       BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+                       SWWIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
         return readout_model;
       }
 
       if (inst.find("raw_tp") != std::string::npos) {
         TLOG(TLVL_WORK_STEPS) << "Creating readout for raw tp";
-        auto readout_model = std::make_unique<ReadoutModel<
-            types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT,
-            EmptyFragmentRequestHandlerModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT, BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
-            BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>,
-            RAWWIBTriggerPrimitiveProcessor>>(run_marker);
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                       EmptyFragmentRequestHandlerModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                                                        BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+                       BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+                       RAWWIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

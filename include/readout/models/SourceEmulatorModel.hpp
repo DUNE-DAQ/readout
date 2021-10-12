@@ -20,9 +20,9 @@
 
 #include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/SourceEmulatorConcept.hpp"
+#include "readout/utils/ErrorBitGenerator.hpp"
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
-#include "readout/utils/ErrorBitGenerator.hpp"
 
 #include "readout/utils/ReusableThread.hpp"
 
@@ -33,8 +33,8 @@
 #include <utility>
 #include <vector>
 
-#include <chrono>
 #include "unistd.h"
+#include <chrono>
 
 using dunedaq::readout::logging::TLVL_TAKE_NOTE;
 using dunedaq::readout::logging::TLVL_WORK_STEPS;
@@ -195,8 +195,8 @@ protected:
         payload.fake_timestamps(timestamp, m_time_tick_diff);
 
         // Introducing frame errors
-        std::vector<uint16_t> frame_errs;  // NOLINT(build/unsigned)
-        for (int i = 0; i < rptr->get_num_frames(); ++i){
+        std::vector<uint16_t> frame_errs; // NOLINT(build/unsigned)
+        for (int i = 0; i < rptr->get_num_frames(); ++i) {
           frame_errs.push_back(m_error_bit_generator.next());
         }
         payload.fake_frame_errors(&frame_errs);

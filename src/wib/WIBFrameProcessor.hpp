@@ -35,12 +35,12 @@
 #include <atomic>
 #include <bitset>
 #include <functional>
+#include <future>
 #include <memory>
 #include <queue>
 #include <string>
 #include <utility>
 #include <vector>
-#include <future>
 
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
@@ -154,7 +154,6 @@ public:
         0,
         0);
     }
-
 
     // Reset timestamp check
     m_previous_ts = 0;
@@ -288,8 +287,9 @@ public:
         std::bind(&WIBFrameProcessor::find_collection_hits, this, std::placeholders::_1));
     }
 
-    m_err_frame_map = std::make_unique<folly::AtomicHashMap<uint32_t, //NOLINT(build/unsigned)
-    std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits);
+    m_err_frame_map =
+      std::make_unique<folly::AtomicHashMap<uint32_t, // NOLINT(build/unsigned)
+                                            std::unique_ptr<dataformats::WIBFrame[]>>>(m_num_frame_error_bits);
     for (int i = 0; i < m_num_frame_error_bits; ++i) {
       m_err_frame_map->insert((1 << i), std::make_unique<dataformats::WIBFrame[]>(m_error_counter_threshold));
     }
@@ -342,9 +342,9 @@ protected:
   void timestamp_check(frameptr fp)
   {
     // If EMU data, emulate perfectly incrementing timestamp
-    if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
-      uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
-      auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp)); // NOLINT
+    if (inherited::m_emulator_mode) {                           // emulate perfectly incrementing timestamp
+      uint64_t ts_next = m_previous_ts + 300;                   // NOLINT(build/unsigned)
+      auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp));  // NOLINT
       for (unsigned int i = 0; i < fp->get_num_frames(); ++i) { // NOLINT(build/unsigned)
         auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
         wfh->set_timestamp(ts_next);
@@ -404,7 +404,7 @@ protected:
 
       m_current_frame_pushed = false;
       for (int j = 0; j < m_num_frame_error_bits; ++j) {
-        if (wfh->wib_errors & (1 << j)){
+        if (wfh->wib_errors & (1 << j)) {
           if (m_error_occurrence_counters[j] < m_error_counter_threshold) {
             m_error_occurrence_counters[j]++;
             if (!m_current_frame_pushed) {
@@ -418,8 +418,8 @@ protected:
           }
         }
       }
-    wf++;
-    m_frames_processed++;
+      wf++;
+      m_frames_processed++;
     }
   }
 
@@ -629,7 +629,8 @@ private:
 
   // Frame error check
   std::unique_ptr<folly::AtomicHashMap<uint32_t, // NOLINT(build/unsigned)
-  std::unique_ptr<dataformats::WIBFrame[]>>> m_err_frame_map;
+                                       std::unique_ptr<dataformats::WIBFrame[]>>>
+    m_err_frame_map;
   bool m_current_frame_pushed = false;
   int m_error_counter_threshold;
   const int m_num_frame_error_bits = 16;
@@ -663,10 +664,10 @@ private:
   dataformats::GeoID m_geoid;
   std::atomic<size_t> m_tps_dropped{ 0 };
 
-  std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_hits{ 0 };          // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_tps{ 0 };           // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_frame_error_count{ 0 }; // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_frames_processed{ 0 };   // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_frames_processed{ 0 };  // NOLINT(build/unsigned)
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };

@@ -9,11 +9,11 @@
 #ifndef READOUT_PLUGINS_ERROREDFRAMECONSUMER_HPP_
 #define READOUT_PLUGINS_ERROREDFRAMECONSUMER_HPP_
 
-#include "readout/ReadoutLogging.hpp"
 #include "DummyConsumer.cpp"
 #include "DummyConsumer.hpp"
-#include "logging/Logging.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
+#include "logging/Logging.hpp"
+#include "readout/ReadoutLogging.hpp"
 
 #include <bitset>
 
@@ -27,17 +27,18 @@ class ErroredFrameConsumer : public DummyConsumer<dataformats::WIBFrame>
 {
 public:
   explicit ErroredFrameConsumer(const std::string name)
-  : DummyConsumer<dataformats::WIBFrame>(name)
+    : DummyConsumer<dataformats::WIBFrame>(name)
   {}
 
   void packet_callback(dataformats::WIBFrame& packet) override
   {
-    if (packet.get_wib_header()->wib_errors){
+    if (packet.get_wib_header()->wib_errors) {
       m_error_count += std::bitset<16>(packet.get_wib_header()->wib_errors).count();
-//      TLOG() << "bitset: " << std::bitset<16>(packet.get_wib_header()->wib_errors)
-//          << " error count: " << m_error_count;
+      //      TLOG() << "bitset: " << std::bitset<16>(packet.get_wib_header()->wib_errors)
+      //          << " error count: " << m_error_count;
     }
   }
+
 private:
   int m_error_count;
 };

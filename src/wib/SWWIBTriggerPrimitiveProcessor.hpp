@@ -28,25 +28,25 @@
 using dunedaq::readout::logging::TLVL_BOOKKEEPING;
 
 namespace dunedaq {
-  namespace readout {
+namespace readout {
 
-    class SWWIBTriggerPrimitiveProcessor : public TaskRawDataProcessorModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>
-    {
+class SWWIBTriggerPrimitiveProcessor : public TaskRawDataProcessorModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>
+{
 
-    public:
-      using inherited = TaskRawDataProcessorModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>;
-      using frameptr = types::SW_WIB_TRIGGERPRIMITIVE_STRUCT*;
-      using wibframeptr = dunedaq::dataformats::WIBFrame*;
-      using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
+public:
+  using inherited = TaskRawDataProcessorModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>;
+  using frameptr = types::SW_WIB_TRIGGERPRIMITIVE_STRUCT*;
+  using wibframeptr = dunedaq::dataformats::WIBFrame*;
+  using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
-      explicit SWWIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
-          : TaskRawDataProcessorModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>(error_registry)
-      {}
+  explicit SWWIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
+    : TaskRawDataProcessorModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>(error_registry)
+  {}
 
-    private:
-    };
+private:
+};
 
-  } // namespace readout
+} // namespace readout
 } // namespace dunedaq
 
 #endif // READOUT_SRC_WIB_SWWIBTRIGGERPRIMITIVEPROCESSOR_HPP_

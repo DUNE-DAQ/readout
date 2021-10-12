@@ -179,7 +179,8 @@ protected:
         // Count number of subframes in a TP frame
         int n = 1;
         while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
-               + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
+                                                    + offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE)
+                 ->word3 != 0xDEADBEEF) {
           n++;
         }
 
@@ -187,22 +188,22 @@ protected:
         std::vector<char> tmpbuffer(bsize);
         static const int m_nhits = n - 2;
 
-        // add header block 
+        // add header block
         ::memcpy(static_cast<void*>(tmpbuffer.data() + 0),
                  static_cast<void*>(source.data() + offset),
                  RAW_WIB_TP_SUBFRAME_SIZE);
 
-        // add pedinfo block 
+        // add pedinfo block
         ::memcpy(static_cast<void*>(tmpbuffer.data() + RAW_WIB_TP_SUBFRAME_SIZE),
-                 static_cast<void*>(source.data() + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE),
+                 static_cast<void*>(source.data() + offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE),
                  RAW_WIB_TP_SUBFRAME_SIZE);
 
-        // add TP hits 
-        ::memcpy(static_cast<void*>(tmpbuffer.data() + 2*RAW_WIB_TP_SUBFRAME_SIZE),
+        // add TP hits
+        ::memcpy(static_cast<void*>(tmpbuffer.data() + 2 * RAW_WIB_TP_SUBFRAME_SIZE),
                  static_cast<void*>(source.data() + offset + RAW_WIB_TP_SUBFRAME_SIZE),
-                 m_nhits*RAW_WIB_TP_SUBFRAME_SIZE);
+                 m_nhits * RAW_WIB_TP_SUBFRAME_SIZE);
 
-        // copy old frame to new frame 
+        // copy old frame to new frame
         payload_wrapper.rwtp->set_nhits(m_nhits); // reserve space
         ::memcpy(static_cast<void*>(payload_wrapper.rwtp.get()),
                  static_cast<void*>(tmpbuffer.data()),
@@ -212,7 +213,7 @@ protected:
         payload_wrapper.rwtp->set_nhits(m_nhits); // explicitly set number of hits in new format
       }
       nhits = payload_wrapper.rwtp->get_nhits(); // NOLINT
-    
+
       offset += payload_wrapper.rwtp->get_frame_size();
 
       // queue in to actual DAQSink
@@ -229,7 +230,6 @@ protected:
       m_rate_limiter->limit();
     }
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";
-
   }
 
 private:
