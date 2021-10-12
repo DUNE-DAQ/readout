@@ -6,7 +6,7 @@
  * received with this code.
  */
 #ifndef READOUT_SRC_WIB_SWWIBTRIGGERPRIMITIVEPROCESSOR_HPP_
-#define READOUT_SRC_WIB_WIBTRIGGERPRIMITIVEPROCESSOR_HPP_
+#define READOUT_SRC_WIB_SWWIBTRIGGERPRIMITIVEPROCESSOR_HPP_
 
 #include "appfwk/DAQModuleHelper.hpp"
 #include "readout/ReadoutIssues.hpp"

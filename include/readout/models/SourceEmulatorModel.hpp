@@ -196,7 +196,7 @@ protected:
 
         // Introducing frame errors
         std::vector<uint16_t> frame_errs; // NOLINT(build/unsigned)
-        for (int i = 0; i < rptr->get_num_frames(); ++i) {
+        for (size_t i = 0; i < rptr->get_num_frames(); ++i) {
           frame_errs.push_back(m_error_bit_generator.next());
         }
         payload.fake_frame_errors(&frame_errs);

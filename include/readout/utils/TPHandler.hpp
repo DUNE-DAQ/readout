@@ -25,8 +25,8 @@ class TPHandler
 public:
   explicit TPHandler(appfwk::DAQSink<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>& tp_sink,
                      appfwk::DAQSink<trigger::TPSet>& tpset_sink,
-                     uint64_t tp_timeout,
-                     uint64_t tpset_window_size,
+                     uint64_t tp_timeout,		// NOLINT(build/unsigned)
+                     uint64_t tpset_window_size,	// NOLINT(build/unsigned)
                      dataformats::GeoID geoId)
     : m_tp_sink(tp_sink)
     , m_tpset_sink(tpset_sink)
@@ -35,7 +35,7 @@ public:
     , m_geoid(geoId)
   {}
 
-  bool add_tp(triggeralgs::TriggerPrimitive trigprim, uint64_t currentTime)
+  bool add_tp(triggeralgs::TriggerPrimitive trigprim, uint64_t currentTime) // NOLINT(build/unsigned)
   {
     if (trigprim.time_start + m_tp_timeout > currentTime) {
       m_tp_buffer.push(trigprim);
@@ -45,7 +45,7 @@ public:
     }
   }
 
-  void try_sending_tpsets(uint64_t currentTime)
+  void try_sending_tpsets(uint64_t currentTime) // NOLINT(build/unsigned)
   {
     if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tp_timeout < currentTime) {
       trigger::TPSet tpset;
@@ -95,9 +95,9 @@ public:
 private:
   appfwk::DAQSink<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>& m_tp_sink;
   appfwk::DAQSink<trigger::TPSet>& m_tpset_sink;
-  uint64_t m_tp_timeout;
-  uint64_t m_tpset_window_size;
-  uint64_t m_next_tpset_seqno = 0; // NOLINT(build/unsigned)
+  uint64_t m_tp_timeout; 	    // NOLINT(build/unsigned)
+  uint64_t m_tpset_window_size;     // NOLINT(build/unsigned)
+  uint64_t m_next_tpset_seqno = 0;  // NOLINT(build/unsigned)
   dataformats::GeoID m_geoid;
 
   std::atomic<size_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)

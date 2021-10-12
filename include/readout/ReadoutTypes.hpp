@@ -13,7 +13,6 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
-#include "RawWIBTp.hpp"
 #include "dataformats/FragmentHeader.hpp"
 #include "dataformats/GeoID.hpp"
 #include "dataformats/daphne/DAPHNEFrame.hpp"

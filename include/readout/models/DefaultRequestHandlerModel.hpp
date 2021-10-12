@@ -222,7 +222,7 @@ public:
 
             for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
               if ((*chunk_iter).get_first_timestamp() >= m_next_timestamp_to_record) {
-                if (!m_buffered_writer.write(reinterpret_cast<char*>(chunk_iter->begin()),
+                if (!m_buffered_writer.write(reinterpret_cast<char*>(chunk_iter->begin()), // NOLINT 
                                              chunk_iter->get_payload_size())) {
                   ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
                 }
