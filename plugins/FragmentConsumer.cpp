@@ -37,7 +37,6 @@ public:
   // Only does wib and daphne validation for now
   void validate(dunedaq::dataformats::Fragment& fragment)
   {
-    return;
     if (fragment.get_size() - sizeof(dataformats::FragmentHeader) == 0) {
       TLOG() << "Encountered empty fragment";
       return;

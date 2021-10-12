@@ -171,7 +171,7 @@ protected:
     auto rptr = reinterpret_cast<ReadoutType*>(source.data()); // NOLINT
 
     // set the initial timestamp to a configured value, otherwise just use the timestamp from the header
-    uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_timestamp(); // NOLINT(build/unsigned)
+    uint64_t ts_0 = (m_conf.set_t0_to >= 0) ? m_conf.set_t0_to : rptr->get_first_timestamp(); // NOLINT(build/unsigned)
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the source file: " << ts_0;
     uint64_t timestamp = ts_0; // NOLINT(build/unsigned)
     int dropout_index = 0;
@@ -192,11 +192,11 @@ protected:
                  sizeof(ReadoutType));
 
         // Fake timestamp
-        payload.fake_timestamp(timestamp, m_time_tick_diff);
+        payload.fake_timestamps(timestamp, m_time_tick_diff);
 
         // Introducing frame errors
         std::vector<uint16_t> frame_errs;  // NOLINT(build/unsigned)
-        for (int i = 0; i < rptr->frames_per_element; ++i){
+        for (int i = 0; i < rptr->get_num_frames(); ++i){
           frame_errs.push_back(m_error_bit_generator.next());
         }
         payload.fake_frame_errors(&frame_errs);
