@@ -50,7 +50,10 @@ struct PACMAN_MESSAGE_STRUCT
               reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)
                 ->get_msg_header((void*)&data)
                 ->unix_ts) * // NOLINT
-            1000000000);
+            //1000000000);
+            // FIX ME!!! HARDCODED CONVERSION TO TICKS FROM SECONDS. MULTIPLYING BY 5E7 SINCE
+            // 50 MHz CLOCK.
+            50000000);
   }
 
   // FIX ME - implement this in the frame later
