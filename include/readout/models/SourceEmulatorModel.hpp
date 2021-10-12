@@ -23,7 +23,6 @@
 #include "readout/utils/ErrorBitGenerator.hpp"
 #include "readout/utils/FileSourceBuffer.hpp"
 #include "readout/utils/RateLimiter.hpp"
-
 #include "readout/utils/ReusableThread.hpp"
 
 #include <functional>
@@ -32,7 +31,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
 #include "unistd.h"
 #include <chrono>
 
