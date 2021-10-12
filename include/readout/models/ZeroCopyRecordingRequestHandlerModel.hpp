@@ -64,9 +64,16 @@ namespace dunedaq {
                   }
                   base::m_cv.notify_all();
 
+		  char* current_write_pointer = reinterpret_cast<char*>(base::m_latency_buffer->font());
+		  char* current_end_pointer = reinterpret_cast<char*>(base::m_latency_buffer->end());
+		  const char* end_of_buffer_pointer = reinterpret_cast<char*>(base::m_latency_buffer->end_of_buffer());
+
                   auto iter = base::m_latency_buffer->front();
                   auto end = base::m_latency_buffer->end();
-                  auto end_of_memory = base::m_latency_buffer->
+                  auto end_of_buffer = base::m_latency_buffer->end_of_buffer();
+
+		  
+
 
                   for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
                     if ((*chunk_iter).get_first_timestamp() >= base::m_next_timestamp_to_record) {

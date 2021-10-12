@@ -405,7 +405,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   const T* end_of_buffer()
   {
-    
+    return &records_[size_];  
   }
 
   Iterator end()
