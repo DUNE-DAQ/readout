@@ -9,7 +9,7 @@
 #define READOUT_INCLUDE_READOUT_FRAMEERRORREGISTRY_HPP_
 
 #include <cstdint> // uint_t types
-#include <deque>
+#include <map>
 
 namespace dunedaq {
 namespace readout {
@@ -17,10 +17,10 @@ namespace readout {
 class FrameErrorRegistry
 {
 public:
-  struct FrameError
+  struct ErrorInterval
   {
   public:
-    FrameError(uint64_t start_ts, uint64_t end_ts) // NOLINT(build/unsigned)
+    ErrorInterval(uint64_t start_ts, uint64_t end_ts) // NOLINT(build/unsigned)
       : start_ts(start_ts)
       , end_ts(end_ts)
     {}
@@ -28,28 +28,41 @@ public:
     uint64_t start_ts; // NOLINT(build/unsigned)
     uint64_t end_ts;   // NOLINT(build/unsigned)
 
-    bool operator<(const FrameError& other) const { return end_ts < other.end_ts; }
+    bool operator<(const ErrorInterval& other) const { return end_ts < other.end_ts; }
 
-    bool operator>(const FrameError& other) const { return end_ts > other.end_ts; }
+    bool operator>(const ErrorInterval& other) const { return end_ts > other.end_ts; }
   };
 
   FrameErrorRegistry()
     : m_errors()
   {}
 
-  void add_error(FrameError error) { m_errors.push_back(error); }
+  void add_error(std::string error_name, ErrorInterval error) {
+    if (m_errors.find(error_name) == m_errors.end()) {
+      TLOG() << "Encountered new error";
+    }
+    m_errors.erase(error_name);
+    m_errors.insert(std::make_pair(error_name, error));
+  }
 
   void remove_errors_until(uint64_t ts) // NOLINT(build/unsigned)
   {
-    while (!m_errors.empty() && m_errors.front().end_ts < ts) {
-      m_errors.pop_front();
+    for (auto it = m_errors.begin(); it != m_errors.end(); ++it) {
+      if (ts > it->second.end_ts) {
+        it = m_errors.erase(it);
+        TLOG() << "Removed error";
+      }
     }
+  }
+
+  bool has_error(std::string error_name) {
+    return m_errors.find(error_name) != m_errors.end();
   }
 
   bool has_error() { return !m_errors.empty(); }
 
 private:
-  std::deque<FrameError> m_errors;
+  std::map<std::string, ErrorInterval> m_errors;
 };
 
 } // namespace readout
