@@ -24,7 +24,7 @@
 
 #include "tpg/DesignFIR.hpp"
 #include "tpg/FrameExpand.hpp"
-#include "tpg/PdspChannelMapService.hpp"
+#include "readout/chmap/PdspChannelMapService.hpp"
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
