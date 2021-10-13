@@ -214,12 +214,6 @@ private:
     while (queue_index.find("data_requests_" + std::to_string(index)) != queue_index.end()) {
       m_data_request_queues.push_back(
         std::make_unique<request_source_qt>(queue_index["data_requests_" + std::to_string(index)].inst));
-      if (queue_index.find("data_response_" + std::to_string(index)) == queue_index.end()) {
-        throw InitializationError(ERS_HERE, "Queue not found: ", "data_response_" + std::to_string(index));
-      } else {
-        m_data_response_queues.push_back(
-          std::make_unique<fragment_sink_qt>(queue_index["data_response_" + std::to_string(index)].inst));
-      }
       index++;
     }
   }
@@ -279,13 +273,13 @@ private:
             dr.trigger_timestamp = timesyncmsg.daq_time > 500 * us ? timesyncmsg.daq_time - 500 * us : 0;
             auto width = 300000;
             uint offset = 100;
-            dr.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
-            dr.window_end = dr.window_begin + width;
+            dr.request_information.window_begin = dr.trigger_timestamp > offset ? dr.trigger_timestamp - offset : 0;
+            dr.request_information.window_end = dr.request_information.window_begin + width;
             TLOG_DEBUG(TLVL_WORK_STEPS) << "Issuing fake trigger based on timesync. "
-                                        << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.window_begin
-                                        << " window_end=" << dr.window_end;
-            for (size_t i = 0; i < m_data_response_queues.size(); ++i) {
-              m_request_handler_impl->issue_request(dr, *m_data_response_queues[i]);
+                                        << " ts=" << dr.trigger_timestamp << " window_begin=" << dr.request_information.window_begin
+                                        << " window_end=" << dr.request_information.window_end;
+            for (size_t i = 0; i < m_data_request_queues.size(); ++i) {
+              m_request_handler_impl->issue_request(dr);
             }
             ++m_num_requests;
             ++m_sum_requests;
@@ -316,11 +310,10 @@ private:
       bool popped_element = false;
       for (size_t i = 0; i < m_data_request_queues.size(); ++i) {
         auto& request_source = *m_data_request_queues[i];
-        auto& response_sink = *m_data_response_queues[i];
         try {
           request_source.pop(data_request, std::chrono::milliseconds(0));
           popped_element = true;
-          m_request_handler_impl->issue_request(data_request, response_sink);
+          m_request_handler_impl->issue_request(data_request);
           ++m_num_requests;
           ++m_sum_requests;
           TLOG_DEBUG(TLVL_QUEUE_POP) << "Received DataRequest for trigger_number " << data_request.trigger_number
@@ -377,8 +370,8 @@ private:
 
   // FRAGMENT SINKS
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
-  using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
-  std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
+  //using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
+  //std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
 
   // LATENCY BUFFER:
   std::unique_ptr<LatencyBufferType> m_latency_buffer_impl;
