@@ -220,7 +220,7 @@ public:
             }
             m_cv.notify_all();
 
-            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
+            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100;) {
               if ((*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
                 if (!m_buffered_writer.write(*chunk_iter)) {
                   ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
@@ -239,6 +239,7 @@ public:
 
         TLOG() << "Stop recording" << std::endl;
         m_recording.exchange(false);
+        m_buffered_writer.flush();
       },
       conf.duration);
   }
