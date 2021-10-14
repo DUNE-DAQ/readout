@@ -43,8 +43,7 @@ public:
   //! Check if cleanup is necessary and execute it if necessary
   virtual void cleanup_check() = 0;
   //! Issue a data request to the request handler
-  virtual void issue_request(dfmessages::DataRequest /*dr*/,
-                             appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& /*fragment_queue*/) = 0;
+  virtual void issue_request(dfmessages::DataRequest /*dr*/) = 0;
 
 protected:
   // Result code of requests

@@ -15,6 +15,10 @@
 #include <string>
 
 namespace dunedaq {
+ERS_DECLARE_ISSUE(readout, FragmentTransmissionFailed, "GeoID" << geoid << " failed to send data for trigger number " << tr_num << ".",
+                  ((dataformats::GeoID)geoid)
+                  ((int64_t) tr_num))
+
 ERS_DECLARE_ISSUE(readout,
                   InternalError,
                   "GeoID[" << geoid << "] Internal Error: " << error,
