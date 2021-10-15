@@ -38,6 +38,7 @@ class SSPFrameProcessor : public TaskRawDataProcessorModel<types::SSP_FRAME_STRU
 
 public:
   using inherited = TaskRawDataProcessorModel<types::SSP_FRAME_STRUCT>;
+  using frameptr = types::SSP_FRAME_STRUCT*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   // Channel map funciton type
@@ -47,6 +48,8 @@ public:
     : TaskRawDataProcessorModel<types::SSP_FRAME_STRUCT>(error_registry)
   {
     // Setup pre-processing pipeline
+    TaskRawDataProcessorModel<types::SSP_FRAME_STRUCT>::add_preprocess_task(
+      std::bind(&SSPFrameProcessor::timestamp_check, this, std::placeholders::_1));
   }
 
   ~SSPFrameProcessor()
@@ -66,7 +69,7 @@ public:
 
   void init(const nlohmann::json& args) override
   {
-
+    inherited::init(args);
   }
 
   void conf(const nlohmann::json& cfg) override
@@ -77,6 +80,23 @@ public:
   void get_info(opmonlib::InfoCollector& ci, int level)
   {
 
+  }
+
+  void timestamp_check(frameptr fp) {
+    /*
+    // If EMU data, emulate perfectly incrementing timestamp
+    if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
+      uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
+      for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
+        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
+        auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+        wfh->set_timestamp(ts_next);
+        ts_next += 25;
+      }
+    }
+    */
+    //TLOG() << "Got frame with timestamp: " << fp->get_timestamp();
+    inherited::m_last_processed_daq_ts = fp->get_timestamp();
   }
 
 protected:
