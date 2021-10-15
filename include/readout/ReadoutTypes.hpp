@@ -308,19 +308,19 @@ struct SSP_FRAME_STRUCT
   using FrameType = SSP_FRAME_STRUCT;
 
   // header
-  SSPDAQ::EventHeader header;
+  dataformats::EventHeader header;
 
   // data
   char data[SSP_FRAME_SIZE];
 
   // comparable based on start timestamp
-  bool operator<(const SSP_FRAME_STRUCT& other) const { 
+  bool operator<(const SSP_FRAME_STRUCT& other) const {
     return this->get_timestamp() < other.get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    auto ehptr = reinterpret_cast<const SSPDAQ::EventHeader*>(&header); // no cast needed
+    auto ehptr = reinterpret_cast<const dataformats::EventHeader*>(&header); // no cast needed
     unsigned long ts = 0;
     for(unsigned int iword=0; iword <= 3; ++iword) {
       ts += ((unsigned long)(ehptr->timestamp[iword])) << 16 * iword;
@@ -350,7 +350,7 @@ struct SSP_FRAME_STRUCT
   static const constexpr size_t element_size = SSP_FRAME_SIZE;
 };
 
-static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(SSPDAQ::EventHeader) + SSP_FRAME_SIZE,
+static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(dataformats::EventHeader) + SSP_FRAME_SIZE,
               "Check your assumptions on TP_READOUT_TYPE");
 
 
