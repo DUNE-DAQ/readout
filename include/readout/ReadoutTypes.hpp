@@ -328,9 +328,14 @@ struct SSP_FRAME_STRUCT
     return ts;
   }
 
-  void set_timestamp(uint64_t /*ts*/) // NOLINT(build/unsigned)
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    //tp.time_start = ts;
+    uint64_t bitmask = (1 << 16) - 1;
+    for (unsigned int iword = 0; iword <= 3; ++iword) {
+      header.timestamp[iword] = static_cast<uint16_t>((ts & bitmask));
+      ts = ts >> 16;
+    }
+    std::cout << "Updated: " << std::hex << get_timestamp() << std::dec << '\n';
   }
 
   void fake_timestamp(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
