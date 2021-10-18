@@ -136,6 +136,7 @@ struct WIB_SUPERCHUNK_STRUCT
     return 464;
   }
 
+  static const constexpr size_t fixed_payload_size = 5568;
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
