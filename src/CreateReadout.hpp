@@ -62,7 +62,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>,
           WIBFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF WIB2
@@ -74,7 +74,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           FixedRateQueueModel<types::WIB2_SUPERCHUNK_STRUCT>,
           WIB2FrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF DAPHNE queue
@@ -87,7 +87,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                        BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                        DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF PDS skiplist
@@ -98,7 +98,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                                                            DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF SSP
@@ -122,7 +122,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           BinarySearchQueueModel<types::TP_READOUT_TYPE>,
           WIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF ND LAr PACMAN
@@ -133,7 +133,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>,
                                                            PACMANFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF variadic
