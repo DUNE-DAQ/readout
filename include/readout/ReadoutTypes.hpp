@@ -16,9 +16,9 @@
 #include "dataformats/FragmentHeader.hpp"
 #include "dataformats/GeoID.hpp"
 #include "dataformats/daphne/DAPHNEFrame.hpp"
+#include "dataformats/ssp/SSPTypes.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
-#include "dataformats/ssp/SSPTypes.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <cstdint> // uint_t types
@@ -299,9 +299,6 @@ struct TP_READOUT_TYPE
 static_assert(sizeof(struct TP_READOUT_TYPE) == sizeof(triggeralgs::TriggerPrimitive),
               "Check your assumptions on TP_READOUT_TYPE");
 
-
-
-
 const constexpr std::size_t SSP_FRAME_SIZE = 1012;
 struct SSP_FRAME_STRUCT
 {
@@ -314,7 +311,8 @@ struct SSP_FRAME_STRUCT
   char data[SSP_FRAME_SIZE];
 
   // comparable based on start timestamp
-  bool operator<(const SSP_FRAME_STRUCT& other) const {
+  bool operator<(const SSP_FRAME_STRUCT& other) const
+  {
     return this->get_timestamp() < other.get_timestamp() ? true : false;
   }
 
@@ -322,7 +320,7 @@ struct SSP_FRAME_STRUCT
   {
     auto ehptr = reinterpret_cast<const dataformats::EventHeader*>(&header); // no cast needed
     unsigned long ts = 0;
-    for(unsigned int iword=0; iword <= 3; ++iword) {
+    for (unsigned int iword = 0; iword <= 3; ++iword) {
       ts += ((unsigned long)(ehptr->timestamp[iword])) << 16 * iword;
     }
     return ts;
@@ -339,7 +337,7 @@ struct SSP_FRAME_STRUCT
 
   void fake_timestamp(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
   {
-    //tp.time_start = first_timestamp;
+    // tp.time_start = first_timestamp;
   }
 
   FrameType* begin() { return this; }
@@ -356,11 +354,6 @@ struct SSP_FRAME_STRUCT
 
 static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(dataformats::EventHeader) + SSP_FRAME_SIZE,
               "Check your assumptions on TP_READOUT_TYPE");
-
-
-
-
-
 
 /**
  * @brief Convencience wrapper to take ownership over char pointers with

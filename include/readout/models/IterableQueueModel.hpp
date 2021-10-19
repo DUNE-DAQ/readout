@@ -24,10 +24,10 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
+#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/readoutconfig/Nljs.hpp"
 #include "readout/readoutconfig/Structs.hpp"
-#include "readout/ReadoutIssues.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -52,7 +52,7 @@
 #include <xmmintrin.h>
 
 #ifdef WITH_LIBNUMA_SUPPORT
-  #include <numa.h>
+#include <numa.h>
 #endif
 
 namespace dunedaq {
@@ -204,7 +204,8 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 #ifdef WITH_LIBNUMA_SUPPORT
       records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size, numa_node));
 #else
-      throw GenericConfigurationError(ERS_HERE, "NUMA allocation was requested but program was built without USE_LIBNUMA");
+      throw GenericConfigurationError(ERS_HERE,
+                                      "NUMA allocation was requested but program was built without USE_LIBNUMA");
 #endif
 
     } else if (!numa_aware && !intrinsic_allocator && alignment_size == 0) {
@@ -336,7 +337,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     Iterator operator++(int amount) // NOLINT(runtime/increment_decrement) :)
     {
       Iterator tmp = *this;
-      for (int i = 0; i < amount; ++i){
+      for (int i = 0; i < amount; ++i) {
         ++(*this);
       }
       return tmp;
@@ -348,14 +349,13 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     {
       auto const currentRead = m_queue.readIndex_.load(std::memory_order_relaxed);
       auto const currentWrite = m_queue.writeIndex_.load(std::memory_order_relaxed);
-      return (*this != m_queue.end()) && ((m_index >= currentRead && m_index < currentWrite) ||
-             (m_index >= currentRead && currentWrite < currentRead) ||
-             (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite));
+      return (*this != m_queue.end()) &&
+             ((m_index >= currentRead && m_index < currentWrite) ||
+              (m_index >= currentRead && currentWrite < currentRead) ||
+              (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite));
     }
 
-  uint32_t get_index() {
-    return m_index;
-  }
+    uint32_t get_index() { return m_index; }
 
   private:
     IterableQueueModel<T>& m_queue;

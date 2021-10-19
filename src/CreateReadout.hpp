@@ -25,10 +25,10 @@
 #include "daphne/DAPHNEListRequestHandler.hpp"
 #include "pacman/PACMANFrameProcessor.hpp"
 #include "pacman/PACMANListRequestHandler.hpp"
+#include "ssp/SSPFrameProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib/WIBTriggerPrimitiveProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
-#include "ssp/SSPFrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
@@ -104,12 +104,11 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
       // IF SSP
       if (inst.find("ssp") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a SSPs using Searchable Queue";
-        auto readout_model = std::make_unique<
-          ReadoutModel<types::SSP_FRAME_STRUCT,
-                       DefaultRequestHandlerModel<types::SSP_FRAME_STRUCT,
-                                                  BinarySearchQueueModel<types::SSP_FRAME_STRUCT>>,
-                       BinarySearchQueueModel<types::SSP_FRAME_STRUCT>,
-                       SSPFrameProcessor>>(run_marker);
+        auto readout_model = std::make_unique<ReadoutModel<
+          types::SSP_FRAME_STRUCT,
+          DefaultRequestHandlerModel<types::SSP_FRAME_STRUCT, BinarySearchQueueModel<types::SSP_FRAME_STRUCT>>,
+          BinarySearchQueueModel<types::SSP_FRAME_STRUCT>,
+          SSPFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }

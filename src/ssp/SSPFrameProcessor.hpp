@@ -52,37 +52,20 @@ public:
       std::bind(&SSPFrameProcessor::timestamp_check, this, std::placeholders::_1));
   }
 
-  ~SSPFrameProcessor()
+  ~SSPFrameProcessor() {}
+
+  void start(const nlohmann::json& args) override { inherited::start(args); }
+
+  void stop(const nlohmann::json& args) override { inherited::stop(args); }
+
+  void init(const nlohmann::json& args) override { inherited::init(args); }
+
+  void conf(const nlohmann::json& cfg) override { inherited::conf(cfg); }
+
+  void get_info(opmonlib::InfoCollector& /*ci*/, int /*level*/) {}
+
+  void timestamp_check(frameptr fp)
   {
-
-  }
-
-  void start(const nlohmann::json& args) override
-  {
-    inherited::start(args);
-  }
-
-  void stop(const nlohmann::json& args) override
-  {
-    inherited::stop(args);
-  }
-
-  void init(const nlohmann::json& args) override
-  {
-    inherited::init(args);
-  }
-
-  void conf(const nlohmann::json& cfg) override
-  {
-    inherited::conf(cfg);
-  }
-
-  void get_info(opmonlib::InfoCollector& ci, int level)
-  {
-
-  }
-
-  void timestamp_check(frameptr fp) {
     /*
     // If EMU data, emulate perfectly incrementing timestamp
     if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
@@ -95,7 +78,7 @@ public:
       }
     }
     */
-    //TLOG() << "Got frame with timestamp: " << fp->get_timestamp();
+    // TLOG() << "Got frame with timestamp: " << fp->get_timestamp();
     inherited::m_last_processed_daq_ts = fp->get_timestamp();
   }
 
