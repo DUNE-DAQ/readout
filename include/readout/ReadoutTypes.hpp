@@ -335,7 +335,6 @@ struct SSP_FRAME_STRUCT
       header.timestamp[iword] = static_cast<uint16_t>((ts & bitmask));
       ts = ts >> 16;
     }
-    std::cout << "Updated: " << std::hex << get_timestamp() << std::dec << '\n';
   }
 
   void fake_timestamp(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
