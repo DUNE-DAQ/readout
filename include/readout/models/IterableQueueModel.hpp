@@ -330,7 +330,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
         }
       }
       if (!good()) {
-        m_index = std::numeric_limits<uint32_t>::max();
+        m_index = std::numeric_limits<uint32_t>::max(); // NOLINT(build/unsigned)
       }
       return *this;
     }
@@ -355,7 +355,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
               (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite));
     }
 
-    uint32_t get_index() { return m_index; }
+    uint32_t get_index() { return m_index; } // NOLINT(build/unsigned)
 
   private:
     IterableQueueModel<T>& m_queue;

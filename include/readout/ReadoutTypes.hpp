@@ -318,19 +318,19 @@ struct SSP_FRAME_STRUCT
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    auto ehptr = reinterpret_cast<const dataformats::EventHeader*>(&header); // no cast needed
-    unsigned long ts = 0;
+    auto ehptr = &header;
+    unsigned long ts = 0; // NOLINT(runtime/int)
     for (unsigned int iword = 0; iword <= 3; ++iword) {
-      ts += ((unsigned long)(ehptr->timestamp[iword])) << 16 * iword;
+      ts += ((unsigned long)(ehptr->timestamp[iword])) << 16 * iword; //NOLINT(runtime/int)
     }
     return ts;
   }
 
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    uint64_t bitmask = (1 << 16) - 1;
+    uint64_t bitmask = (1 << 16) - 1; // NOLINT(build/unsigned)
     for (unsigned int iword = 0; iword <= 3; ++iword) {
-      header.timestamp[iword] = static_cast<uint16_t>((ts & bitmask));
+      header.timestamp[iword] = static_cast<uint16_t>((ts & bitmask)); // NOLINT(build/unsigned)
       ts = ts >> 16;
     }
   }
