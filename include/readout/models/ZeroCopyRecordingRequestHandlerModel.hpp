@@ -29,17 +29,20 @@ namespace dunedaq {
 
       void record(const nlohmann::json& args) override
       {
-        size_t chunk_size = 8388608;
-        auto oflag = O_CREAT | O_WRONLY | O_DIRECT;
-        auto fd = ::open(base::m_output_file.c_str(), oflag, 0644);
-
         auto conf = args.get<readoutconfig::RecordingParams>();
+
         if (base::m_recording.load()) {
           ers::error(CommandError(ERS_HERE, base::m_geoid, "A recording is still running, no new recording was started!"));
           return;
         }
         base::m_recording_thread.set_work(
             [&](int duration) {
+              auto oflag = O_CREAT | O_WRONLY | O_DIRECT;
+              auto fd = ::open(base::m_output_file.c_str(), oflag, 0644);
+
+              auto conf = args.get<readoutconfig::RecordingParams>();
+
+              size_t chunk_size = 8388608;
               TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
               base::m_recording.exchange(true);
               auto start_of_recording = std::chrono::high_resolution_clock::now();
@@ -67,22 +70,26 @@ namespace dunedaq {
                   base::m_cv.notify_all();
 
                   if (base::m_next_timestamp_to_record == 0) {
-                    auto front = base::m_latency_buffer->front();
-                    base::m_next_timestamp_to_record = front == nullptr ? 0 : front->get_first_timestamp();
+                    auto begin = base::m_latency_buffer->begin();
+                    base::m_next_timestamp_to_record = begin == base::m_latency_buffer->end() ? 0 : begin->get_first_timestamp();
                     size_t skipped_frames = 0;
-                    while (reinterpret_cast<std::uintptr_t>(front) % 4096) {
-                        ++front;
+                    while (reinterpret_cast<std::uintptr_t>(&(*begin)) % 4096) {
+                        ++begin;
                         skipped_frames++;
                     }
                     std::cout << "Skipped " << skipped_frames << " frames" << std::endl;
-                    current_write_pointer = reinterpret_cast<const char*>(front);
+                    current_write_pointer = reinterpret_cast<const char*>(&(*begin));
                   }
 
 	          current_end_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->back());
+                  //printf("current_write_pointer:   %p\n", (void *) current_write_pointer);
+                  //printf("current_end_pointer:     %p\n", (void *) current_end_pointer);
+                  //printf("start_of_buffer_pointer: %p\n", (void *) start_of_buffer_pointer);
+                  //printf("end_of_buffer_pointer:   %p\n", (void *) end_of_buffer_pointer);
 
                   while (considered_chunks_in_loop < 100) {
                     auto iptr = reinterpret_cast<std::uintptr_t>(current_write_pointer);
-                    if (iptr % 4096) std::cout << "Not aligned!!!!!!!!!!!!!!!!!!!!" << std::endl; 
+                    if (iptr % 4096) std::cout << "Not aligned!!!!!!!!11!!!!!!11!!!!!!" << std::endl; 
                     bool failed_write = false;
                     if (overhang > 0) {
                       size_t write_size = 4096 - (overhang % 4096);
@@ -104,14 +111,20 @@ namespace dunedaq {
                       if (current_write_pointer + chunk_size < end_of_buffer_pointer) {
                         // Write whole chunk to file
                         failed_write |= !::write(fd, current_write_pointer, chunk_size);
-                        bytes_written += chunk_size;
+                        //std::cout << "Bytes written: " << bytes_written << std::endl;
+                        bytes_written = bytes_written + chunk_size;
+                        //std::cout << "Added here: " << chunk_size << std::endl;
+                        //std::cout << "Bytes written after: " << bytes_written << std::endl;
                         current_write_pointer += chunk_size;
                       } else {
                         // Write the last bit of the buffer without using O_DIRECT
                         fcntl(fd, F_SETFL, O_CREAT | O_WRONLY);
                         failed_write |= !::write(fd, current_write_pointer, end_of_buffer_pointer - current_write_pointer);
                         fcntl(fd, F_SETFL, oflag);
-                        bytes_written += end_of_buffer_pointer - current_write_pointer;
+                        //std::cout << "Bytes written: " << bytes_written << std::endl;
+                        bytes_written = bytes_written + end_of_buffer_pointer - current_write_pointer;
+                        //std::cout << "Added there: " << end_of_buffer_pointer - current_write_pointer << std::endl;
+                        //std::cout << "Bytes written after: " << bytes_written << std::endl;
                         current_write_pointer = start_of_buffer_pointer;
                         overhang = end_of_buffer_pointer - current_write_pointer;
                       }
@@ -127,7 +140,7 @@ namespace dunedaq {
                     } 
                     considered_chunks_in_loop++;
                     base::m_next_timestamp_to_record = reinterpret_cast<const ReadoutType*>(start_of_buffer_pointer + (((current_write_pointer - start_of_buffer_pointer) / ReadoutType::fixed_payload_size) * ReadoutType::fixed_payload_size))->get_first_timestamp();
-
+                    //TLOG() << "Next timestamp to record: " << base::m_next_timestamp_to_record;
 
                   }
                 }
