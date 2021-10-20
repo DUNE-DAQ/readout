@@ -52,6 +52,8 @@ namespace dunedaq {
 	      const char* current_end_pointer;
               const char* end_of_buffer_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->end_of_buffer());
 
+              size_t bytes_written = 0;
+
               while (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_of_recording).count() < duration) {
                 if (!base::m_cleanup_requested || (base::m_next_timestamp_to_record == 0)) {
                   size_t considered_chunks_in_loop = 0;
@@ -67,41 +69,49 @@ namespace dunedaq {
                   if (base::m_next_timestamp_to_record == 0) {
                     auto front = base::m_latency_buffer->front();
                     base::m_next_timestamp_to_record = front == nullptr ? 0 : front->get_first_timestamp();
-                    current_write_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->front());
+                    size_t skipped_frames = 0;
+                    while (reinterpret_cast<std::uintptr_t>(front) % 4096) {
+                        ++front;
+                        skipped_frames++;
+                    }
+                    std::cout << "Skipped " << skipped_frames << " frames" << std::endl;
+                    current_write_pointer = reinterpret_cast<const char*>(front);
                   }
 
 	          current_end_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->back());
 
                   while (considered_chunks_in_loop < 100) {
+                    auto iptr = reinterpret_cast<std::uintptr_t>(current_write_pointer);
+                    if (iptr % 4096) std::cout << "Not aligned!!!!!!!!!!!!!!!!!!!!" << std::endl; 
                     bool failed_write = false;
                     if (overhang > 0) {
-                      size_t write_size = 8192 - (overhang % 8192);
+                      size_t write_size = 4096 - (overhang % 4096);
                       if (current_write_pointer + write_size < current_end_pointer) {
                         // Align the file offset
-                        TLOG() << "Align";
                         fcntl(fd, F_SETFL, O_CREAT | O_WRONLY);
                         failed_write |= !::write(fd, current_write_pointer, write_size);
                         fcntl(fd, F_SETFL, oflag);
+                        bytes_written += write_size;
                         current_write_pointer += write_size;
                         overhang = 0;
                       }
                     } else if (current_write_pointer + chunk_size < current_end_pointer) {
                       // Write whole chunk to file
-                      TLOG() << "Whole chunk";
                       failed_write |= !::write(fd, current_write_pointer, chunk_size);
+                      bytes_written += chunk_size;
                       current_write_pointer += chunk_size;
                     } else if (current_end_pointer < current_write_pointer) {
                       if (current_write_pointer + chunk_size < end_of_buffer_pointer) {
                         // Write whole chunk to file
-                        TLOG() << "Whole chunk";
                         failed_write |= !::write(fd, current_write_pointer, chunk_size);
+                        bytes_written += chunk_size;
                         current_write_pointer += chunk_size;
                       } else {
                         // Write the last bit of the buffer without using O_DIRECT
-                        TLOG() << "Last bit";
                         fcntl(fd, F_SETFL, O_CREAT | O_WRONLY);
                         failed_write |= !::write(fd, current_write_pointer, end_of_buffer_pointer - current_write_pointer);
                         fcntl(fd, F_SETFL, oflag);
+                        bytes_written += end_of_buffer_pointer - current_write_pointer;
                         current_write_pointer = start_of_buffer_pointer;
                         overhang = end_of_buffer_pointer - current_write_pointer;
                       }
@@ -112,6 +122,7 @@ namespace dunedaq {
                     }
                     
                     if (failed_write) {
+                      TLOG() << "Failed write!";
                       ers::warning(CannotWriteToFile(ERS_HERE, base::m_output_file));
                     } 
                     considered_chunks_in_loop++;
@@ -127,6 +138,7 @@ namespace dunedaq {
               if (last_started_frame != current_write_pointer) {
                 fcntl(fd, F_SETFL, O_CREAT | O_WRONLY);
                 ::write(fd, current_write_pointer, (last_started_frame + ReadoutType::fixed_payload_size) - current_write_pointer);
+                bytes_written += (last_started_frame + ReadoutType::fixed_payload_size) - current_write_pointer;
               }
               
               ::close(fd);
@@ -134,6 +146,7 @@ namespace dunedaq {
               base::m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max(); // NOLINT (build/unsigned)
 
               TLOG() << "Stop recording" << std::endl;
+              std::cout << "Wrote " << bytes_written << " bytes" << std::endl;
               base::m_recording.exchange(false);
             },
             conf.duration);
