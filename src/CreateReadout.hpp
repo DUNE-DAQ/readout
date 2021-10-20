@@ -63,7 +63,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>,
           WIBFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF WIB2
@@ -75,7 +75,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           FixedRateQueueModel<types::WIB2_SUPERCHUNK_STRUCT>,
           WIB2FrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF DAPHNE queue
@@ -88,7 +88,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                        BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                        DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF PDS skiplist
@@ -99,7 +99,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                                                            DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       if (inst.find("sw_tp") != std::string::npos) {
@@ -110,7 +110,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
           SWWIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       if (inst.find("raw_tp") != std::string::npos) {
@@ -133,7 +133,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>,
                                                            PACMANFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
        */
 
