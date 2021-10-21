@@ -16,8 +16,8 @@
 // Separate files for TPC wires and SSP modules
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef READOUT_SRC_WIB_TPG_PDSPCHANNELMAPSERVICE_HPP_
-#define READOUT_SRC_WIB_TPG_PDSPCHANNELMAPSERVICE_HPP_
+#ifndef READOUT_INCLUDE_READOUT_CHMAP_PDSPCHANNELMAPSERVICE_HPP_
+#define READOUT_INCLUDE_READOUT_CHMAP_PDSPCHANNELMAPSERVICE_HPP_
 
 #include <fstream>
 #include <iostream>
@@ -213,4 +213,4 @@ private:
 
 } // namespace swtpg
 
-#endif // READOUT_SRC_WIB_TPG_PDSPCHANNELMAPSERVICE_HPP_
+#endif // READOUT_INCLUDE_READOUT_CHMAP_PDSPCHANNELMAPSERVICE_HPP_
