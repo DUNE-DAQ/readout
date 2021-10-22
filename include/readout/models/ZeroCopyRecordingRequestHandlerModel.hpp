@@ -25,55 +25,56 @@ namespace dunedaq {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "ZeroCopyRecordingRequestHandlerModel created...";
       }
 
-      using base = DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>;
+      using inherited = DefaultRequestHandlerModel<ReadoutType, LatencyBufferType>;
 
       void record(const nlohmann::json& args) override
       {
         auto conf = args.get<readoutconfig::RecordingParams>();
 
-        if (base::m_recording.load()) {
-          ers::error(CommandError(ERS_HERE, base::m_geoid, "A recording is still running, no new recording was started!"));
+        if (inherited::m_recording.load()) {
+          ers::error(CommandError(ERS_HERE, inherited::m_geoid, "A recording is still running, no new recording was started!"));
           return;
         }
-        base::m_recording_thread.set_work(
-            [&](int duration) {
+        inherited::m_recording_thread.set_work(
+            [&](int duration, const nlohmann::json& args) {
               auto oflag = O_CREAT | O_WRONLY | O_DIRECT;
-              auto fd = ::open(base::m_output_file.c_str(), oflag, 0644);
+              auto fd = ::open(inherited::m_output_file.c_str(), oflag, 0644);
 
               auto conf = args.get<readoutconfig::RecordingParams>();
 
-              size_t chunk_size = 8388608;
+              size_t chunk_size = inherited::m_stream_buffer_size;
+              size_t alignment_size = inherited::m_latency_buffer->get_alignment_size();
               TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
-              base::m_recording.exchange(true);
+              inherited::m_recording.exchange(true);
               auto start_of_recording = std::chrono::high_resolution_clock::now();
               auto current_time = start_of_recording;
-              base::m_next_timestamp_to_record = 0;
+              inherited::m_next_timestamp_to_record = 0;
               ReadoutType element_to_search;
               
               const char* current_write_pointer;
-              const char* start_of_buffer_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->start_of_buffer());
+              const char* start_of_buffer_pointer = reinterpret_cast<const char*>(inherited::m_latency_buffer->start_of_buffer());
 	      const char* current_end_pointer;
-              const char* end_of_buffer_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->end_of_buffer());
+              const char* end_of_buffer_pointer = reinterpret_cast<const char*>(inherited::m_latency_buffer->end_of_buffer());
 
               size_t bytes_written = 0;
 
               while (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_of_recording).count() < duration) {
-                if (!base::m_cleanup_requested || (base::m_next_timestamp_to_record == 0)) {
+                if (!inherited::m_cleanup_requested || (inherited::m_next_timestamp_to_record == 0)) {
                   size_t considered_chunks_in_loop = 0;
                   size_t overhang = 0;
 
                   // Wait for potential running cleanup to finish first
                   {
-                    std::unique_lock<std::mutex> lock(base::m_cv_mutex);
-                    base::m_cv.wait(lock, [&] { return !base::m_cleanup_requested; });
+                    std::unique_lock<std::mutex> lock(inherited::m_cv_mutex);
+                    inherited::m_cv.wait(lock, [&] { return !inherited::m_cleanup_requested; });
                   }
-                  base::m_cv.notify_all();
+                  inherited::m_cv.notify_all();
 
-                  if (base::m_next_timestamp_to_record == 0) {
-                    auto begin = base::m_latency_buffer->begin();
-                    base::m_next_timestamp_to_record = begin == base::m_latency_buffer->end() ? 0 : begin->get_first_timestamp();
+                  if (inherited::m_next_timestamp_to_record == 0) {
+                    auto begin = inherited::m_latency_buffer->begin();
+                    inherited::m_next_timestamp_to_record = begin == inherited::m_latency_buffer->end() ? 0 : begin->get_first_timestamp();
                     size_t skipped_frames = 0;
-                    while (reinterpret_cast<std::uintptr_t>(&(*begin)) % 4096) {
+                    while (reinterpret_cast<std::uintptr_t>(&(*begin)) % alignment_size) {
                         ++begin;
                         skipped_frames++;
                     }
@@ -81,7 +82,7 @@ namespace dunedaq {
                     current_write_pointer = reinterpret_cast<const char*>(&(*begin));
                   }
 
-	          current_end_pointer = reinterpret_cast<const char*>(base::m_latency_buffer->back());
+	          current_end_pointer = reinterpret_cast<const char*>(inherited::m_latency_buffer->back());
                   //printf("current_write_pointer:   %p\n", (void *) current_write_pointer);
                   //printf("current_end_pointer:     %p\n", (void *) current_end_pointer);
                   //printf("start_of_buffer_pointer: %p\n", (void *) start_of_buffer_pointer);
@@ -89,10 +90,12 @@ namespace dunedaq {
 
                   while (considered_chunks_in_loop < 100) {
                     auto iptr = reinterpret_cast<std::uintptr_t>(current_write_pointer);
-                    if (iptr % 4096) std::cout << "Not aligned!!!!!!!!11!!!!!!11!!!!!!" << std::endl; 
+                    if (iptr % alignment_size) {
+                       TLOG() << "Write pointer is not aligned";
+                    } 
                     bool failed_write = false;
                     if (overhang > 0) {
-                      size_t write_size = 4096 - (overhang % 4096);
+                      size_t write_size = alignment_size - (overhang % alignment_size);
                       if (current_write_pointer + write_size < current_end_pointer) {
                         // Align the file offset
                         fcntl(fd, F_SETFL, O_CREAT | O_WRONLY);
@@ -136,11 +139,11 @@ namespace dunedaq {
                     
                     if (failed_write) {
                       TLOG() << "Failed write!";
-                      ers::warning(CannotWriteToFile(ERS_HERE, base::m_output_file));
+                      ers::warning(CannotWriteToFile(ERS_HERE, inherited::m_output_file));
                     } 
                     considered_chunks_in_loop++;
-                    base::m_next_timestamp_to_record = reinterpret_cast<const ReadoutType*>(start_of_buffer_pointer + (((current_write_pointer - start_of_buffer_pointer) / ReadoutType::fixed_payload_size) * ReadoutType::fixed_payload_size))->get_first_timestamp();
-                    //TLOG() << "Next timestamp to record: " << base::m_next_timestamp_to_record;
+                    inherited::m_next_timestamp_to_record = reinterpret_cast<const ReadoutType*>(start_of_buffer_pointer + (((current_write_pointer - start_of_buffer_pointer) / ReadoutType::fixed_payload_size) * ReadoutType::fixed_payload_size))->get_first_timestamp();
+                    //TLOG() << "Next timestamp to record: " << inherited::m_next_timestamp_to_record;
 
                   }
                 }
@@ -156,13 +159,12 @@ namespace dunedaq {
               
               ::close(fd);
 
-              base::m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max(); // NOLINT (build/unsigned)
+              inherited::m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max(); // NOLINT (build/unsigned)
 
-              TLOG() << "Stop recording" << std::endl;
-              std::cout << "Wrote " << bytes_written << " bytes" << std::endl;
-              base::m_recording.exchange(false);
+              TLOG() << "Stop recording, wrote " << bytes_written << " bytes";
+              inherited::m_recording.exchange(false);
             },
-            conf.duration);
+            conf.duration, args);
       }
     };
 

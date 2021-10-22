@@ -110,6 +110,7 @@ public:
     m_geoid.element_id = conf.element_id;
     m_geoid.region_id = conf.region_id;
     m_geoid.system_type = ReadoutType::system_type;
+    m_stream_buffer_size = conf.stream_buffer_size;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -664,6 +665,7 @@ protected:
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
   int m_fragment_queue_timeout = 100;
   std::string m_output_file;
+  size_t m_stream_buffer_size = 0;
 
   // Stats
   std::atomic<int> m_pop_counter;

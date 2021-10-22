@@ -448,6 +448,10 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 
   void flush() override { pop(occupancy()); }
 
+  std::size_t get_alignment_size() {
+    return alignment_size_;
+  }
+
 protected:
   template<class... Args>
   bool write_(Args&&... recordArgs)
