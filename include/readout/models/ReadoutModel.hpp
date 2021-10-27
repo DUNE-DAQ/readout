@@ -27,6 +27,8 @@
 #include "dfmessages/DataRequest.hpp"
 #include "dfmessages/TimeSync.hpp"
 
+#include "networkmanager/NetworkManager.hpp"
+
 #include "readout/ReadoutLogging.hpp"
 #include "readout/concepts/ReadoutConcept.hpp"
 #include "readout/readoutconfig/Nljs.hpp"
@@ -75,7 +77,6 @@ public:
     , m_latency_buffer_impl(nullptr)
     , m_raw_processor_impl(nullptr)
     , m_requester_thread(0)
-    , m_timesync_queue_timeout_ms(0)
     , m_timesync_thread(0)
   {}
 
@@ -84,11 +85,10 @@ public:
     setup_request_response_queues(args);
 
     try {
-      auto queue_index = appfwk::queue_index(args, { "raw_input", "timesync" });
+      auto queue_index = appfwk::queue_index(args, { "raw_input" });
       m_raw_data_source.reset(new raw_source_qt(queue_index["raw_input"].inst));
-      m_timesync_sink.reset(new timesync_sink_qt(queue_index["timesync"].inst));
     } catch (const ers::Issue& excpt) {
-      throw ResourceQueueError(ERS_HERE, "raw_input/timesync", "ReadoutModel", excpt);
+      throw ResourceQueueError(ERS_HERE, "raw_input", "ReadoutModel", excpt);
     }
 
     // Instantiate functionalities
@@ -109,6 +109,9 @@ public:
       m_fake_trigger = true;
     }
     m_source_queue_timeout_ms = std::chrono::milliseconds(conf.source_queue_timeout_ms);
+
+    m_timesync_connection_name = conf.timesync_connection_name;
+    m_timesync_topic_name = conf.timesync_topic_name;
     TLOG_DEBUG(TLVL_WORK_STEPS) << "ReadoutModel creation";
 
     m_geoid.element_id = conf.element_id;
@@ -261,9 +264,14 @@ private:
         // TLOG() << "New timesync: daq=" << timesyncmsg.daq_time << " wall=" << timesyncmsg.system_time;
         if (timesyncmsg.daq_time != 0) {
           try {
-            m_timesync_sink->push(std::move(timesyncmsg));
-          } catch (const ers::Issue& excpt) {
-            ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "timesync message queue", excpt));
+            auto serialised_timesync = dunedaq::serialization::serialize(timesyncmsg, dunedaq::serialization::kMsgPack);
+            networkmanager::NetworkManager::get().send_to(m_timesync_connection_name,
+                                                          static_cast<const void*>(serialised_timesync.data()),
+                                                          serialised_timesync.size(),
+                                                          std::chrono::milliseconds(500),
+                                                          m_timesync_topic_name);
+          } catch (ers::Issue& excpt) {
+            ers::warning(TimeSyncTransmissionFailed(ERS_HERE, m_geoid, m_timesync_connection_name, m_timesync_topic_name, excpt));
           }
 
           if (m_fake_trigger) {
@@ -386,10 +394,9 @@ private:
   std::unique_ptr<FrameErrorRegistry> m_error_registry;
 
   // TIME-SYNC
-  std::chrono::milliseconds m_timesync_queue_timeout_ms;
-  using timesync_sink_qt = appfwk::DAQSink<dfmessages::TimeSync>;
-  std::unique_ptr<timesync_sink_qt> m_timesync_sink;
   ReusableThread m_timesync_thread;
+  std::string m_timesync_connection_name;
+  std::string m_timesync_topic_name;
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };
