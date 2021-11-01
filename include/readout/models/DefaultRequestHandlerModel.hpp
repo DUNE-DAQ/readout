@@ -36,13 +36,13 @@
 #include <future>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <memory>
 #include <queue>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-#include <map>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -240,6 +240,7 @@ public:
 
         TLOG() << "Stop recording" << std::endl;
         m_recording.exchange(false);
+        m_buffered_writer.flush();
       },
       conf.duration);
   }

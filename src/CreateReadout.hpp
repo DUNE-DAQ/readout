@@ -25,6 +25,7 @@
 #include "daphne/DAPHNEListRequestHandler.hpp"
 //#include "pacman/PACMANFrameProcessor.hpp"
 //#include "pacman/PACMANListRequestHandler.hpp"
+//#include "ssp/SSPFrameProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
 #include "wib/RAWWIBTriggerPrimitiveProcessor.hpp"
@@ -101,6 +102,21 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         readout_model->init(args);
         return readout_model;
       }
+
+      // IF SSP
+      /* 
+      if (inst.find("ssp") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a SSPs using Searchable Queue";
+        auto readout_model = std::make_unique<ReadoutModel<
+          types::SSP_FRAME_STRUCT,
+          DefaultRequestHandlerModel<types::SSP_FRAME_STRUCT, BinarySearchQueueModel<types::SSP_FRAME_STRUCT>>,
+          BinarySearchQueueModel<types::SSP_FRAME_STRUCT>,
+          SSPFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return readout_model;
+      }
+      */
+
 
       if (inst.find("sw_tp") != std::string::npos) {
         TLOG(TLVL_WORK_STEPS) << "Creating readout for sw tp";

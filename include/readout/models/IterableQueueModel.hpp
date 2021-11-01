@@ -24,10 +24,10 @@
 #ifndef READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 #define READOUT_INCLUDE_READOUT_MODELS_ITERABLEQUEUEMODEL_HPP_
 
+#include "readout/ReadoutIssues.hpp"
 #include "readout/concepts/LatencyBufferConcept.hpp"
 #include "readout/readoutconfig/Nljs.hpp"
 #include "readout/readoutconfig/Structs.hpp"
-#include "readout/ReadoutIssues.hpp"
 
 #include "logging/Logging.hpp"
 
@@ -52,7 +52,7 @@
 #include <xmmintrin.h>
 
 #ifdef WITH_LIBNUMA_SUPPORT
-  #include <numa.h>
+#include <numa.h>
 #endif
 
 namespace dunedaq {
@@ -205,7 +205,8 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
 #ifdef WITH_LIBNUMA_SUPPORT
       records_ = static_cast<T*>(numa_alloc_onnode(sizeof(T) * size, numa_node));
 #else
-      throw GenericConfigurationError(ERS_HERE, "NUMA allocation was requested but program was built without USE_LIBNUMA");
+      throw GenericConfigurationError(ERS_HERE,
+                                      "NUMA allocation was requested but program was built without USE_LIBNUMA");
 #endif
 
     } else if (!numa_aware && !intrinsic_allocator && alignment_size == 0) {
@@ -341,16 +342,23 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     pointer operator->() { return &m_queue.records_[m_index]; }
     Iterator& operator++() // NOLINT(runtime/increment_decrement) :)
     {
-      m_index++;
-      if (m_index == m_queue.size_) {
-        m_index = 0;
+      if (good()) {
+        m_index++;
+        if (m_index == m_queue.size_) {
+          m_index = 0;
+        }
+      }
+      if (!good()) {
+        m_index = std::numeric_limits<uint32_t>::max(); // NOLINT(build/unsigned)
       }
       return *this;
     }
-    Iterator operator++(int) // NOLINT(runtime/increment_decrement) :)
+    Iterator operator++(int amount) // NOLINT(runtime/increment_decrement) :)
     {
       Iterator tmp = *this;
-      ++(*this);
+      for (int i = 0; i < amount; ++i) {
+        ++(*this);
+      }
       return tmp;
     }
     friend bool operator==(const Iterator& a, const Iterator& b) { return a.m_index == b.m_index; }
@@ -360,10 +368,13 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     {
       auto const currentRead = m_queue.readIndex_.load(std::memory_order_relaxed);
       auto const currentWrite = m_queue.writeIndex_.load(std::memory_order_relaxed);
-      return (*this != m_queue.end()) || (m_index >= currentRead && m_index < currentWrite) ||
-             (m_index >= currentRead && currentWrite < currentRead) ||
-             (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite);
+      return (*this != m_queue.end()) &&
+             ((m_index >= currentRead && m_index < currentWrite) ||
+              (m_index >= currentRead && currentWrite < currentRead) ||
+              (currentWrite < currentRead && m_index < currentRead && m_index < currentWrite));
     }
+
+    uint32_t get_index() { return m_index; } // NOLINT(build/unsigned)
 
   private:
     IterableQueueModel<T>& m_queue;

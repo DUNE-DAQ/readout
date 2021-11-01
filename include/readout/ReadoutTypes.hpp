@@ -16,6 +16,7 @@
 #include "dataformats/FragmentHeader.hpp"
 #include "dataformats/GeoID.hpp"
 #include "dataformats/daphne/DAPHNEFrame.hpp"
+#include "dataformats/ssp/SSPTypes.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
 #include "RawWIBTp.hpp"
@@ -339,6 +340,71 @@ struct SW_WIB_TRIGGERPRIMITIVE_STRUCT
 };
 
 static_assert(sizeof(struct SW_WIB_TRIGGERPRIMITIVE_STRUCT) == sizeof(triggeralgs::TriggerPrimitive),
+              "Check your assumptions on TP_READOUT_TYPE");
+
+const constexpr std::size_t SSP_FRAME_SIZE = 1012;
+struct SSP_FRAME_STRUCT
+{
+  using FrameType = SSP_FRAME_STRUCT;
+
+  // header
+  dataformats::EventHeader header;
+
+  // data
+  char data[SSP_FRAME_SIZE];
+
+  // comparable based on start timestamp
+  bool operator<(const SSP_FRAME_STRUCT& other) const
+  {
+    return this->get_first_timestamp() < other.get_first_timestamp() ? true : false;
+  }
+
+  uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
+  {
+    auto ehptr = &header;
+    unsigned long ts = 0; // NOLINT(runtime/int)
+    for (unsigned int iword = 0; iword <= 3; ++iword) {
+      ts += ((unsigned long)(ehptr->timestamp[iword])) << 16 * iword; //NOLINT(runtime/int)
+    }
+    return ts;
+  }
+
+  void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    uint64_t bitmask = (1 << 16) - 1; // NOLINT(build/unsigned)
+    for (unsigned int iword = 0; iword <= 3; ++iword) {
+      header.timestamp[iword] = static_cast<uint16_t>((ts & bitmask)); // NOLINT(build/unsigned)
+      ts = ts >> 16;
+    }
+  }
+
+  void fake_timestamps(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
+  {
+    // tp.time_start = first_timestamp;
+  }
+
+  FrameType* begin() { return this; }
+
+  FrameType* end() { return (this + 1); } // NOLINT
+
+  size_t get_payload_size() {
+    return SSP_FRAME_SIZE;
+  }
+
+  size_t get_num_frames() {
+    return 1;
+  }
+
+  size_t get_frame_size() {
+    return SSP_FRAME_SIZE;
+  }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
+  static const constexpr uint64_t expected_tick_difference = 25; // NOLINT(build/unsigned)
+};
+
+static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(dataformats::EventHeader) + SSP_FRAME_SIZE,
               "Check your assumptions on TP_READOUT_TYPE");
 
 /**
