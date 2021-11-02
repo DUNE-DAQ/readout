@@ -5,6 +5,7 @@ find_package(daq-cmake REQUIRED)
 
 daq_setup_environment()
 
+find_package(ers REQUIRED)
 find_package(appfwk REQUIRED)
 find_package(logging REQUIRED)
 find_package(opmonlib REQUIRED)
@@ -29,6 +30,7 @@ set(READOUT_DEPENDENCIES
   ers::ers
   logging::logging
 #dunedaq
+  appfwk::appfwk
   opmonlib::opmonlib
   daqdataformats::daqdataformats
   detdataformats::detdataformats
@@ -55,16 +57,16 @@ endif()
 # Main library
 daq_add_library(
   wib/tpg/*.cpp
-  LINK_LIBRARIES appfwk::appfwk ${READOUT_DEPENDENCIES}
+  LINK_LIBRARIES ${READOUT_DEPENDENCIES}
 )
 
 ##############################################################################
 # Plugins
-daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
-daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES appfwk::appfwk readout ${BOOST_LIBS})
-daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
-daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES appfwk::appfwk readout)
+daq_add_plugin(FakeCardReader duneDAQModule LINK_LIBRARIES readout)
+daq_add_plugin(DataLinkHandler duneDAQModule LINK_LIBRARIES readout ${BOOST_LIBS})
+daq_add_plugin(DataRecorder duneDAQModule LINK_LIBRARIES readout ${BOOST_LIBS})
+daq_add_plugin(FragmentConsumer duneDAQModule LINK_LIBRARIES readout)
+daq_add_plugin(TimeSyncConsumer duneDAQModule LINK_LIBRARIES readout)
 
 ##############################################################################
 # Integration tests
