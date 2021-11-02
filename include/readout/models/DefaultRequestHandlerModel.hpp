@@ -39,13 +39,13 @@
 #include <future>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <memory>
 #include <queue>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-#include <map>
 
 using dunedaq::readout::logging::TLVL_HOUSEKEEPING;
 using dunedaq::readout::logging::TLVL_QUEUE_PUSH;
@@ -223,7 +223,7 @@ public:
             }
             m_cv.notify_all();
 
-            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
+            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100;) {
               if ((*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
                 if (!m_buffered_writer.write(*chunk_iter)) {
                   ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
@@ -242,6 +242,7 @@ public:
 
         TLOG() << "Stop recording" << std::endl;
         m_recording.exchange(false);
+        m_buffered_writer.flush();
       },
       conf.duration);
   }
