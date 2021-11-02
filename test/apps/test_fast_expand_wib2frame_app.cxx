@@ -6,7 +6,7 @@
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
  */
-#include "dataformats/wib2/WIB2Frame.hpp"
+#include "detdataformats/wib2/WIB2Frame.hpp"
 
 #include "folly/Benchmark.h" // for doNotOptimizeAway
 
@@ -70,7 +70,7 @@ print256(__m256i var)
 
 //==============================================================================
 __m256i
-unpack_one_register(dunedaq::dataformats::WIB2Frame::word_t* first_word)
+unpack_one_register(dunedaq::detdataformats::WIB2Frame::word_t* first_word)
 {
   __m256i reg = _mm256_lddqu_si256((__m256i*)first_word); // NOLINT(readability/casting)
   // printf("Input:      ");
@@ -175,7 +175,7 @@ unpack_one_register(dunedaq::dataformats::WIB2Frame::word_t* first_word)
 }
 
 RegisterArray<16>
-unpack(dunedaq::dataformats::WIB2Frame& frame)
+unpack(dunedaq::detdataformats::WIB2Frame& frame)
 {
   RegisterArray<16> ret;
   for (size_t i = 0; i < ret.size(); ++i) {
@@ -187,9 +187,9 @@ unpack(dunedaq::dataformats::WIB2Frame& frame)
 bool
 in_out_test(const std::array<uint16_t, 256>& vals) // NOLINT
 {
-  dunedaq::dataformats::WIB2Frame frame;
+  dunedaq::detdataformats::WIB2Frame frame;
   // Zero it out first
-  std::memset(&frame, 0, sizeof(dunedaq::dataformats::WIB2Frame));
+  std::memset(&frame, 0, sizeof(dunedaq::detdataformats::WIB2Frame));
 
   for (size_t i = 0; i < vals.size(); ++i) {
     frame.set_adc(i, vals[i]);
@@ -245,9 +245,9 @@ main(int, char**)
     in_out_test(vals);
   }
 
-  dunedaq::dataformats::WIB2Frame frame;
+  dunedaq::detdataformats::WIB2Frame frame;
   // Zero it out first
-  std::memset(&frame, 0, sizeof(dunedaq::dataformats::WIB2Frame));
+  std::memset(&frame, 0, sizeof(dunedaq::detdataformats::WIB2Frame));
 
   for (int i = 0; i < 256; ++i) {
     frame.set_adc(i, 0x3a0 + i);
@@ -271,8 +271,8 @@ main(int, char**)
   // -----------------------------------------------------------------
   // Speed test
   constexpr int n_frames = 1000000;
-  auto* frames = new dunedaq::dataformats::WIB2Frame[n_frames];
-  std::memset(frames, 0, n_frames * sizeof(dunedaq::dataformats::WIB2Frame));
+  auto* frames = new dunedaq::detdataformats::WIB2Frame[n_frames];
+  std::memset(frames, 0, n_frames * sizeof(dunedaq::detdataformats::WIB2Frame));
 
   for (int j = 0; j < n_frames; ++j) {
     for (int i = 0; i < 256; ++i) {

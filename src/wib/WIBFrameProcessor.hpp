@@ -14,7 +14,7 @@
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -50,7 +50,7 @@ public:
   using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
   using constframeptr = const types::WIB_SUPERCHUNK_STRUCT*;
-  using wibframeptr = dunedaq::dataformats::WIBFrame*;
+  using wibframeptr = dunedaq::detdataformats::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   // Channel map funciton type
@@ -196,7 +196,7 @@ public:
   }
 
   unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
-                                 const dunedaq::dataformats::WIBFrame* frame,
+                                 const dunedaq::detdataformats::WIBFrame* frame,
                                  unsigned int ch) // NOLINT(build/unsigned)
   {
     // handle 256 channels on two fibers -- use the channel
@@ -330,15 +330,15 @@ protected:
     if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
       uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
       for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
-        auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+        auto wf = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
+        auto wfh = const_cast<dunedaq::detdataformats::WIBHeader*>(wf->get_wib_header());
         wfh->set_timestamp(ts_next);
         ts_next += 25;
       }
     }
 
     // Acquire timestamp
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>(fp); // NOLINT
     m_current_ts = wfptr->get_wib_header()->get_timestamp();
 
     // Check timestamp
@@ -380,7 +380,7 @@ protected:
     if (!fp)
       return;
 
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
     uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                // NOLINT(build/unsigned)
 
     swtpg::MessageRegistersCollection collection_registers;
@@ -639,7 +639,7 @@ private:
   std::priority_queue<triggeralgs::TriggerPrimitive, std::vector<triggeralgs::TriggerPrimitive>, Comparator>
     m_tp_buffer;
 
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
   uint64_t m_tp_timeout = 10000;       // NOLINT(build/unsigned)
   uint64_t m_tpset_window_size = 1000; // NOLINT(build/unsigned)
   uint64_t m_next_tpset_seqno = 0;     // NOLINT(build/unsigned)

@@ -11,7 +11,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
-#include "dataformats/daphne/DAPHNEFrame.hpp"
+#include "detdataformats/daphne/DAPHNEFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -33,7 +33,7 @@ class DAPHNEFrameProcessor : public TaskRawDataProcessorModel<types::DAPHNE_SUPE
 public:
   using inherited = TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>;
   using frameptr = types::DAPHNE_SUPERCHUNK_STRUCT*;
-  using daphneframeptr = dunedaq::dataformats::DAPHNEFrame*;
+  using daphneframeptr = dunedaq::detdataformats::DAPHNEFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   explicit DAPHNEFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)

@@ -42,7 +42,7 @@ namespace readout {
 class TPEmulatorModel : public SourceEmulatorConcept
 {
 public:
-  using sink_t = appfwk::DAQSink<dataformats::RawWIBTp>;
+  using sink_t = appfwk::DAQSink<detdataformats::RawWIBTp>;
 
   // Very bad, use these from readout types, when RAW_WIB_TP is introduced
   static const constexpr std::size_t WIB_FRAME_SIZE = 464;
@@ -85,7 +85,7 @@ public:
 
       m_geoid.element_id = m_link_conf.geoid.element;
       m_geoid.region_id = m_link_conf.geoid.region;
-      m_geoid.system_type = dataformats::GeoID::SystemType::kTPC;
+      m_geoid.system_type = daqdataformats::GeoID::SystemType::kTPC;
       ;
 
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, RAW_WIB_TP_SUBFRAME_SIZE);
@@ -147,7 +147,7 @@ protected:
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       num_elem = m_file_source->num_elements();
     }
-    auto rwtpptr = reinterpret_cast<dunedaq::dataformats::RawWIBTp*>(source.data()); // NOLINT
+    auto rwtpptr = reinterpret_cast<dunedaq::detdataformats::RawWIBTp*>(source.data()); // NOLINT
     TLOG_DEBUG(TLVL_BOOKKEEPING) << "Number of raw WIB TP elements to read from buffer: " << num_elem
                                  << "; rwtpptr is: " << rwtpptr;
 
@@ -176,7 +176,7 @@ protected:
         auto* sp = reinterpret_cast<types::TpSubframe*>(                      // NOLINT
           ((uint8_t*)source.data()) + offset + i * RAW_WIB_TP_SUBFRAME_SIZE); // NOLINT
         if (!m_found_tp_header) {
-          dunedaq::dataformats::TpHeader* tfh = reinterpret_cast<dunedaq::dataformats::TpHeader*>(sp); // NOLINT
+          dunedaq::detdataformats::TpHeader* tfh = reinterpret_cast<dunedaq::detdataformats::TpHeader*>(sp); // NOLINT
           tfh->set_timestamp(ts_next);
           ts_next += 1600;
           m_found_tp_header = true;
@@ -184,12 +184,12 @@ protected:
           continue;
         }
         if (sp->word3 == 0xDEADBEEF) {
-          const dunedaq::dataformats::TpPedinfo* tpi = reinterpret_cast<dunedaq::dataformats::TpPedinfo*>(sp); // NOLINT
+          const dunedaq::detdataformats::TpPedinfo* tpi = reinterpret_cast<dunedaq::detdataformats::TpPedinfo*>(sp); // NOLINT
           m_found_tp_header = false;
           payload_ptr->ped = *tpi;
           continue;
         }
-        dunedaq::dataformats::TpData* td = reinterpret_cast<dunedaq::dataformats::TpData*>(sp); // NOLINT
+        dunedaq::detdataformats::TpData* td = reinterpret_cast<dunedaq::detdataformats::TpData*>(sp); // NOLINT
         payload_ptr->block.set_tp(*td);
       }
 
@@ -244,7 +244,7 @@ private:
 
   bool m_is_configured = false;
   double m_rate_khz;
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
 };
 
 } // namespace readout

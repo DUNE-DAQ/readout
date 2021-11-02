@@ -38,11 +38,11 @@ public:
   using ResultCode = typename dunedaq::readout::RequestHandlerConcept<ReadoutType, LatencyBufferType>::ResultCode;
 
   void issue_request(dfmessages::DataRequest datarequest,
-                     appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
+                     appfwk::DAQSink<std::unique_ptr<daqdataformats::Fragment>>& fragment_queue) override
   {
     auto frag_header = inherited::create_fragment_header(datarequest);
-    frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-    auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
+    frag_header.error_bits |= (0x1 << static_cast<size_t>(daqdataformats::FragmentErrorBits::kDataNotFound));
+    auto fragment = std::make_unique<daqdataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
     fragment->set_header_fields(frag_header);
 
     // ers::warning(dunedaq::readout::TrmWithEmptyFragment(ERS_HERE, "DLH is configured to send empty fragment"));

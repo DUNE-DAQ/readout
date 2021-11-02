@@ -11,9 +11,9 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
-#include "dataformats/FragmentHeader.hpp"
-#include "dataformats/GeoID.hpp"
-#include "dataformats/pacman/PACMANFrame.hpp"
+#include "daqdataformats/FragmentHeader.hpp"
+#include "daqdataformats/GeoID.hpp"
+#include "detdataformats/pacman/PACMANFrame.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
@@ -35,8 +35,8 @@ struct PACMAN_MESSAGE_STRUCT
   // comparable based on first timestamp
   bool operator<(const PACMAN_MESSAGE_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::PACMANFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::PACMANFrame*>(&other.data); // NOLINT
     return (thisptr->get_msg_header((void*)&data)->unix_ts) <
                (otherptr->get_msg_header((void*)&other.data)->unix_ts) // NOLINT
              ? true
@@ -47,7 +47,7 @@ struct PACMAN_MESSAGE_STRUCT
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
     return ((uint64_t)( // NOLINT
-              reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)
+              reinterpret_cast<const dunedaq::detdataformats::PACMANFrame*>(&data)
                 ->get_msg_header((void*)&data)
                 ->unix_ts) * // NOLINT
             // 1000000000);
@@ -59,12 +59,12 @@ struct PACMAN_MESSAGE_STRUCT
   // FIX ME - implement this in the frame later
   void set_timestamp(uint64_t /*ts*/) // NOLINT(build/unsigned)
   {
-    // reinterpret_cast<dunedaq::dataformats::PACMANFrame*>(&data)->set_timestamp(ts); // NOLINT
+    // reinterpret_cast<dunedaq::detdataformats::PACMANFrame*>(&data)->set_timestamp(ts); // NOLINT
   }
 
   uint64_t get_message_type() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data) // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::PACMANFrame*>(&data) // NOLINT
       ->get_msg_header((void*)&data)                                         // NOLINT
       ->type;
   }
@@ -75,21 +75,21 @@ struct PACMAN_MESSAGE_STRUCT
     TLOG_DEBUG(1) << "Message Type: " << (char)get_message_type(); // NOLINT
 
     uint16_t numWords =                                                                                       // NOLINT
-      reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_header((void*)&data)->words; // NOLINT
+      reinterpret_cast<const dunedaq::detdataformats::PACMANFrame*>(&data)->get_msg_header((void*)&data)->words; // NOLINT
 
     TLOG_DEBUG(1) << "Num words in message: " << numWords;
 
     for (unsigned int i = 0; i < numWords; i++) {
       TLOG_DEBUG(1) << "Inspecting word " << i;
 
-      dunedaq::dataformats::PACMANFrame::PACMANMessageWord* theWord =
-        reinterpret_cast<const dunedaq::dataformats::PACMANFrame*>(&data)->get_msg_word((void*)&data, i); // NOLINT
+      dunedaq::detdataformats::PACMANFrame::PACMANMessageWord* theWord =
+        reinterpret_cast<const dunedaq::detdataformats::PACMANFrame*>(&data)->get_msg_word((void*)&data, i); // NOLINT
 
       TLOG_DEBUG(1) << "Word type: " << (char)theWord->data_word.type;                // NOLINT
       TLOG_DEBUG(1) << "PACMAN I/O Channel: " << (char)theWord->data_word.channel_id; // NOLINT
       TLOG_DEBUG(1) << "Word receipt timestamp: " << theWord->data_word.receipt_timestamp;
 
-      dunedaq::dataformats::PACMANFrame::LArPixPacket* thePacket = &(theWord->data_word.larpix_word);
+      dunedaq::detdataformats::PACMANFrame::LArPixPacket* thePacket = &(theWord->data_word.larpix_word);
 
       TLOG_DEBUG(1) << "Inspecting packet";
 
@@ -111,8 +111,8 @@ struct PACMAN_MESSAGE_STRUCT
     return reinterpret_cast<FrameType*>(data + PACMAN_FRAME_SIZE); // NOLINT
   }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kNDLArTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kNDLArTPC;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kNDLArTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kNDLArTPC;
   static const constexpr size_t frame_size = PACMAN_FRAME_SIZE;
 
   // Set the right value for this field

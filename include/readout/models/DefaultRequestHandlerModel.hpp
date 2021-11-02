@@ -17,8 +17,8 @@
 #include "readout/readoutconfig/Nljs.hpp"
 
 #include "appfwk/Issues.hpp"
-#include "dataformats/Fragment.hpp"
-#include "dataformats/Types.hpp"
+#include "daqdataformats/Fragment.hpp"
+#include "daqdataformats/Types.hpp"
 #include "dfmessages/DataRequest.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
@@ -83,7 +83,7 @@ public:
   struct RequestElement
   {
     RequestElement(dfmessages::DataRequest data_request,
-                   appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* sink,
+                   appfwk::DAQSink<std::unique_ptr<daqdataformats::Fragment>>* sink,
                    size_t retries)
       : request(data_request)
       , fragment_sink(sink)
@@ -91,7 +91,7 @@ public:
     {}
 
     dfmessages::DataRequest request;
-    appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>* fragment_sink;
+    appfwk::DAQSink<std::unique_ptr<daqdataformats::Fragment>>* fragment_sink;
     size_t retry_count;
   };
 
@@ -256,7 +256,7 @@ public:
   }
 
   void issue_request(dfmessages::DataRequest datarequest,
-                     appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& fragment_queue) override
+                     appfwk::DAQSink<std::unique_ptr<daqdataformats::Fragment>>& fragment_queue) override
   {
     boost::asio::post(*m_request_handler_thread_pool, [&, datarequest]() { // start a thread from pool
       auto t_req_begin = std::chrono::high_resolution_clock::now();
@@ -359,9 +359,9 @@ public:
   }
 
 protected:
-  inline dataformats::FragmentHeader create_fragment_header(const dfmessages::DataRequest& dr)
+  inline daqdataformats::FragmentHeader create_fragment_header(const dfmessages::DataRequest& dr)
   {
-    dataformats::FragmentHeader fh;
+    daqdataformats::FragmentHeader fh;
     fh.size = sizeof(fh);
     fh.trigger_number = dr.trigger_number;
     fh.trigger_timestamp = dr.trigger_timestamp;
@@ -370,15 +370,15 @@ protected:
     fh.run_number = dr.run_number;
     fh.sequence_number = dr.sequence_number;
     fh.element_id = { m_geoid.system_type, m_geoid.region_id, m_geoid.element_id };
-    fh.fragment_type = static_cast<dataformats::fragment_type_t>(ReadoutType::fragment_type);
+    fh.fragment_type = static_cast<daqdataformats::fragment_type_t>(ReadoutType::fragment_type);
     return fh;
   }
 
-  std::unique_ptr<dataformats::Fragment> create_empty_fragment(const dfmessages::DataRequest& dr)
+  std::unique_ptr<daqdataformats::Fragment> create_empty_fragment(const dfmessages::DataRequest& dr)
   {
     auto frag_header = create_fragment_header(dr);
-    frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
-    auto fragment = std::make_unique<dataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
+    frag_header.error_bits |= (0x1 << static_cast<size_t>(daqdataformats::FragmentErrorBits::kDataNotFound));
+    auto fragment = std::make_unique<daqdataformats::Fragment>(std::vector<std::pair<void*, size_t>>());
     fragment->set_header_fields(frag_header);
     return fragment;
   }
@@ -564,7 +564,7 @@ protected:
           }
         }
       } else if (last_ts > start_win_ts) { // data is gone.
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(daqdataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
         ++m_num_requests_old_window;
         ++m_num_requests_bad;
@@ -573,7 +573,7 @@ protected:
         rres.result_code = ResultCode::kNotYet; // give it another chance
       } else {
         TLOG() << "Don't know how to categorise this request";
-        frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+        frag_header.error_bits |= (0x1 << static_cast<size_t>(daqdataformats::FragmentErrorBits::kDataNotFound));
         rres.result_code = ResultCode::kNotFound;
         ++m_num_requests_uncategorized;
         ++m_num_requests_bad;
@@ -584,7 +584,7 @@ protected:
         if (m_run_marker.load()) {
           return rres; // If kNotYet, return immediately, don't check for fragment pieces.
         } else {
-          frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+          frag_header.error_bits |= (0x1 << static_cast<size_t>(daqdataformats::FragmentErrorBits::kDataNotFound));
           rres.result_code = ResultCode::kNotFound;
           ++m_num_requests_bad;
         }
@@ -600,7 +600,7 @@ protected:
       TLOG_DEBUG(TLVL_WORK_STEPS) << oss.str();
     } else {
       ers::warning(RequestOnEmptyBuffer(ERS_HERE, m_geoid, "Data not found"));
-      frag_header.error_bits |= (0x1 << static_cast<size_t>(dataformats::FragmentErrorBits::kDataNotFound));
+      frag_header.error_bits |= (0x1 << static_cast<size_t>(daqdataformats::FragmentErrorBits::kDataNotFound));
       rres.result_code = ResultCode::kNotFound;
       ++m_num_requests_bad;
     }
@@ -610,7 +610,7 @@ protected:
     }
 
     // Create fragment from pieces
-    rres.fragment = std::make_unique<dataformats::Fragment>(frag_pieces);
+    rres.fragment = std::make_unique<daqdataformats::Fragment>(frag_pieces);
 
     // Set header
     rres.fragment->set_header_fields(frag_header);
@@ -661,7 +661,7 @@ protected:
   unsigned m_pop_limit_size; // pop_limit_pct * buffer_capacity
   size_t m_retry_count;
   size_t m_buffer_capacity;
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
   int m_fragment_queue_timeout = 100;
   std::string m_output_file;
