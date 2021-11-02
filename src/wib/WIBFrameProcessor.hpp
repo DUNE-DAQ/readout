@@ -15,6 +15,7 @@
 #include "readout/utils/ReusableThread.hpp"
 
 #include "detdataformats/wib/WIBFrame.hpp"
+#include "detchannelmaps/PdspChannelMapService.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -27,8 +28,6 @@
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
-
-#include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <atomic>
 #include <functional>
@@ -195,7 +194,7 @@ public:
     }
   }
 
-  unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
+  unsigned int getOfflineChannel(detchannelmaps::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
                                  const dunedaq::detdataformats::WIBFrame* frame,
                                  unsigned int ch) // NOLINT(build/unsigned)
   {
@@ -225,7 +224,7 @@ public:
     unsigned int crateloc = crate; // NOLINT(build/unsigned)
     unsigned int offline =         // NOLINT(build/unsigned)
       channelMap.GetOfflineNumberFromDetectorElements(
-        crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
+        crateloc, slot, fiberloc, chloc, detchannelmaps::PdspChannelMapService::kFELIX);
     // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
     //        crate, slot, fiber, fiberloc, chloc, offline);
     return offline;
@@ -272,7 +271,7 @@ public:
       if (channel_map_felix == "") {
         channel_map_felix = readout_share + "/config/protoDUNETPCChannelMap_FELIX_v4.txt";
       }
-      m_channel_map.reset(new swtpg::PdspChannelMapService(channel_map_rce, channel_map_felix));
+      m_channel_map.reset(new detchannelmaps::PdspChannelMapService(channel_map_rce, channel_map_felix));
 
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, false, 0, true, 64); // 64 byte aligned
@@ -583,7 +582,7 @@ private:
 
   std::unique_ptr<IterableQueueModel<InductionItemToProcess>> m_induction_items_to_process;
 
-  std::unique_ptr<swtpg::PdspChannelMapService> m_channel_map;
+  std::unique_ptr<detchannelmaps::PdspChannelMapService> m_channel_map;
 
   size_t m_num_msg = 0;
   size_t m_num_push_fail = 0;
