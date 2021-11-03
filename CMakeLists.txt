@@ -11,7 +11,6 @@ find_package(logging REQUIRED)
 find_package(opmonlib REQUIRED)
 find_package(daqdataformats REQUIRED)
 find_package(detdataformats REQUIRED)
-find_package(detchannelmaps REQUIRED)
 find_package(dfmessages REQUIRED)
 find_package(triggeralgs REQUIRED)
 find_package(timinglibs REQUIRED)
@@ -35,7 +34,6 @@ set(READOUT_DEPENDENCIES
   opmonlib::opmonlib
   daqdataformats::daqdataformats
   detdataformats::detdataformats
-  detchannelmaps::detchannelmaps
   dfmessages::dfmessages
   triggeralgs::triggeralgs
   trigger::trigger
