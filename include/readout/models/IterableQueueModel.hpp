@@ -322,6 +322,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return static_cast<std::size_t>(ret);
   }
 
+  // The size of the underlying buffer, not the amount of usable slots
+  std::size_t get_size() const { return size_; }
+
   // maximum number of items in the queue.
   std::size_t capacity() const { return size_ - 1; }
 

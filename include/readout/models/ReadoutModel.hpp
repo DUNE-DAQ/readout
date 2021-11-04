@@ -117,13 +117,14 @@ public:
 
     // Configure implementations:
     m_raw_processor_impl->conf(args);
-    // m_raw_processor_impl->set_emulator_mode(conf.emulator_mode);
-    m_request_handler_impl->conf(args);
+    // Configure the latency buffer before the request handler so the request handler can check for alignment restrictions
     try {
       m_latency_buffer_impl->conf(args);
     } catch (const std::bad_alloc& be) {
       ers::error(ConfigurationError(ERS_HERE, m_geoid, "Latency Buffer can't be allocated with size!"));
     }
+
+    m_request_handler_impl->conf(args);
 
     // Configure threads:
     m_consumer_thread.set_name("consumer", conf.element_id);
