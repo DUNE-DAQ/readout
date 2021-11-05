@@ -120,13 +120,14 @@ public:
       m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
     }
 
-    if (conf.enable_raw_recording) {
+    if (conf.enable_raw_recording && !m_recording_configured) {
       std::string output_file = conf.output_file;
       if (remove(output_file.c_str()) == 0) {
         TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
       }
 
       m_buffered_writer.open(conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+      m_recording_configured = true;
     }
 
     m_recording_thread.set_name("recording", conf.element_id);
@@ -667,6 +668,7 @@ protected:
   int m_fragment_queue_timeout = 100;
   std::string m_output_file;
   size_t m_stream_buffer_size = 0;
+  bool m_recording_configured = false;
 
   // Stats
   std::atomic<int> m_pop_counter;

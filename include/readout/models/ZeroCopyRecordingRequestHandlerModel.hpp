@@ -30,6 +30,7 @@ namespace dunedaq {
 
       void conf(const nlohmann::json& args) override
       {
+
         auto conf = args["requesthandlerconf"].get<readoutconfig::RequestHandlerConf>();
         if (conf.enable_raw_recording) {
           inherited::m_geoid.element_id = conf.element_id;
@@ -37,19 +38,22 @@ namespace dunedaq {
           inherited::m_geoid.system_type = ReadoutType::system_type;
           
           // Check for alignment restrictions
-          if (inherited::m_latency_buffer->get_alignment_size() == 0 || sizeof(ReadoutType) * inherited::m_latency_buffer->get_alignment_size() % 4096) {
+          if (inherited::m_latency_buffer->get_alignment_size() == 0 || sizeof(ReadoutType) * inherited::m_latency_buffer->get_size() % 4096) {
             ers::error(ConfigurationError(ERS_HERE, inherited::m_geoid, "Latency buffer is not 4k aligned"));
           }
           
-          auto oflag = O_CREAT | O_WRONLY | O_DIRECT;
-          m_fd = ::open(conf.output_file.c_str(), oflag, 0644);
           if (remove(conf.output_file.c_str()) == 0) {
             TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file;
           }
+
+          m_oflag = O_CREAT | O_WRONLY;
+          if (conf.use_o_direct) {
+              m_oflag |= O_DIRECT;
+          }
+          m_fd = ::open(conf.output_file.c_str(), m_oflag, 0644);
+          inherited::m_recording_configured = true;
         }
-        nlohmann::json args_copy = args;
-        args_copy["enable_raw_recording"] = false;
-        inherited::conf(args_copy);
+        inherited::conf(args);
       }
 
       void record(const nlohmann::json& args) override
@@ -62,8 +66,6 @@ namespace dunedaq {
         }        
         inherited::m_recording_thread.set_work(
             [&](int duration, const nlohmann::json& args) {
-              auto oflag = O_CREAT | O_WRONLY | O_DIRECT;
-
               auto conf = args.get<readoutconfig::RecordingParams>();
 
               size_t chunk_size = inherited::m_stream_buffer_size;
@@ -73,7 +75,6 @@ namespace dunedaq {
               auto start_of_recording = std::chrono::high_resolution_clock::now();
               auto current_time = start_of_recording;
               inherited::m_next_timestamp_to_record = 0;
-              ReadoutType element_to_search;
               
               const char* current_write_pointer;
               const char* start_of_buffer_pointer = reinterpret_cast<const char*>(inherited::m_latency_buffer->start_of_buffer());
@@ -148,7 +149,7 @@ namespace dunedaq {
                         // Write the last bit of the buffer without using O_DIRECT as it possibly doesn't fulfill the alignment requirement
                         fcntl(m_fd, F_SETFL, O_CREAT | O_WRONLY);
                         failed_write |= !::write(m_fd, current_write_pointer, end_of_buffer_pointer - current_write_pointer);
-                        fcntl(m_fd, F_SETFL, oflag);
+                        fcntl(m_fd, F_SETFL, m_oflag);
                         if (!failed_write) {
                             bytes_written += end_of_buffer_pointer - current_write_pointer;
                         }
@@ -183,7 +184,6 @@ namespace dunedaq {
                     bytes_written += (last_started_frame + ReadoutType::fixed_payload_size) - current_write_pointer;
                 }
               }
-              
               ::close(m_fd);
 
               inherited::m_next_timestamp_to_record = std::numeric_limits<uint64_t>::max(); // NOLINT (build/unsigned)
@@ -196,6 +196,7 @@ namespace dunedaq {
 
     private:
       int m_fd;
+      int m_oflag;
     };
 
   } // namespace readout
