@@ -49,7 +49,7 @@ public:
   using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
   using constframeptr = const types::WIB_SUPERCHUNK_STRUCT*;
-  using wibframeptr = dunedaq::detdataformats::WIBFrame*;
+  using wibframeptr = dunedaq::detdataformats::wib::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   // Channel map funciton type
@@ -278,15 +278,15 @@ protected:
     if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
       uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
       for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
-        auto wf = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
-        auto wfh = const_cast<dunedaq::detdataformats::WIBHeader*>(wf->get_wib_header());
+        auto wf = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
+        auto wfh = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(wf->get_wib_header());
         wfh->set_timestamp(ts_next);
         ts_next += 25;
       }
     }
 
     // Acquire timestamp
-    auto wfptr = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>(fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(fp); // NOLINT
     m_current_ts = wfptr->get_wib_header()->get_timestamp();
 
     // Check timestamp
@@ -328,7 +328,7 @@ protected:
     if (!fp)
       return;
 
-    auto wfptr = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>((uint8_t*)fp); // NOLINT
     uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                // NOLINT(build/unsigned)
 
     swtpg::MessageRegistersCollection collection_registers;

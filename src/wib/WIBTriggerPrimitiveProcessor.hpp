@@ -36,7 +36,7 @@ class WIBTriggerPrimitiveProcessor : public TaskRawDataProcessorModel<types::TP_
 public:
   using inherited = TaskRawDataProcessorModel<types::TP_READOUT_TYPE>;
   using frameptr = types::TP_READOUT_TYPE*;
-  using wibframeptr = dunedaq::detdataformats::WIBFrame*;
+  using wibframeptr = dunedaq::detdataformats::wib::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   explicit WIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)

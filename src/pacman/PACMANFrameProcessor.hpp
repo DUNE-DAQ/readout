@@ -31,7 +31,7 @@ class PACMANFrameProcessor : public TaskRawDataProcessorModel<types::PACMAN_MESS
 public:
   using inherited = TaskRawDataProcessorModel<types::PACMAN_MESSAGE_STRUCT>;
   using frameptr = types::PACMAN_MESSAGE_STRUCT*;
-  using pacmanframeptr = dunedaq::detdataformats::PACMANFrame*;
+  using pacmanframeptr = dunedaq::detdataformats::pacman::PACMANFrame*;
   using timestamp_t = std::uint64_t;  // NOLINT(build/unsigned)
 
   explicit PACMANFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)

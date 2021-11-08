@@ -67,8 +67,8 @@ protected:
       auto tail = acc.last();
       auto head = acc.first();
       if (tail && head) {
-        // auto tailptr = reinterpret_cast<const detdataformats::DAPHNEFrame*>(tail); // NOLINT
-        // auto headptr = reinterpret_cast<const detdataformats::DAPHNEFrame*>(head); // NOLINT
+        // auto tailptr = reinterpret_cast<const detdataformats::daphne::DAPHNEFrame*>(tail); // NOLINT
+        // auto headptr = reinterpret_cast<const detdataformats::daphne::DAPHNEFrame*>(head); // NOLINT
         tailts = (*tail).get_timestamp(); // tailptr->get_timestamp();
         headts = (*head).get_timestamp(); // headptr->get_timestamp();
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Cleanup REQUEST with "
@@ -85,7 +85,7 @@ protected:
               ++removed_ctr;
             }
             head = acc.first();
-            // headptr = reinterpret_cast<const detdataformats::DAPHNEFrame*>(head);
+            // headptr = reinterpret_cast<const detdataformats::daphne::DAPHNEFrame*>(head);
             headts = (*head).get_timestamp(); // headptr->get_timestamp();
             timediff = tailts - headts;
           }

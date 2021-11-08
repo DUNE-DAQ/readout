@@ -81,34 +81,34 @@ class Timestamped
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 struct WIB_SUPERCHUNK_STRUCT
 {
-  using FrameType = dunedaq::detdataformats::WIBFrame;
+  using FrameType = dunedaq::detdataformats::wib::WIBFrame;
 
   // data
   char data[WIB_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
   bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const
   {
-    // auto thisptr = reinterpret_cast<const dunedaq::detdataformats::WIBHeader*>(&data);        // NOLINT
-    // auto otherptr = reinterpret_cast<const dunedaq::detdataformats::WIBHeader*>(&other.data); // NOLINT
+    // auto thisptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(&data);        // NOLINT
+    // auto otherptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(&other.data); // NOLINT
     return this->get_timestamp() < other.get_timestamp();
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::detdataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::wib::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
   }
 
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    reinterpret_cast<dunedaq::detdataformats::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
+    reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
   }
 
   void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto wf = reinterpret_cast<dunedaq::detdataformats::WIBFrame*>(((uint8_t*)(&data)) + i * 464); // NOLINT
-      auto wfh = const_cast<dunedaq::detdataformats::WIBHeader*>(wf->get_wib_header());
+      auto wf = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(((uint8_t*)(&data)) + i * 464); // NOLINT
+      auto wfh = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(wf->get_wib_header());
       wfh->set_timestamp(ts_next);
       ts_next += offset;
     }
@@ -143,25 +143,25 @@ static_assert(sizeof(struct WIB_SUPERCHUNK_STRUCT) == WIB_SUPERCHUNK_SIZE,
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
 struct WIB2_SUPERCHUNK_STRUCT
 {
-  using FrameType = dunedaq::detdataformats::WIB2Frame;
+  using FrameType = dunedaq::detdataformats::wib2::WIB2Frame;
   // data
   char data[WIB2_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
   bool operator<(const WIB2_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::WIB2Frame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::WIB2Frame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::wib2::WIB2Frame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::wib2::WIB2Frame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::detdataformats::WIB2Frame*>(&data)->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::wib2::WIB2Frame*>(&data)->get_timestamp(); // NOLINT
   }
 
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    auto frame = reinterpret_cast<dunedaq::detdataformats::WIB2Frame*>(&data); // NOLINT
+    auto frame = reinterpret_cast<dunedaq::detdataformats::wib2::WIB2Frame*>(&data); // NOLINT
     frame->header.timestamp_1 = ts;
     frame->header.timestamp_2 = ts >> 32;
   }
@@ -170,7 +170,7 @@ struct WIB2_SUPERCHUNK_STRUCT
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto w2f = reinterpret_cast<dunedaq::detdataformats::WIB2Frame*>(((uint8_t*)(&data)) + i * 468); // NOLINT
+      auto w2f = reinterpret_cast<dunedaq::detdataformats::wib2::WIB2Frame*>(((uint8_t*)(&data)) + i * 468); // NOLINT
       w2f->header.timestamp_1 = ts_next;
       w2f->header.timestamp_2 = ts_next >> 32;
       ts_next += offset;
@@ -205,25 +205,25 @@ static_assert(sizeof(struct WIB2_SUPERCHUNK_STRUCT) == WIB2_SUPERCHUNK_SIZE,
 const constexpr std::size_t DAPHNE_SUPERCHUNK_SIZE = 7008; // for 12: 7008
 struct DAPHNE_SUPERCHUNK_STRUCT
 {
-  using FrameType = dunedaq::detdataformats::DAPHNEFrame;
+  using FrameType = dunedaq::detdataformats::daphne::DAPHNEFrame;
   // data
   char data[DAPHNE_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
   bool operator<(const DAPHNE_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::DAPHNEFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::DAPHNEFrame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::daphne::DAPHNEFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::daphne::DAPHNEFrame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::detdataformats::DAPHNEFrame*>(&data)->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::daphne::DAPHNEFrame*>(&data)->get_timestamp(); // NOLINT
   }
 
   void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    auto frame = reinterpret_cast<dunedaq::detdataformats::DAPHNEFrame*>(&data); // NOLINT
+    auto frame = reinterpret_cast<dunedaq::detdataformats::daphne::DAPHNEFrame*>(&data); // NOLINT
     frame->header.timestamp_wf_1 = ts;
     frame->header.timestamp_wf_2 = ts >> 32;
   }
@@ -232,7 +232,7 @@ struct DAPHNE_SUPERCHUNK_STRUCT
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto df = reinterpret_cast<dunedaq::detdataformats::DAPHNEFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
+      auto df = reinterpret_cast<dunedaq::detdataformats::daphne::DAPHNEFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
       df->header.timestamp_wf_1 = ts_next;
       df->header.timestamp_wf_2 = ts_next >> 32;
       ts_next += offset;
@@ -305,7 +305,7 @@ struct SSP_FRAME_STRUCT
   using FrameType = SSP_FRAME_STRUCT;
 
   // header
-  detdataformats::EventHeader header;
+  detdataformats::ssp::EventHeader header;
 
   // data
   char data[SSP_FRAME_SIZE];
@@ -352,7 +352,7 @@ struct SSP_FRAME_STRUCT
   static const constexpr size_t element_size = SSP_FRAME_SIZE;
 };
 
-static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(detdataformats::EventHeader) + SSP_FRAME_SIZE,
+static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(detdataformats::ssp::EventHeader) + SSP_FRAME_SIZE,
               "Check your assumptions on TP_READOUT_TYPE");
 
 /**

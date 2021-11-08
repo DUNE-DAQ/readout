@@ -33,7 +33,7 @@ class DAPHNEFrameProcessor : public TaskRawDataProcessorModel<types::DAPHNE_SUPE
 public:
   using inherited = TaskRawDataProcessorModel<types::DAPHNE_SUPERCHUNK_STRUCT>;
   using frameptr = types::DAPHNE_SUPERCHUNK_STRUCT*;
-  using daphneframeptr = dunedaq::detdataformats::DAPHNEFrame*;
+  using daphneframeptr = dunedaq::detdataformats::daphne::DAPHNEFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   explicit DAPHNEFrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
