@@ -67,6 +67,7 @@ namespace dunedaq {
         uint8_t m_channel_no = rwtp->m_head.m_wire_no;
         uint8_t m_fiber_no = rwtp->m_head.m_fiber_no;
         for (int i = 0; i < nhits; ++i) {
+          TLOG_DEBUG(TLVL_WORK_STEPS) << "Processing raw TP hit " << i << " out of " << nhits << " hits in this frame.";
           triggeralgs::TriggerPrimitive trigprim;
           trigprim.time_start = ts_0 + rwtp->m_blocks[i].m_start_time * m_time_tick;
           trigprim.time_peak = ts_0 + rwtp->m_blocks[i].m_peak_time * m_time_tick;
@@ -128,7 +129,7 @@ namespace dunedaq {
       std::unique_ptr<source_t> m_tp_source;
 
       // stitching algorithm
-      std::vector<triggeralgs::TriggerPrimitive> m_A[255]; // keep track of TPs to stitch per channel
+      std::vector<triggeralgs::TriggerPrimitive> m_A[256]; // keep track of TPs to stitch per channel
       std::vector<triggeralgs::TriggerPrimitive> m_tps;
       int m_trigprims = 0;
       int m_frames = 0;
