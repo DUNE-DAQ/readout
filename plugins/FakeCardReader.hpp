@@ -9,27 +9,30 @@
  * This is part of the DUNE DAQ , copyright 2020.
  * Licensing/copyright details are in the COPYING file that you should have
  * received with this code.
-*/
-#ifndef UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
-#define UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
+ */
+#ifndef READOUT_PLUGINS_FAKECARDREADER_HPP_
+#define READOUT_PLUGINS_FAKECARDREADER_HPP_
 
-#include "readout/fakecardreader/Structs.hpp"
+// package
+#include "readout/ReadoutTypes.hpp"
+#include "readout/concepts/SourceEmulatorConcept.hpp"
+#include "readout/sourceemulatorconfig/Structs.hpp"
+#include "readout/utils/ReusableThread.hpp"
+//#include "CreateSourceEmulator.hpp"
+#include "readout/utils/FileSourceBuffer.hpp"
+#include "readout/utils/RateLimiter.hpp"
 
 // appfwk
 #include "appfwk/DAQModule.hpp"
 #include "appfwk/DAQSink.hpp"
 
-// package
-#include "ReadoutTypes.hpp"
-#include "ReadoutStatistics.hpp"
-#include "ReusableThread.hpp"
-#include "RateLimiter.hpp"
-#include "FileSourceBuffer.hpp"
-
 // std
-#include <memory>
-#include <fstream>
 #include <cstdint>
+#include <fstream>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -38,58 +41,49 @@ class FakeCardReader : public dunedaq::appfwk::DAQModule
 {
 public:
   /**
-  * @brief FakeCardReader Constructor
-  * @param name Instance name for this FakeCardReader instance
-  */
+   * @brief FakeCardReader Constructor
+   * @param name Instance name for this FakeCardReader instance
+   */
   explicit FakeCardReader(const std::string& name);
 
-  FakeCardReader(const FakeCardReader&) =
-    delete; ///< FakeCardReader is not copy-constructible
-  FakeCardReader& operator=(const FakeCardReader&) =
-    delete; ///< FakeCardReader is not copy-assignable
-  FakeCardReader(FakeCardReader&&) =
-    delete; ///< FakeCardReader is not move-constructible
-  FakeCardReader& operator=(FakeCardReader&&) =
-    delete; ///< FakeCardReader is not move-assignable
+  FakeCardReader(const FakeCardReader&) = delete;            ///< FakeCardReader is not copy-constructible
+  FakeCardReader& operator=(const FakeCardReader&) = delete; ///< FakeCardReader is not copy-assignable
+  FakeCardReader(FakeCardReader&&) = delete;                 ///< FakeCardReader is not move-constructible
+  FakeCardReader& operator=(FakeCardReader&&) = delete;      ///< FakeCardReader is not move-assignable
 
   void init(const data_t&) override;
+  void get_info(opmonlib::InfoCollector& ci, int level) override;
 
 private:
-  using sink_t = appfwk::DAQSink<std::unique_ptr<types::WIB_SUPERCHUNK_STRUCT>>;
+  using sink_t = appfwk::DAQSink<types::WIB_SUPERCHUNK_STRUCT>;
   // Commands
   void do_conf(const data_t& /*args*/);
+  void do_scrap(const data_t& /*args*/);
   void do_start(const data_t& /*args*/);
   void do_stop(const data_t& /*args*/);
 
   void generate_data(sink_t* queue, int link_id);
 
   // Configuration
-  bool configured_;
-  using module_conf_t = fakecardreader::Conf;
-  module_conf_t cfg_;
+  bool m_configured;
+  using module_conf_t = sourceemulatorconfig::Conf;
+  module_conf_t m_cfg;
+
+  std::map<std::string, std::unique_ptr<SourceEmulatorConcept>> m_source_emus;
 
   // appfwk Queues
-  std::chrono::milliseconds queue_timeout_ms_;
-  //std::vector<std::unique_ptr<sink_t>> output_queues_;
-  std::vector<sink_t*> output_queues_;
+  std::chrono::milliseconds m_queue_timeout_ms;
+  std::vector<sink_t*> m_output_queues;
 
   // Internals
-  std::unique_ptr<FileSourceBuffer> source_buffer_;
-
-  // Processor
-  std::vector<std::thread> worker_threads_;
+  std::unique_ptr<FileSourceBuffer> m_source_buffer;
 
   // Threading
-  std::atomic<bool> run_marker_;
-
-  // Stats
-  stats::counter_t packet_count_{0};
-  ReusableThread stats_thread_;
-  void run_stats();
+  std::atomic<bool> m_run_marker;
 
 };
 
-} // namespace dunedaq::readout
-}
+} // namespace readout
+} // namespace dunedaq
 
-#endif // UDAQ_READOUT_SRC_FAKECARDREADER_HPP_
+#endif // READOUT_PLUGINS_FAKECARDREADER_HPP_
