@@ -11,7 +11,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
-#include "dataformats/wib2/WIB2Frame.hpp"
+#include "detdataformats/wib2/WIB2Frame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -33,7 +33,7 @@ class WIB2FrameProcessor : public TaskRawDataProcessorModel<types::WIB2_SUPERCHU
 public:
   using inherited = TaskRawDataProcessorModel<types::WIB2_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB2_SUPERCHUNK_STRUCT*;
-  using wib2frameptr = dunedaq::dataformats::WIB2Frame*;
+  using wib2frameptr = dunedaq::detdataformats::wib2::WIB2Frame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   explicit WIB2FrameProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
@@ -61,8 +61,8 @@ protected:
     if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
       uint64_t ts_next = m_previous_ts + 384; // NOLINT(build/unsigned)
       for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)fp) + i * 468); // NOLINT
-        auto& wfh = wf->header; // const_cast<dunedaq::dataformats::WIB2Frame::Header*>(wf->get_wib_header());
+        auto wf = reinterpret_cast<dunedaq::detdataformats::wib2::WIB2Frame*>(((uint8_t*)fp) + i * 468); // NOLINT
+        auto& wfh = wf->header; // const_cast<dunedaq::detdataformats::wib2::WIB2Frame::Header*>(wf->get_wib_header());
         // wfh->set_timestamp(ts_next);
         wfh.timestamp_1 = ts_next;
         wfh.timestamp_2 = ts_next >> 32;
@@ -71,7 +71,7 @@ protected:
     }
 
     // Acquire timestamp
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::wib2::WIB2Frame*>(fp); // NOLINT
     m_current_ts = wfptr->get_timestamp();
 
     // Check timestamp

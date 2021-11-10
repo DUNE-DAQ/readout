@@ -21,8 +21,8 @@
 
 #include "opmonlib/InfoCollector.hpp"
 
-#include "dataformats/ComponentRequest.hpp"
-#include "dataformats/Fragment.hpp"
+#include "daqdataformats/ComponentRequest.hpp"
+#include "daqdataformats/Fragment.hpp"
 
 #include "dfmessages/DataRequest.hpp"
 #include "dfmessages/TimeSync.hpp"
@@ -352,7 +352,7 @@ private:
   appfwk::app::ModInit m_queue_config;
   bool m_fake_trigger;
   int m_current_fake_trigger_id;
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
 
   // STATS
   std::atomic<int> m_num_payloads{ 0 };
@@ -378,8 +378,6 @@ private:
 
   // FRAGMENT SINKS
   std::chrono::milliseconds m_fragment_queue_timeout_ms;
-  //using fragment_sink_qt = appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>;
-  //std::vector<std::unique_ptr<fragment_sink_qt>> m_data_response_queues;
 
   // LATENCY BUFFER:
   std::unique_ptr<LatencyBufferType> m_latency_buffer_impl;

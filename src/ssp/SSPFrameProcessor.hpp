@@ -14,7 +14,7 @@
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
 
-#include "dataformats/ssp/SSPTypes.hpp"
+#include "detdataformats/ssp/SSPTypes.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -71,8 +71,8 @@ public:
     if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
       uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
       for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
-        auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+        auto wf = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
+        auto wfh = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(wf->get_wib_header());
         wfh->set_timestamp(ts_next);
         ts_next += 25;
       }

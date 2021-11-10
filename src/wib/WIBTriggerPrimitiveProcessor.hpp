@@ -12,7 +12,7 @@
 #include "readout/ReadoutIssues.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutLogging.hpp"
@@ -36,7 +36,7 @@ class WIBTriggerPrimitiveProcessor : public TaskRawDataProcessorModel<types::TP_
 public:
   using inherited = TaskRawDataProcessorModel<types::TP_READOUT_TYPE>;
   using frameptr = types::TP_READOUT_TYPE*;
-  using wibframeptr = dunedaq::dataformats::WIBFrame*;
+  using wibframeptr = dunedaq::detdataformats::wib::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   explicit WIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)

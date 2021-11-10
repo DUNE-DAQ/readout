@@ -11,8 +11,8 @@
 
 #include "DummyConsumer.cpp"
 #include "DummyConsumer.hpp"
-#include "dataformats/Fragment.hpp"
-#include "dataformats/wib/WIBFrame.hpp"
+#include "daqdataformats/Fragment.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
 #include "readout/ReadoutTypes.hpp"
 
 #include <memory>
@@ -20,36 +20,36 @@
 
 namespace dunedaq {
 namespace readout {
-class FragmentConsumer : public DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>
+class FragmentConsumer : public DummyConsumer<std::unique_ptr<dunedaq::daqdataformats::Fragment>>
 {
 public:
   explicit FragmentConsumer(const std::string name)
-    : DummyConsumer<std::unique_ptr<dunedaq::dataformats::Fragment>>(name)
+    : DummyConsumer<std::unique_ptr<dunedaq::daqdataformats::Fragment>>(name)
   {}
 
-  void packet_callback(std::unique_ptr<dunedaq::dataformats::Fragment>& packet) override
+  void packet_callback(std::unique_ptr<dunedaq::daqdataformats::Fragment>& packet) override
   {
-    dunedaq::dataformats::FragmentHeader header = packet->get_header();
+    dunedaq::daqdataformats::FragmentHeader header = packet->get_header();
     TLOG_DEBUG(TLVL_WORK_STEPS) << header;
     validate(*packet.get());
   }
 
   // Only does wib and daphne validation for now
-  void validate(dunedaq::dataformats::Fragment& fragment)
+  void validate(dunedaq::daqdataformats::Fragment& fragment)
   {
     return;
-    if (fragment.get_size() - sizeof(dataformats::FragmentHeader) == 0) {
+    if (fragment.get_size() - sizeof(daqdataformats::FragmentHeader) == 0) {
       TLOG() << "Encountered empty fragment";
       return;
     } else if ((fragment.get_header().fragment_type ==
-                static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kTPCData)) ||
-               (static_cast<dataformats::WIBFrame*>(fragment.get_data())->get_wib_header()->sof == 0)) {
-      int num_frames = (fragment.get_size() - sizeof(dataformats::FragmentHeader)) / 464;
+                static_cast<daqdataformats::fragment_type_t>(daqdataformats::FragmentType::kTPCData)) ||
+               (static_cast<detdataformats::wib::WIBFrame*>(fragment.get_data())->get_wib_header()->sof == 0)) {
+      int num_frames = (fragment.get_size() - sizeof(daqdataformats::FragmentHeader)) / 464;
       auto window_begin = fragment.get_header().window_begin;
       auto window_end = fragment.get_header().window_end;
 
-      dataformats::WIBFrame* first_frame = static_cast<dataformats::WIBFrame*>(fragment.get_data());
-      dataformats::WIBFrame* last_frame = reinterpret_cast<dataformats::WIBFrame*>( // NOLINT
+      detdataformats::wib::WIBFrame* first_frame = static_cast<detdataformats::wib::WIBFrame*>(fragment.get_data());
+      detdataformats::wib::WIBFrame* last_frame = reinterpret_cast<detdataformats::wib::WIBFrame*>( // NOLINT
         static_cast<char*>(fragment.get_data()) + (num_frames - 1) * 464);          // NOLINT
 
       if (!((first_frame->get_timestamp() >= window_begin) && (first_frame->get_timestamp() < window_begin + 25))) {
@@ -60,7 +60,7 @@ public:
       }
 
       for (int i = 0; i < num_frames; ++i) {
-        dataformats::WIBFrame* frame = reinterpret_cast<dataformats::WIBFrame*>( // NOLINT
+        detdataformats::wib::WIBFrame* frame = reinterpret_cast<detdataformats::wib::WIBFrame*>( // NOLINT
           static_cast<char*>(fragment.get_data()) + (i * 464));
         if (frame->get_timestamp() < fragment.get_header().window_begin ||
             frame->get_timestamp() >= fragment.get_header().window_end) {
@@ -68,11 +68,11 @@ public:
         }
       }
     } else if (fragment.get_header().fragment_type ==
-               static_cast<dataformats::fragment_type_t>(dataformats::FragmentType::kPDSData)) {
-      int num_frames = (fragment.get_size() - sizeof(dataformats::FragmentHeader)) / 584;
+               static_cast<daqdataformats::fragment_type_t>(daqdataformats::FragmentType::kPDSData)) {
+      int num_frames = (fragment.get_size() - sizeof(daqdataformats::FragmentHeader)) / 584;
 
       for (int i = 0; i < num_frames; ++i) {
-        dataformats::DAPHNEFrame* frame = reinterpret_cast<dataformats::DAPHNEFrame*>( // NOLINT
+        detdataformats::daphne::DAPHNEFrame* frame = reinterpret_cast<detdataformats::daphne::DAPHNEFrame*>( // NOLINT
           static_cast<char*>(fragment.get_data()) + (i * 584));
         if (frame->get_timestamp() < fragment.get_header().window_begin ||
             frame->get_timestamp() >= fragment.get_header().window_end) {
