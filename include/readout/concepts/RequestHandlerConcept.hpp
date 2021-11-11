@@ -9,7 +9,7 @@
 #define READOUT_INCLUDE_READOUT_CONCEPTS_REQUESTHANDLERCONCEPT_HPP_
 
 #include "appfwk/DAQSink.hpp"
-#include "dataformats/Fragment.hpp"
+#include "daqdataformats/Fragment.hpp"
 #include "dfmessages/DataRequest.hpp"
 #include "opmonlib/InfoCollector.hpp"
 
@@ -44,7 +44,7 @@ public:
   virtual void cleanup_check() = 0;
   //! Issue a data request to the request handler
   virtual void issue_request(dfmessages::DataRequest /*dr*/,
-                             appfwk::DAQSink<std::unique_ptr<dataformats::Fragment>>& /*fragment_queue*/) = 0;
+                             appfwk::DAQSink<std::unique_ptr<daqdataformats::Fragment>>& /*fragment_queue*/) = 0;
 
 protected:
   // Result code of requests
@@ -75,14 +75,14 @@ protected:
       , data_request(dr)
       , fragment()
     {}
-    RequestResult(ResultCode rc, dfmessages::DataRequest dr, dataformats::Fragment&& frag)
+    RequestResult(ResultCode rc, dfmessages::DataRequest dr, daqdataformats::Fragment&& frag)
       : result_code(rc)
       , data_request(dr)
       , fragment(std::move(frag))
     {}
     ResultCode result_code;
     dfmessages::DataRequest data_request;
-    std::unique_ptr<dataformats::Fragment> fragment;
+    std::unique_ptr<daqdataformats::Fragment> fragment;
   };
 
   virtual void cleanup() = 0;

@@ -79,8 +79,8 @@ main(int /*argc*/, char** /*argv[]*/)
     uint64_t ts = 0; // NOLINT(build/unsigned)
     while (marker) {
       types::WIB_SUPERCHUNK_STRUCT pl;
-      auto plptr = const_cast<dunedaq::dataformats::WIBHeader*>(
-        reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&pl)); // NOLINT
+      auto plptr = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(
+        reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(&pl)); // NOLINT
       plptr->timestamp_1 = ts;
       plptr->timestamp_2 = ts >> 32;
       {
@@ -104,8 +104,8 @@ main(int /*argc*/, char** /*argv[]*/)
       auto tail = cleanacc.last();
       auto head = cleanacc.first();
       if (tail && head) {
-        auto tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail); // NOLINT
-        auto headptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(head); // NOLINT
+        auto tailptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(tail); // NOLINT
+        auto headptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(head); // NOLINT
         auto tailts = tailptr->get_timestamp();
         auto headts = headptr->get_timestamp();
         if (headts - tailts > max_time_diff) { // ts differnce exceeds maximum
@@ -119,7 +119,7 @@ main(int /*argc*/, char** /*argv[]*/)
               ++removed_ctr;
             }
             tail = cleanacc.last();
-            tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail); // NOLINT
+            tailptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(tail); // NOLINT
             tailts = tailptr->get_timestamp();
             timediff = headts - tailts;
           }
@@ -143,23 +143,23 @@ main(int /*argc*/, char** /*argv[]*/)
         auto tail = exacc.last();
         auto head = exacc.first();
         if (tail && head) {
-          auto tailptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(tail); // NOLINT
-          auto headptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(head); // NOLINT
+          auto tailptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(tail); // NOLINT
+          auto headptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(head); // NOLINT
           auto tailts = tailptr->get_timestamp();
           auto headts = headptr->get_timestamp();
 
           // Adjust trigger right in between:
           auto trigts = (tailts + headts) / static_cast<uint64_t>(2); // NOLINT(build/unsigned)
           types::WIB_SUPERCHUNK_STRUCT trigger_pl;
-          auto trigptr = const_cast<dunedaq::dataformats::WIBHeader*>(
-            reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&trigger_pl)); // NOLINT
+          auto trigptr = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(
+            reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(&trigger_pl)); // NOLINT
           trigptr->timestamp_1 = trigts;
           trigptr->timestamp_2 = trigts >> 32;
 
           // Find closest to trigger payload
           auto close = exacc.lower_bound(trigger_pl);
           // if (close) {
-          auto foundptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&(*close)); // NOLINT
+          auto foundptr = reinterpret_cast<const dunedaq::detdataformats::wib::WIBHeader*>(&(*close)); // NOLINT
           auto foundts = foundptr->get_timestamp();
           TLOG() << tname << ": Found element lower bound to " << trigts << " in skiplist with timestamp --> "
                  << foundts;

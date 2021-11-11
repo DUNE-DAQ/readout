@@ -9,17 +9,18 @@
 #define READOUT_SRC_WIB_WIBFRAMEPROCESSOR_HPP_
 
 #include "appfwk/DAQModuleHelper.hpp"
+#include "logging/Logging.hpp"
+
 #include "readout/ReadoutIssues.hpp"
+#include "readout/ReadoutLogging.hpp"
+#include "readout/ReadoutTypes.hpp"
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
 #include "readout/utils/TPHandler.hpp"
 
-#include "dataformats/wib/WIBFrame.hpp"
-#include "logging/Logging.hpp"
-#include "readout/FrameErrorRegistry.hpp"
-#include "readout/ReadoutLogging.hpp"
-#include "readout/ReadoutTypes.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
 #include "trigger/TPSet.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
 
@@ -28,9 +29,6 @@
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
-
-#include "folly/AtomicHashMap.h"
-#include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <atomic>
 #include <bitset>
@@ -54,7 +52,7 @@ public:
   using inherited = TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>;
   using frameptr = types::WIB_SUPERCHUNK_STRUCT*;
   using constframeptr = const types::WIB_SUPERCHUNK_STRUCT*;
-  using wibframeptr = dunedaq::dataformats::WIBFrame*;
+  using wibframeptr = dunedaq::detdataformats::wib::WIBFrame*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   // Channel map funciton type
@@ -198,42 +196,6 @@ public:
     }
   }
 
-  unsigned int getOfflineChannel(swtpg::PdspChannelMapService& channelMap, // NOLINT(build/unsigned)
-                                 const dunedaq::dataformats::WIBFrame* frame,
-                                 unsigned int ch) // NOLINT(build/unsigned)
-  {
-    // handle 256 channels on two fibers -- use the channel
-    // map that assumes 128 chans per fiber (=FEMB) (Copied
-    // from PDSPTPCRawDecoder_module.cc)
-    int crate = frame->get_wib_header()->crate_no;
-    int slot = frame->get_wib_header()->slot_no;
-    int fiber = frame->get_wib_header()->fiber_no;
-
-    unsigned int fiberloc = 0; // NOLINT(build/unsigned)
-    if (fiber == 1) {
-      fiberloc = 1;
-    } else if (fiber == 2) {
-      fiberloc = 3;
-    } else {
-      TLOG() << " Fiber number " << fiber << " is expected to be 1 or 2 -- revisit logic";
-      fiberloc = 1;
-    }
-
-    unsigned int chloc = ch; // NOLINT(build/unsigned)
-    if (chloc > 127) {
-      chloc -= 128;
-      fiberloc++;
-    }
-
-    unsigned int crateloc = crate; // NOLINT(build/unsigned)
-    unsigned int offline =         // NOLINT(build/unsigned)
-      channelMap.GetOfflineNumberFromDetectorElements(
-        crateloc, slot, fiberloc, chloc, swtpg::PdspChannelMapService::kFELIX);
-    // printf("crate=%d slot=%d fiber=%d fiberloc=%d chloc=%d offline=%d\n",
-    //        crate, slot, fiber, fiberloc, chloc, offline);
-    return offline;
-  }
-
   void init(const nlohmann::json& args) override
   {
     try {
@@ -244,7 +206,7 @@ public:
       if (queue_index.find("tpset_out") != queue_index.end()) {
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
       }
-      m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
+      m_err_frame_sink.reset(new appfwk::DAQSink<detdataformats::wib::WIBFrame>(queue_index["errored_frames"].inst));
     } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, "tp queue", "DefaultRequestHandlerModel", excpt);
     }
@@ -263,21 +225,6 @@ public:
       m_sw_tpg_enabled = true;
 
       m_tphandler.reset(new TPHandler(*m_tp_sink, *m_tpset_sink, config.tp_timeout, config.tpset_window_size, m_geoid));
-
-      const char* readout_share_cstr = getenv("READOUT_SHARE");
-      if (!readout_share_cstr) {
-        throw ConfigurationError(ERS_HERE, m_geoid, "Environment variable READOUT_SHARE is not set");
-      }
-      std::string readout_share(readout_share_cstr);
-      std::string channel_map_rce(config.channel_map_rce);
-      std::string channel_map_felix(config.channel_map_felix);
-      if (channel_map_rce == "") {
-        channel_map_rce = readout_share + "/config/protoDUNETPCChannelMap_RCE_v4.txt";
-      }
-      if (channel_map_felix == "") {
-        channel_map_felix = readout_share + "/config/protoDUNETPCChannelMap_FELIX_v4.txt";
-      }
-      m_channel_map.reset(new swtpg::PdspChannelMapService(channel_map_rce, channel_map_felix));
 
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, false, 0, true, 64); // 64 byte aligned
@@ -339,7 +286,7 @@ protected:
       uint64_t ts_next = m_previous_ts + 300;                   // NOLINT(build/unsigned)
       auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp));  // NOLINT
       for (unsigned int i = 0; i < fp->get_num_frames(); ++i) { // NOLINT(build/unsigned)
-        auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+        auto wfh = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(wf->get_wib_header());
         wfh->set_timestamp(ts_next);
         ts_next += 25;
         wf++;
@@ -347,7 +294,7 @@ protected:
     }
 
     // Acquire timestamp
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(fp); // NOLINT
     m_current_ts = wfptr->get_wib_header()->get_timestamp();
 
     // Check timestamp
@@ -390,7 +337,7 @@ protected:
         }
       }
 
-      auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      auto wfh = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(wf->get_wib_header());
       if (wfh->wib_errors) {
         m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
       }
@@ -424,7 +371,7 @@ protected:
     if (!fp)
       return;
 
-    auto wfptr = reinterpret_cast<dunedaq::dataformats::WIBFrame*>((uint8_t*)fp); // NOLINT
+    auto wfptr = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>((uint8_t*)fp); // NOLINT
     uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                // NOLINT(build/unsigned)
 
     swtpg::MessageRegistersCollection collection_registers;
@@ -441,18 +388,12 @@ protected:
       m_crate_no = wfptr->get_wib_header()->crate_no;
       m_slot_no = wfptr->get_wib_header()->slot_no;
 
-      m_offline_channel_base = getOfflineChannel(*m_channel_map, wfptr, 48);
-      m_offline_channel_base_induction = getOfflineChannel(*m_channel_map, wfptr, 248);
-
       TLOG() << "Got first item, fiber/crate/slot=" << m_fiber_no << "/" << m_crate_no << "/" << m_slot_no;
     }
 
     m_coll_tpg_pi->input = &collection_registers;
     *m_coll_primfind_dest = swtpg::MAGIC;
     swtpg::process_window_avx2(*m_coll_tpg_pi);
-
-    // uint32_t offline_channel_base = (view_type == kInduction) ? m_offline_channel_base_induction :
-    // m_offline_channel_base;
 
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
@@ -596,8 +537,6 @@ private:
 
   std::unique_ptr<IterableQueueModel<InductionItemToProcess>> m_induction_items_to_process;
 
-  std::unique_ptr<swtpg::PdspChannelMapService> m_channel_map;
-
   size_t m_num_msg = 0;
   size_t m_num_push_fail = 0;
 
@@ -647,17 +586,17 @@ private:
 
   std::unique_ptr<appfwk::DAQSink<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
-  std::unique_ptr<appfwk::DAQSink<dataformats::WIBFrame>> m_err_frame_sink;
+  std::unique_ptr<appfwk::DAQSink<detdataformats::wib::WIBFrame>> m_err_frame_sink;
 
   std::unique_ptr<TPHandler> m_tphandler;
 
-  dataformats::GeoID m_geoid;
-  std::atomic<size_t> m_tps_dropped{ 0 };
-
-  std::atomic<uint64_t> m_new_hits{ 0 };          // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_new_tps{ 0 };           // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_frame_error_count{ 0 }; // NOLINT(build/unsigned)
   std::atomic<uint64_t> m_frames_processed{ 0 };  // NOLINT(build/unsigned)
+  daqdataformats::GeoID m_geoid;
+
+  std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_tps_dropped{ 0 };
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };

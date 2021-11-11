@@ -264,7 +264,7 @@ private:
 
   uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
   uint m_frame_errors_length = 10000;
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
 };
 
 } // namespace readout

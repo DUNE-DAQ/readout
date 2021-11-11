@@ -13,11 +13,12 @@
 #include "appfwk/DAQSink.hpp"
 #include "appfwk/DAQSource.hpp"
 
-#include "dataformats/FragmentHeader.hpp"
-#include "dataformats/GeoID.hpp"
-#include "dataformats/daphne/DAPHNEFrame.hpp"
-#include "dataformats/wib/WIBFrame.hpp"
-#include "dataformats/wib2/WIB2Frame.hpp"
+#include "daqdataformats/FragmentHeader.hpp"
+#include "daqdataformats/GeoID.hpp"
+#include "detdataformats/daphne/DAPHNEFrame.hpp"
+#include "detdataformats/ssp/SSPTypes.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
+#include "detdataformats/wib2/WIB2Frame.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <cstdint> // uint_t types
@@ -81,34 +82,34 @@ class Timestamped
 const constexpr std::size_t WIB_SUPERCHUNK_SIZE = 5568; // for 12: 5568
 struct WIB_SUPERCHUNK_STRUCT
 {
-  using FrameType = dunedaq::dataformats::WIBFrame;
+  using FrameType = dunedaq::detdataformats::wib::WIBFrame;
 
   // data
   char data[WIB_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
   bool operator<(const WIB_SUPERCHUNK_STRUCT& other) const
   {
-    // auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&data);        // NOLINT
-    // auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIBHeader*>(&other.data); // NOLINT
+    // auto thisptr = reinterpret_cast<const dunedaq::detdataformats::WIBHeader*>(&data);        // NOLINT
+    // auto otherptr = reinterpret_cast<const dunedaq::detdataformats::WIBHeader*>(&other.data); // NOLINT
     return this->get_first_timestamp() < other.get_first_timestamp();
   }
 
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::wib::WIBFrame*>(&data)->get_wib_header()->get_timestamp(); // NOLINT
   }
 
   void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    reinterpret_cast<dunedaq::dataformats::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
+    reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(&data)->get_wib_header()->set_timestamp(ts); // NOLINT
   }
 
   void fake_timestamps(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
   {
     uint64_t ts_next = first_timestamp;                                               // NOLINT(build/unsigned)
-    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
+    auto wf = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
     for (unsigned int i = 0; i < 12; ++i) {
-      auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      auto wfh = const_cast<dunedaq::detdataformats::wib::WIBHeader*>(wf->get_wib_header());
       wfh->set_timestamp(ts_next);
       ts_next += offset;
       wf++;
@@ -117,7 +118,7 @@ struct WIB_SUPERCHUNK_STRUCT
 
   void fake_frame_errors(std::vector<uint16_t>* fake_errors) // NOLINT(build/unsigned)
   {
-    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
+    auto wf = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
     for (int i = 0; i < 12; ++i) {
       wf->set_wib_errors((*fake_errors)[i]);
       wf++;
@@ -140,8 +141,8 @@ struct WIB_SUPERCHUNK_STRUCT
 
   size_t get_frame_size() { return 464; }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
 };
 static_assert(sizeof(struct WIB_SUPERCHUNK_STRUCT) == 5568, "Check your assumptions on WIB_SUPERCHUNK_STRUCT");
@@ -156,25 +157,25 @@ static_assert(sizeof(struct WIB_SUPERCHUNK_STRUCT) == WIB_SUPERCHUNK_SIZE,
 const constexpr std::size_t WIB2_SUPERCHUNK_SIZE = 5616; // for 12: 5616
 struct WIB2_SUPERCHUNK_STRUCT
 {
-  using FrameType = dunedaq::dataformats::WIB2Frame;
+  using FrameType = dunedaq::detdataformats::wib2::WIB2Frame;
   // data
   char data[WIB2_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
   bool operator<(const WIB2_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::wib2::WIB2Frame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::wib2::WIB2Frame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::dataformats::WIB2Frame*>(&data)->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::wib2::WIB2Frame*>(&data)->get_timestamp(); // NOLINT
   }
 
   void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    auto frame = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(&data); // NOLINT
+    auto frame = reinterpret_cast<dunedaq::detdataformats::wib2::WIB2Frame*>(&data); // NOLINT
     frame->header.timestamp_1 = ts;
     frame->header.timestamp_2 = ts >> 32;
   }
@@ -183,7 +184,7 @@ struct WIB2_SUPERCHUNK_STRUCT
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto w2f = reinterpret_cast<dunedaq::dataformats::WIB2Frame*>(((uint8_t*)(&data)) + i * 468); // NOLINT
+      auto w2f = reinterpret_cast<dunedaq::detdataformats::wib2::WIB2Frame*>(((uint8_t*)(&data)) + i * 468); // NOLINT
       w2f->header.timestamp_1 = ts_next;
       w2f->header.timestamp_2 = ts_next >> 32;
       ts_next += offset;
@@ -211,8 +212,8 @@ struct WIB2_SUPERCHUNK_STRUCT
 
   size_t get_frame_size() { return 468; }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 32; // NOLINT(build/unsigned)
 };
 
@@ -226,25 +227,25 @@ static_assert(sizeof(struct WIB2_SUPERCHUNK_STRUCT) == WIB2_SUPERCHUNK_SIZE,
 const constexpr std::size_t DAPHNE_SUPERCHUNK_SIZE = 7008; // for 12: 7008
 struct DAPHNE_SUPERCHUNK_STRUCT
 {
-  using FrameType = dunedaq::dataformats::DAPHNEFrame;
+  using FrameType = dunedaq::detdataformats::daphne::DAPHNEFrame;
   // data
   char data[DAPHNE_SUPERCHUNK_SIZE];
   // comparable based on first timestamp
   bool operator<(const DAPHNE_SUPERCHUNK_STRUCT& other) const
   {
-    auto thisptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data);        // NOLINT
-    auto otherptr = reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&other.data); // NOLINT
+    auto thisptr = reinterpret_cast<const dunedaq::detdataformats::daphne::DAPHNEFrame*>(&data);        // NOLINT
+    auto otherptr = reinterpret_cast<const dunedaq::detdataformats::daphne::DAPHNEFrame*>(&other.data); // NOLINT
     return thisptr->get_timestamp() < otherptr->get_timestamp() ? true : false;
   }
 
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
-    return reinterpret_cast<const dunedaq::dataformats::DAPHNEFrame*>(&data)->get_timestamp(); // NOLINT
+    return reinterpret_cast<const dunedaq::detdataformats::daphne::DAPHNEFrame*>(&data)->get_timestamp(); // NOLINT
   }
 
   void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
-    auto frame = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(&data); // NOLINT
+    auto frame = reinterpret_cast<dunedaq::detdataformats::daphne::DAPHNEFrame*>(&data); // NOLINT
     frame->header.timestamp_wf_1 = ts;
     frame->header.timestamp_wf_2 = ts >> 32;
   }
@@ -253,7 +254,7 @@ struct DAPHNE_SUPERCHUNK_STRUCT
   {
     uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
     for (unsigned int i = 0; i < 12; ++i) {
-      auto df = reinterpret_cast<dunedaq::dataformats::DAPHNEFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
+      auto df = reinterpret_cast<dunedaq::detdataformats::daphne::DAPHNEFrame*>(((uint8_t*)(&data)) + i * 584); // NOLINT
       df->header.timestamp_wf_1 = ts_next;
       df->header.timestamp_wf_2 = ts_next >> 32;
       ts_next += offset;
@@ -281,8 +282,8 @@ struct DAPHNE_SUPERCHUNK_STRUCT
 
   size_t get_frame_size() { return 584; }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kPDS;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kPDSData;
   static const constexpr uint64_t expected_tick_difference = 16; // NOLINT(build/unsigned)
 };
 
@@ -331,12 +332,68 @@ struct SW_WIB_TRIGGERPRIMITIVE_STRUCT
 
   size_t get_frame_size() { return TP_SIZE; }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTriggerPrimitives;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTriggerPrimitives;
   static const constexpr uint64_t expected_tick_difference = 25; // NOLINT(build/unsigned)
 };
 
 static_assert(sizeof(struct SW_WIB_TRIGGERPRIMITIVE_STRUCT) == sizeof(triggeralgs::TriggerPrimitive),
+              "Check your assumptions on TP_READOUT_TYPE");
+
+const constexpr std::size_t SSP_FRAME_SIZE = 1012;
+struct SSP_FRAME_STRUCT
+{
+  using FrameType = SSP_FRAME_STRUCT;
+
+  // header
+  detdataformats::ssp::EventHeader header;
+
+  // data
+  char data[SSP_FRAME_SIZE];
+
+  // comparable based on start timestamp
+  bool operator<(const SSP_FRAME_STRUCT& other) const
+  {
+    return this->get_timestamp() < other.get_timestamp() ? true : false;
+  }
+
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
+    auto ehptr = &header;
+    unsigned long ts = 0; // NOLINT(runtime/int)
+    for (unsigned int iword = 0; iword <= 3; ++iword) {
+      ts += ((unsigned long)(ehptr->timestamp[iword])) << 16 * iword; //NOLINT(runtime/int)
+    }
+    return ts;
+  }
+
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    uint64_t bitmask = (1 << 16) - 1; // NOLINT(build/unsigned)
+    for (unsigned int iword = 0; iword <= 3; ++iword) {
+      header.timestamp[iword] = static_cast<uint16_t>((ts & bitmask)); // NOLINT(build/unsigned)
+      ts = ts >> 16;
+    }
+  }
+
+  void fake_timestamp(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
+  {
+    // tp.time_start = first_timestamp;
+  }
+
+  FrameType* begin() { return this; }
+
+  FrameType* end() { return (this + 1); } // NOLINT
+
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kPDS;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kPDSData;
+  static const constexpr uint64_t tick_dist = 25; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = SSP_FRAME_SIZE;
+  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
+  static const constexpr size_t element_size = SSP_FRAME_SIZE;
+};
+
+static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(detdataformats::ssp::EventHeader) + SSP_FRAME_SIZE,
               "Check your assumptions on TP_READOUT_TYPE");
 
 /**
@@ -358,7 +415,7 @@ struct VariableSizePayloadWrapper
 // raw WIB TP
 struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
 {
-  using FrameType = dunedaq::dataformats::RawWIBTp;
+  using FrameType = dunedaq::detdataformats::RawWIBTp;
 
   std::unique_ptr<FrameType> rwtp = nullptr;
 
@@ -385,8 +442,8 @@ struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
     return rwtp.get() + 1; // NOLINT
   }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
   // raw WIB TP frames are variable size
   size_t get_payload_size()

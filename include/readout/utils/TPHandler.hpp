@@ -27,7 +27,7 @@ public:
                      appfwk::DAQSink<trigger::TPSet>& tpset_sink,
                      uint64_t tp_timeout,		// NOLINT(build/unsigned)
                      uint64_t tpset_window_size,	// NOLINT(build/unsigned)
-                     dataformats::GeoID geoId)
+                     daqdataformats::GeoID geoId)
     : m_tp_sink(tp_sink)
     , m_tpset_sink(tpset_sink)
     , m_tp_timeout(tp_timeout)
@@ -98,7 +98,7 @@ private:
   uint64_t m_tp_timeout; 	    // NOLINT(build/unsigned)
   uint64_t m_tpset_window_size;     // NOLINT(build/unsigned)
   uint64_t m_next_tpset_seqno = 0;  // NOLINT(build/unsigned)
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
 
   std::atomic<size_t> m_sent_tps{ 0 };    // NOLINT(build/unsigned)
   std::atomic<size_t> m_sent_tpsets{ 0 }; // NOLINT(build/unsigned)

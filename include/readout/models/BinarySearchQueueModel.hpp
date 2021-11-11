@@ -43,9 +43,9 @@ public:
     }
     end_index = end_index == 0 ? IterableQueueModel<T>::size_ - 1 : end_index - 1;
 
-    T& right_element = IterableQueueModel<T>::records_[end_index];
+    T& left_element = IterableQueueModel<T>::records_[start_index];
 
-    if (right_element < element) {
+    if (element < left_element) {
       TLOG() << "Could not find element" << std::endl;
       return IterableQueueModel<T>::end();
     }

@@ -56,7 +56,7 @@ print256_as16_dec(__m256i var)
 // of expanding all channels and then picking out just the collection
 // ones.
 RegisterArray<2>
-expand_segment_collection(const dunedaq::dataformats::ColdataBlock& __restrict__ block)
+expand_segment_collection(const dunedaq::detdataformats::wib::ColdataBlock& __restrict__ block)
 {
   const __m256i* __restrict__ coldata_start = reinterpret_cast<const __m256i*>(&block.segments[0]); // NOLINT
   __m256i raw0 = _mm256_lddqu_si256(coldata_start + 0);

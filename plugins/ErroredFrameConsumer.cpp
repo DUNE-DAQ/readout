@@ -11,7 +11,7 @@
 
 #include "DummyConsumer.cpp"
 #include "DummyConsumer.hpp"
-#include "dataformats/wib/WIBFrame.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/ReadoutLogging.hpp"
 
@@ -23,14 +23,14 @@
 namespace dunedaq {
 namespace readout {
 
-class ErroredFrameConsumer : public DummyConsumer<dataformats::WIBFrame>
+class ErroredFrameConsumer : public DummyConsumer<detdataformats::wib::WIBFrame>
 {
 public:
   explicit ErroredFrameConsumer(const std::string name)
-    : DummyConsumer<dataformats::WIBFrame>(name)
+    : DummyConsumer<detdataformats::wib::WIBFrame>(name)
   {}
 
-  void packet_callback(dataformats::WIBFrame& packet) override
+  void packet_callback(detdataformats::wib::WIBFrame& packet) override
   {
     if (packet.get_wib_header()->wib_errors) {
       m_error_count += std::bitset<16>(packet.get_wib_header()->wib_errors).count();

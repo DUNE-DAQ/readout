@@ -36,7 +36,7 @@ class RAWWIBTriggerPrimitiveProcessor : public TaskRawDataProcessorModel<types::
 public:
   using inherited = TaskRawDataProcessorModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>;
   using frame_ptr = types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT*;
-  using rwtp_ptr = dunedaq::dataformats::RawWIBTp*;
+  using rwtp_ptr = dunedaq::detdataformats::RawWIBTp*;
   using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
   explicit RAWWIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)

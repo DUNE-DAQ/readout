@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-using namespace dunedaq::dataformats;
+using namespace dunedaq::detdataformats;
 
 BOOST_AUTO_TEST_SUITE(RawWIBTp_test)
 
