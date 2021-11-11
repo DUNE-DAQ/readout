@@ -80,7 +80,6 @@ private:
 
   // Threading
   std::atomic<bool> m_run_marker;
-
 };
 
 } // namespace readout

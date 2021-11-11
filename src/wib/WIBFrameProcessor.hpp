@@ -29,10 +29,13 @@
 #include "tpg/ProcessingInfo.hpp"
 #include "tpg/TPGConstants.hpp"
 
+#include "folly/AtomicHashMap.h"
 #include "readout/chmap/PdspChannelMapService.hpp"
 
 #include <atomic>
+#include <bitset>
 #include <functional>
+#include <future>
 #include <memory>
 #include <queue>
 #include <string>
@@ -68,6 +71,8 @@ public:
     // Setup pre-processing pipeline
     TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
       std::bind(&WIBFrameProcessor::timestamp_check, this, std::placeholders::_1));
+    TaskRawDataProcessorModel<types::WIB_SUPERCHUNK_STRUCT>::add_preprocess_task(
+      std::bind(&WIBFrameProcessor::frame_error_check, this, std::placeholders::_1));
   }
 
   ~WIBFrameProcessor()
@@ -150,7 +155,6 @@ public:
         0);
     }
 
-
     // Reset timestamp check
     m_previous_ts = 0;
     m_current_ts = 0;
@@ -164,6 +168,8 @@ public:
     m_new_hits = 0;
     m_new_tps = 0;
     m_coll_hits_count.exchange(0);
+    m_frame_error_count = 0;
+    m_frames_processed = 0;
 
     inherited::start(args);
   }
@@ -238,6 +244,7 @@ public:
       if (queue_index.find("tpset_out") != queue_index.end()) {
         m_tpset_sink.reset(new appfwk::DAQSink<trigger::TPSet>(queue_index["tpset_out"].inst));
       }
+      m_err_frame_sink.reset(new appfwk::DAQSink<dataformats::WIBFrame>(queue_index["errored_frames"].inst));
     } catch (const ers::Issue& excpt) {
       throw ResourceQueueError(ERS_HERE, "tp queue", "DefaultRequestHandlerModel", excpt);
     }
@@ -249,6 +256,8 @@ public:
     m_geoid.element_id = config.element_id;
     m_geoid.region_id = config.region_id;
     m_geoid.system_type = types::WIB_SUPERCHUNK_STRUCT::system_type;
+    m_error_counter_threshold = config.error_counter_threshold;
+    m_error_reset_freq = config.error_reset_freq;
 
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
@@ -290,6 +299,7 @@ public:
       info.num_tpsets_sent = m_tphandler->get_and_reset_num_sent_tpsets();
       info.num_tps_dropped = m_tps_dropped.exchange(0);
     }
+    info.num_frame_errors = m_frame_error_count.exchange(0);
 
     auto now = std::chrono::high_resolution_clock::now();
     if (m_sw_tpg_enabled) {
@@ -325,13 +335,14 @@ protected:
   void timestamp_check(frameptr fp)
   {
     // If EMU data, emulate perfectly incrementing timestamp
-    if (inherited::m_emulator_mode) {         // emulate perfectly incrementing timestamp
-      uint64_t ts_next = m_previous_ts + 300; // NOLINT(build/unsigned)
-      for (unsigned int i = 0; i < 12; ++i) { // NOLINT(build/unsigned)
-        auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)fp) + i * 464); // NOLINT
+    if (inherited::m_emulator_mode) {                           // emulate perfectly incrementing timestamp
+      uint64_t ts_next = m_previous_ts + 300;                   // NOLINT(build/unsigned)
+      auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp));  // NOLINT
+      for (unsigned int i = 0; i < fp->get_num_frames(); ++i) { // NOLINT(build/unsigned)
         auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
         wfh->set_timestamp(ts_next);
         ts_next += 25;
+        wf++;
       }
     }
 
@@ -342,7 +353,7 @@ protected:
     // Check timestamp
     if (m_current_ts - m_previous_ts != 300) {
       ++m_ts_error_ctr;
-      m_error_registry->add_error(FrameErrorRegistry::FrameError(m_previous_ts + 300, m_current_ts));
+      m_error_registry->add_error("MISSING_FRAMES", FrameErrorRegistry::ErrorInterval(m_previous_ts + 300, m_current_ts));
       if (m_first_ts_missmatch) { // log once
         TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp MISSMATCH! -> | previous: " << std::to_string(m_previous_ts)
                                      << " current: " + std::to_string(m_current_ts);
@@ -365,9 +376,44 @@ protected:
   /**
    * Pipeline Stage 2.: Check WIB headers for error flags
    * */
-  void frame_error_check(frameptr /*fp*/)
+  void frame_error_check(frameptr fp)
   {
-    // check error fields
+    if (!fp)
+      return;
+
+    auto wf = reinterpret_cast<wibframeptr>(((uint8_t*)fp)); // NOLINT
+    for (size_t i = 0; i < fp->get_num_frames(); ++i) {
+      if (m_frames_processed % 10000 == 0) {
+        for (int i = 0; i < m_num_frame_error_bits; ++i) {
+          if (m_error_occurrence_counters[i])
+            m_error_occurrence_counters[i]--;
+        }
+      }
+
+      auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
+      if (wfh->wib_errors) {
+        m_frame_error_count += std::bitset<16>(wfh->wib_errors).count();
+      }
+
+      m_current_frame_pushed = false;
+      for (int j = 0; j < m_num_frame_error_bits; ++j) {
+        if (wfh->wib_errors & (1 << j)) {
+          if (m_error_occurrence_counters[j] < m_error_counter_threshold) {
+            m_error_occurrence_counters[j]++;
+            if (!m_current_frame_pushed) {
+              try {
+                m_err_frame_sink->push(*wf);
+                m_current_frame_pushed = true;
+              } catch (const ers::Issue& excpt) {
+                ers::warning(CannotWriteToQueue(ERS_HERE, m_geoid, "Errored frame queue", excpt));
+              }
+            }
+          }
+        }
+      }
+      wf++;
+      m_frames_processed++;
+    }
   }
 
   /**
@@ -574,6 +620,13 @@ private:
   uint32_t m_offline_channel_base;           // NOLINT(build/unsigned)
   uint32_t m_offline_channel_base_induction; // NOLINT(build/unsigned)
 
+  // Frame error check
+  bool m_current_frame_pushed = false;
+  int m_error_counter_threshold;
+  const int m_num_frame_error_bits = 16;
+  int m_error_occurrence_counters[16] = { 0 };
+  int m_error_reset_freq;
+
   // Collection
   const uint16_t m_coll_threshold = 5;                    // units of sigma // NOLINT(build/unsigned)
   const uint8_t m_coll_tap_exponent = 6;                  // NOLINT(build/unsigned)
@@ -594,13 +647,17 @@ private:
 
   std::unique_ptr<appfwk::DAQSink<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;
+  std::unique_ptr<appfwk::DAQSink<dataformats::WIBFrame>> m_err_frame_sink;
+
   std::unique_ptr<TPHandler> m_tphandler;
 
   dataformats::GeoID m_geoid;
   std::atomic<size_t> m_tps_dropped{ 0 };
 
-  std::atomic<uint64_t> m_new_hits{ 0 };    // NOLINT(build/unsigned)
-  std::atomic<uint64_t> m_new_tps{ 0 };     // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_hits{ 0 };          // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_new_tps{ 0 };           // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_frame_error_count{ 0 }; // NOLINT(build/unsigned)
+  std::atomic<uint64_t> m_frames_processed{ 0 };  // NOLINT(build/unsigned)
 
   std::chrono::time_point<std::chrono::high_resolution_clock> m_t0;
 };

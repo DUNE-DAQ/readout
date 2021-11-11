@@ -224,13 +224,14 @@ public:
 
             for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100000;) {
               if ((*chunk_iter).get_first_timestamp() >= m_next_timestamp_to_record) {
-                if (!m_buffered_writer.write(reinterpret_cast<char*>(chunk_iter->begin()), chunk_iter->get_payload_size())) {
+                if (!m_buffered_writer.write(reinterpret_cast<char*>(chunk_iter->begin()), // NOLINT 
+                                             chunk_iter->get_payload_size())) {
                   ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
                 }
                 m_payloads_written++;
                 processed_chunks_in_loop++;
-                m_next_timestamp_to_record =
-                  (*chunk_iter).get_first_timestamp() + ReadoutType::expected_tick_difference * (*chunk_iter).get_num_frames();
+                m_next_timestamp_to_record = (*chunk_iter).get_first_timestamp() +
+                                             ReadoutType::expected_tick_difference * (*chunk_iter).get_num_frames();
               }
               ++chunk_iter;
             }
@@ -512,8 +513,8 @@ protected:
 
     if (m_latency_buffer->occupancy() != 0) {
       // Data availability is calculated here
-      auto front_element = m_latency_buffer->front();     // NOLINT
-      auto last_element = m_latency_buffer->back();       // NOLINT
+      auto front_element = m_latency_buffer->front();           // NOLINT
+      auto last_element = m_latency_buffer->back();             // NOLINT
       uint64_t last_ts = front_element->get_first_timestamp();  // NOLINT(build/unsigned)
       uint64_t newest_ts = last_element->get_first_timestamp(); // NOLINT(build/unsigned)
 
@@ -530,7 +531,7 @@ protected:
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         ReadoutType request_element;
         request_element.set_first_timestamp(start_win_ts);
-        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true)
+        auto start_iter = m_error_registry->has_error("MISSING_FRAMES") ? m_latency_buffer->lower_bound(request_element, true)
                                                         : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
@@ -545,19 +546,20 @@ protected:
           ReadoutType* element = &(*start_iter);
           while (start_iter.good() && element->get_first_timestamp() < end_win_ts) {
             if (element->get_first_timestamp() < start_win_ts ||
-                element->get_first_timestamp() + (element->get_num_frames() - 1) * ReadoutType::expected_tick_difference >=
+                element->get_first_timestamp() +
+                    (element->get_num_frames() - 1) * ReadoutType::expected_tick_difference >=
                   end_win_ts) {
               // We don't need the whole aggregated object (e.g.: superchunk)
               for (auto frame_iter = element->begin(); frame_iter != element->end(); frame_iter++) {
                 if ((*frame_iter).get_timestamp() >= start_win_ts && (*frame_iter).get_timestamp() < end_win_ts) {
-                  frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)),
-                                                                         element->get_frame_size()));
+                  frag_pieces.emplace_back(
+                    std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)), element->get_frame_size()));
                 }
               }
             } else {
               // We are somewhere in the middle -> the whole aggregated object (e.g.: superchunk) can be copied
-              frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>((*start_iter).begin()),
-                                                                     element->get_payload_size()));
+              frag_pieces.emplace_back(
+                std::make_pair<void*, size_t>(static_cast<void*>((*start_iter).begin()), element->get_payload_size()));
             }
 
             elements_handled++;

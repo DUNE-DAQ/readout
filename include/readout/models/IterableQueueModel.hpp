@@ -225,7 +225,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     alignment_size_ = alignment_size;
   }
 
-  //bool put(T& record) { return write(record); }
+  // bool put(T& record) { return write(record); }
 
   bool write(T&& record) override
   {

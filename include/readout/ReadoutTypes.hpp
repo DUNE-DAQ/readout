@@ -19,11 +19,11 @@
 #include "dataformats/ssp/SSPTypes.hpp"
 #include "dataformats/wib/WIBFrame.hpp"
 #include "dataformats/wib2/WIB2Frame.hpp"
-#include "RawWIBTp.hpp"
 #include "triggeralgs/TriggerPrimitive.hpp"
 
 #include <cstdint> // uint_t types
 #include <memory>  // unique_ptr
+#include <vector>
 
 namespace dunedaq {
 namespace readout {
@@ -106,12 +106,22 @@ struct WIB_SUPERCHUNK_STRUCT
 
   void fake_timestamps(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
   {
-    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    uint64_t ts_next = first_timestamp;                                               // NOLINT(build/unsigned)
+    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
     for (unsigned int i = 0; i < 12; ++i) {
-      auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data)) + i * 464); // NOLINT
       auto wfh = const_cast<dunedaq::dataformats::WIBHeader*>(wf->get_wib_header());
       wfh->set_timestamp(ts_next);
       ts_next += offset;
+      wf++;
+    }
+  }
+
+  void fake_frame_errors(std::vector<uint16_t>* fake_errors) // NOLINT(build/unsigned)
+  {
+    auto wf = reinterpret_cast<dunedaq::dataformats::WIBFrame*>(((uint8_t*)(&data))); // NOLINT
+    for (int i = 0; i < 12; ++i) {
+      wf->set_wib_errors((*fake_errors)[i]);
+      wf++;
     }
   }
 
@@ -125,17 +135,11 @@ struct WIB_SUPERCHUNK_STRUCT
     return reinterpret_cast<FrameType*>(data + WIB_SUPERCHUNK_SIZE); // NOLINT
   }
 
-  size_t get_payload_size() {
-    return 5568;
-  }
+  size_t get_payload_size() { return 5568; }
 
-  size_t get_num_frames() {
-    return 12;
-  }
+  size_t get_num_frames() { return 12; }
 
-  size_t get_frame_size() {
-    return 464;
-  }
+  size_t get_frame_size() { return 464; }
 
   static const constexpr size_t fixed_payload_size = 5568;
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
@@ -188,6 +192,11 @@ struct WIB2_SUPERCHUNK_STRUCT
     }
   }
 
+  void fake_frame_errors(std::vector<uint16_t>* /*fake_errors*/) // NOLINT
+  {
+    // Set error bits in header
+  }
+
   FrameType* begin()
   {
     return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
@@ -198,17 +207,11 @@ struct WIB2_SUPERCHUNK_STRUCT
     return reinterpret_cast<FrameType*>(data + WIB2_SUPERCHUNK_SIZE); // NOLINT
   }
 
-  size_t get_payload_size() {
-    return 5616;
-  }
+  size_t get_payload_size() { return 5616; }
 
-  size_t get_num_frames() {
-    return 12;
-  }
+  size_t get_num_frames() { return 12; }
 
-  size_t get_frame_size() {
-    return 468;
-  }
+  size_t get_frame_size() { return 468; }
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
@@ -259,6 +262,11 @@ struct DAPHNE_SUPERCHUNK_STRUCT
     }
   }
 
+  void fake_frame_errors(std::vector<uint16_t>* /*fake_errors*/) // NOLINT
+  {
+    // Set frame error bits in header
+  }
+
   FrameType* begin()
   {
     return reinterpret_cast<FrameType*>(&data[0]); // NOLINT
@@ -269,17 +277,11 @@ struct DAPHNE_SUPERCHUNK_STRUCT
     return reinterpret_cast<FrameType*>(data + DAPHNE_SUPERCHUNK_SIZE); // NOLINT
   }
 
-  size_t get_payload_size() {
-    return 7008;
-  }
+  size_t get_payload_size() { return 7008; }
 
-  size_t get_num_frames() {
-    return 12;
-  }
+  size_t get_num_frames() { return 12; }
 
-  size_t get_frame_size() {
-    return 584;
-  }
+  size_t get_frame_size() { return 584; }
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kPDS;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kPDSData;
@@ -296,7 +298,10 @@ struct SW_WIB_TRIGGERPRIMITIVE_STRUCT
   // data
   triggeralgs::TriggerPrimitive tp;
   // comparable based on start timestamp
-  bool operator<(const SW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->tp.time_start < other.tp.time_start; }
+  bool operator<(const SW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const
+  {
+    return this->tp.time_start < other.tp.time_start;
+  }
 
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
@@ -322,17 +327,11 @@ struct SW_WIB_TRIGGERPRIMITIVE_STRUCT
 
   FrameType* end() { return (this + 1); } // NOLINT
 
-  size_t get_payload_size() {
-    return TP_SIZE;
-  }
+  size_t get_payload_size() { return TP_SIZE; }
 
-  size_t get_num_frames() {
-    return 1;
-  }
+  size_t get_num_frames() { return 1; }
 
-  size_t get_frame_size() {
-    return TP_SIZE;
-  }
+  size_t get_frame_size() { return TP_SIZE; }
 
   static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTriggerPrimitives;
@@ -426,11 +425,14 @@ struct VariableSizePayloadWrapper
 // raw WIB TP
 struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
 {
-  using FrameType = dunedaq::dataformats::RawWIBTp; 
+  using FrameType = dunedaq::dataformats::RawWIBTp;
 
   std::unique_ptr<FrameType> rwtp = nullptr;
 
-  bool operator<(const RAW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->rwtp->get_timestamp() < other.rwtp->get_timestamp(); }
+  bool operator<(const RAW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const
+  {
+    return this->rwtp->get_timestamp() < other.rwtp->get_timestamp();
+  }
 
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
@@ -454,20 +456,19 @@ struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
   static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
   // raw WIB TP frames are variable size
-  size_t get_payload_size() {
+  size_t get_payload_size()
+  {
     // TODO: return the size of the RawWIBTp
     return 0;
   }
 
-  size_t get_num_frames() {
-    return 1;
-  }
+  size_t get_num_frames() { return 1; }
 
-  size_t get_frame_size() {
+  size_t get_frame_size()
+  {
     // TODO: return the size of the RawWIBTp, same as above (here it's the same)
     return 0;
   }
-
 };
 
 struct TpSubframe
