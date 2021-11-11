@@ -10,6 +10,7 @@
 
 #include <cstdint> // uint_t types
 #include <map>
+#include <mutex>
 
 namespace dunedaq {
 namespace readout {
@@ -38,6 +39,7 @@ public:
   {}
 
   void add_error(std::string error_name, ErrorInterval error) {
+    std::lock_guard<std::mutex> guard(m_error_map_mutex);
     if (m_errors.find(error_name) == m_errors.end()) {
       TLOG() << "Encountered new error";
     }
@@ -47,10 +49,13 @@ public:
 
   void remove_errors_until(uint64_t ts) // NOLINT(build/unsigned)
   {
-    for (auto it = m_errors.begin(); it != m_errors.end(); ++it) {
+    std::lock_guard<std::mutex> guard(m_error_map_mutex);
+    for (auto it = m_errors.begin(); it != m_errors.end();) {
       if (ts > it->second.end_ts) {
         it = m_errors.erase(it);
         TLOG() << "Removed error";
+      } else {
+        it++;
       }
     }
   }
@@ -63,6 +68,7 @@ public:
 
 private:
   std::map<std::string, ErrorInterval> m_errors;
+  std::mutex m_error_map_mutex;
 };
 
 } // namespace readout
