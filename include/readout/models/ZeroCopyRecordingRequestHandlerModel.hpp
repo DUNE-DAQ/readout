@@ -58,16 +58,12 @@ namespace dunedaq {
 
       void record(const nlohmann::json& args) override
       {
-        auto conf = args.get<readoutconfig::RecordingParams>();
-
         if (inherited::m_recording.load()) {
           ers::error(CommandError(ERS_HERE, inherited::m_geoid, "A recording is still running, no new recording was started!"));
           return;
         }        
         inherited::m_recording_thread.set_work(
-            [&](int duration, const nlohmann::json& args) {
-              auto conf = args.get<readoutconfig::RecordingParams>();
-
+            [&](int duration) {
               size_t chunk_size = inherited::m_stream_buffer_size;
               size_t alignment_size = inherited::m_latency_buffer->get_alignment_size();
               TLOG() << "Start recording for " << duration << " second(s)" << std::endl;
@@ -76,7 +72,7 @@ namespace dunedaq {
               auto current_time = start_of_recording;
               inherited::m_next_timestamp_to_record = 0;
               
-              const char* current_write_pointer;
+              const char* current_write_pointer = nullptr;
               const char* start_of_buffer_pointer = reinterpret_cast<const char*>(inherited::m_latency_buffer->start_of_buffer());
 	          const char* current_end_pointer;
               const char* end_of_buffer_pointer = reinterpret_cast<const char*>(inherited::m_latency_buffer->end_of_buffer());
@@ -175,13 +171,15 @@ namespace dunedaq {
               }
 	          
               // Complete writing the last frame to file
-              const char* last_started_frame = start_of_buffer_pointer + (((current_write_pointer - start_of_buffer_pointer) / ReadoutType::fixed_payload_size) * ReadoutType::fixed_payload_size); 
-              if (last_started_frame != current_write_pointer) {
-                fcntl(m_fd, F_SETFL, O_CREAT | O_WRONLY);
-                if (!::write(m_fd, current_write_pointer, (last_started_frame + ReadoutType::fixed_payload_size) - current_write_pointer)) {
+              if (current_write_pointer != nullptr) {
+                const char* last_started_frame = start_of_buffer_pointer + (((current_write_pointer - start_of_buffer_pointer) / ReadoutType::fixed_payload_size) * ReadoutType::fixed_payload_size); 
+                if (last_started_frame != current_write_pointer) {
+                  fcntl(m_fd, F_SETFL, O_CREAT | O_WRONLY);
+                  if (!::write(m_fd, current_write_pointer, (last_started_frame + ReadoutType::fixed_payload_size) - current_write_pointer)) {
                     ers::warning(CannotWriteToFile(ERS_HERE, inherited::m_output_file));
-                } else {
+                  } else {
                     bytes_written += (last_started_frame + ReadoutType::fixed_payload_size) - current_write_pointer;
+                  }
                 }
               }
               ::close(m_fd);
@@ -191,7 +189,7 @@ namespace dunedaq {
               TLOG() << "Stopped recording, wrote " << bytes_written << " bytes";
               inherited::m_recording.exchange(false);
             },
-            conf.duration, args);
+            args.get<readoutconfig::RecordingParams>().duration);
       }
 
     private:
