@@ -446,18 +446,14 @@ struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
   static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
   // raw WIB TP frames are variable size
-  size_t get_payload_size()
-  {
-    // TODO: return the size of the RawWIBTp
-    return 0;
+  size_t get_payload_size() {
+    return this->rwtp->get_frame_size();
   }
 
   size_t get_num_frames() { return 1; }
 
-  size_t get_frame_size()
-  {
-    // TODO: return the size of the RawWIBTp, same as above (here it's the same)
-    return 0;
+  size_t get_frame_size() {
+    return this->rwtp->get_frame_size();
   }
 };
 

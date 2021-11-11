@@ -25,6 +25,11 @@ using tp_word_t = uint32_t; // NOLINT(build/unsigned)
 //===================
 struct TpHeader
 {
+  TpHeader()
+  {
+    m_nhits = 1;
+  }
+
   tp_word_t m_flags : 13, m_slot_no : 3, m_wire_no : 8, m_fiber_no : 3, m_crate_no : 5;
   tp_word_t m_timestamp_1;
   tp_word_t m_timestamp_2;
@@ -169,6 +174,11 @@ struct RawWIBTp
   TpHeader m_head;
   TpData m_blocks[1];
 
+  RawWIBTp()
+  {
+    m_nhits = 1;
+  }
+
   // mutators
   void set_nhits(int nhits)
   {
@@ -177,8 +187,14 @@ struct RawWIBTp
   }
 
   // accessors
-  size_t get_header_size() { return sizeof(m_head); }
-  size_t get_frame_size() { return sizeof(m_head) + m_nhits * sizeof(TpData); }
+  size_t get_header_size()
+  {
+    return sizeof(TpHeader);
+  }
+  size_t get_frame_size()
+  {
+    return sizeof(TpHeader) + get_nhits() * sizeof(TpData);
+  }
 
   uint64_t get_timestamp() const { return m_head.get_timestamp(); }
   uint64_t get_timestamp() { return m_head.get_timestamp(); }

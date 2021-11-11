@@ -133,6 +133,68 @@ public:
   }
 
 protected:
+  void unpack_tpframe_version_2(int& nhits, int& offset) {
+
+    auto& source = m_file_source->get();
+    dunedaq::detdataformats::RawWIBTp* rwtps = 
+           static_cast<dunedaq::detdataformats::RawWIBTp*>( malloc( 
+           sizeof(dunedaq::detdataformats::TpHeader) + nhits * sizeof(dunedaq::detdataformats::TpData)
+           ));
+    m_payload_wrapper.rwtp.release( );
+    m_payload_wrapper.rwtp.reset( rwtps );
+
+    m_payload_wrapper.rwtp->set_nhits(nhits);
+    ::memcpy(static_cast<void*>(m_payload_wrapper.rwtp.get()),
+             static_cast<void*>(source.data() + offset),
+             m_payload_wrapper.rwtp->get_frame_size());
+  } 
+  void unpack_tpframe_version_1(int& offset) 
+  {
+    auto& source = m_file_source->get();
+   
+    // Count number of subframes in a TP frame
+    int n = 1;
+    while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
+           + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
+      n++;
+    }
+
+    int bsize = n * RAW_WIB_TP_SUBFRAME_SIZE;
+    std::vector<char> tmpbuffer;
+    tmpbuffer.reserve(bsize);
+    int nhits = n - 2;
+
+    // add header block 
+    ::memcpy(static_cast<void*>(tmpbuffer.data() + 0),
+             static_cast<void*>(source.data() + offset),
+             RAW_WIB_TP_SUBFRAME_SIZE);
+
+    // add pedinfo block 
+    ::memcpy(static_cast<void*>(tmpbuffer.data() + RAW_WIB_TP_SUBFRAME_SIZE),
+             static_cast<void*>(source.data() + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE),
+             RAW_WIB_TP_SUBFRAME_SIZE);
+
+    // add TP hits 
+    ::memcpy(static_cast<void*>(tmpbuffer.data() + 2*RAW_WIB_TP_SUBFRAME_SIZE),
+             static_cast<void*>(source.data() + offset + RAW_WIB_TP_SUBFRAME_SIZE),
+             nhits*RAW_WIB_TP_SUBFRAME_SIZE);
+
+    dunedaq::detdataformats::RawWIBTp* rwtps = 
+           static_cast<dunedaq::detdataformats::RawWIBTp*>( malloc( 
+           sizeof(dunedaq::detdataformats::TpHeader) + nhits * sizeof(dunedaq::detdataformats::TpData)
+           ));
+    m_payload_wrapper.rwtp.release( );
+    m_payload_wrapper.rwtp.reset( rwtps );
+    m_payload_wrapper.rwtp->set_nhits(nhits);
+
+    ::memcpy(static_cast<void*>(m_payload_wrapper.rwtp.get()),
+             static_cast<void*>(tmpbuffer.data()),
+             m_payload_wrapper.rwtp->get_frame_size());
+
+    // old format lacks number of hits
+    m_payload_wrapper.rwtp->set_nhits(nhits); // explicitly set number of hits in new format
+  }
+ 
   void run_produce()
   {
     TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " started";
@@ -141,20 +203,13 @@ protected:
 
     int offset = 0;
     auto& source = m_file_source->get();
-
     int num_elem = m_file_source->num_elements();
+
     if (num_elem == 0) {
       TLOG_DEBUG(TLVL_WORK_STEPS) << "No raw WIB TP elements to read from buffer! Sleeping...";
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       num_elem = m_file_source->num_elements();
     }
-    auto rwtpptr = reinterpret_cast<dunedaq::detdataformats::RawWIBTp*>(source.data()); // NOLINT
-    TLOG_DEBUG(TLVL_BOOKKEEPING) << "Number of raw WIB TP elements to read from buffer: " << num_elem
-                                 << "; rwtpptr is: " << rwtpptr;
-
-    uint64_t ts_0 = (m_cfg.set_t0_to >= 0) ? m_cfg.set_t0_to : rwtpptr->get_timestamp(); // NOLINT
-    TLOG_DEBUG(TLVL_BOOKKEEPING) << "First timestamp in the raw WIB TP source file: " << ts_0;
-
     while (m_run_marker.load()) {
       // Which element to push to the buffer
       if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE)) { // NOLINT(build/unsigned)
@@ -162,74 +217,38 @@ protected:
       }
 
       // Create next TP frame
-      types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT payload_wrapper;
-      payload_wrapper.rwtp.reset(new types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT::FrameType());
-      ::memcpy(static_cast<void*>(&payload_wrapper.rwtp->m_head),
+      m_payload_wrapper.rwtp.reset(new types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT::FrameType());
+      ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_head),
                static_cast<void*>(source.data() + offset),
-               payload_wrapper.rwtp->get_header_size());
-      int nhits = payload_wrapper.rwtp->get_nhits();
-      uint16_t padding = payload_wrapper.rwtp->get_padding_3(); // NOLINT
+               m_payload_wrapper.rwtp->get_header_size());
+      int nhits = m_payload_wrapper.rwtp->get_nhits();
+      uint16_t padding = m_payload_wrapper.rwtp->get_padding_3(); // NOLINT
 
-      if (padding == 48879) { // padding hex is BEEF, new format
-        payload_wrapper.rwtp->set_nhits(nhits);
-        ::memcpy(static_cast<void*>(payload_wrapper.rwtp.get()),
-                 static_cast<void*>(source.data() + offset),
-                 payload_wrapper.rwtp->get_frame_size());
+      if (padding == 48879) { // padding hex is BEEF, new TP format
+       
+        unpack_tpframe_version_2(nhits, offset);
+
       } else { // old TP format
-        // Count number of subframes in a TP frame
-        int n = 1;
-        while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)source.data()) // NOLINT
-                                                    + offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE)
-                 ->word3 != 0xDEADBEEF) {
-          n++;
-        }
 
-        int bsize = n * RAW_WIB_TP_SUBFRAME_SIZE;
-        std::vector<char> tmpbuffer(bsize);
-        static const int m_nhits = n - 2;
+        unpack_tpframe_version_1(offset);
 
-        // add header block
-        ::memcpy(static_cast<void*>(tmpbuffer.data() + 0),
-                 static_cast<void*>(source.data() + offset),
-                 RAW_WIB_TP_SUBFRAME_SIZE);
-
-        // add pedinfo block
-        ::memcpy(static_cast<void*>(tmpbuffer.data() + RAW_WIB_TP_SUBFRAME_SIZE),
-                 static_cast<void*>(source.data() + offset + (n - 1) * RAW_WIB_TP_SUBFRAME_SIZE),
-                 RAW_WIB_TP_SUBFRAME_SIZE);
-
-        // add TP hits
-        ::memcpy(static_cast<void*>(tmpbuffer.data() + 2 * RAW_WIB_TP_SUBFRAME_SIZE),
-                 static_cast<void*>(source.data() + offset + RAW_WIB_TP_SUBFRAME_SIZE),
-                 m_nhits * RAW_WIB_TP_SUBFRAME_SIZE);
-
-        // copy old frame to new frame
-        payload_wrapper.rwtp->set_nhits(m_nhits); // reserve space
-        ::memcpy(static_cast<void*>(payload_wrapper.rwtp.get()),
-                 static_cast<void*>(tmpbuffer.data()),
-                 payload_wrapper.rwtp->get_frame_size());
-
-        // old format lacks number of hits
-        payload_wrapper.rwtp->set_nhits(m_nhits); // explicitly set number of hits in new format
       }
-      nhits = payload_wrapper.rwtp->get_nhits(); // NOLINT
 
-      offset += payload_wrapper.rwtp->get_frame_size();
+      offset += m_payload_wrapper.rwtp->get_frame_size();
 
       // queue in to actual DAQSink
       try {
-        m_raw_data_sink->push(std::move(payload_wrapper), m_sink_queue_timeout_ms);
+        m_raw_data_sink->push(std::move(m_payload_wrapper), m_sink_queue_timeout_ms);
       } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
         // std::runtime_error("Queue timed out...");
       }
 
       // Count packet and limit rate if needed.
-      // if (m_alloc_) { free(m_data_); }
       ++m_packet_count;
       ++m_packet_count_tot;
       m_rate_limiter->limit();
     }
-    TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";
+    TLOG_DEBUG(TLVL_WORK_STEPS) << "Data generation thread " << m_this_link_number << " finished";   
   }
 
 private:
@@ -267,6 +286,8 @@ private:
   bool m_is_configured = false;
   double m_rate_khz;
   daqdataformats::GeoID m_geoid;
+
+  types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper;
 };
 
 } // namespace readout
