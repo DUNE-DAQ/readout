@@ -140,7 +140,8 @@ struct WIB_SUPERCHUNK_STRUCT
   size_t get_num_frames() { return 12; }
 
   size_t get_frame_size() { return 464; }
-
+  
+  static const constexpr size_t fixed_payload_size = 5568;
   static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
   static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
@@ -354,10 +355,10 @@ struct SSP_FRAME_STRUCT
   // comparable based on start timestamp
   bool operator<(const SSP_FRAME_STRUCT& other) const
   {
-    return this->get_timestamp() < other.get_timestamp() ? true : false;
+    return this->get_first_timestamp() < other.get_first_timestamp() ? true : false;
   }
 
-  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
     auto ehptr = &header;
     unsigned long ts = 0; // NOLINT(runtime/int)
@@ -367,7 +368,7 @@ struct SSP_FRAME_STRUCT
     return ts;
   }
 
-  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
     uint64_t bitmask = (1 << 16) - 1; // NOLINT(build/unsigned)
     for (unsigned int iword = 0; iword <= 3; ++iword) {
@@ -376,7 +377,7 @@ struct SSP_FRAME_STRUCT
     }
   }
 
-  void fake_timestamp(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
+  void fake_timestamps(uint64_t /*first_timestamp*/, uint64_t /*offset = 25*/) // NOLINT(build/unsigned)
   {
     // tp.time_start = first_timestamp;
   }
@@ -385,12 +386,21 @@ struct SSP_FRAME_STRUCT
 
   FrameType* end() { return (this + 1); } // NOLINT
 
+  size_t get_payload_size() {
+    return SSP_FRAME_SIZE;
+  }
+
+  size_t get_num_frames() {
+    return 1;
+  }
+
+  size_t get_frame_size() {
+    return SSP_FRAME_SIZE;
+  }
+
   static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kPDS;
   static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kPDSData;
-  static const constexpr uint64_t tick_dist = 25; // NOLINT(build/unsigned)
-  static const constexpr size_t frame_size = SSP_FRAME_SIZE;
-  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
-  static const constexpr size_t element_size = SSP_FRAME_SIZE;
+  static const constexpr uint64_t expected_tick_difference = 25; // NOLINT(build/unsigned)
 };
 
 static_assert(sizeof(struct SSP_FRAME_STRUCT) == sizeof(detdataformats::ssp::EventHeader) + SSP_FRAME_SIZE,
