@@ -358,6 +358,11 @@ struct SSP_FRAME_STRUCT
     return this->get_first_timestamp() < other.get_first_timestamp() ? true : false;
   }
 
+  uint64_t get_timestamp() const 
+  {
+    return get_first_timestamp();
+  }
+
   uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
   {
     auto ehptr = &header;
