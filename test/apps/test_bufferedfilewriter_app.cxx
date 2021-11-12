@@ -27,7 +27,7 @@ main(int argc, char* argv[])
   }
   remove(argv[1]); // NOLINT
   std::string filename(argv[1]);
-  BufferedFileWriter<types::WIB_SUPERCHUNK_STRUCT> writer(filename, 8388608);
+  BufferedFileWriter writer(filename, 8388608);
   types::WIB_SUPERCHUNK_STRUCT chunk;
   for (uint i = 0; i < sizeof(chunk); ++i) {
     (reinterpret_cast<char*>(&chunk))[i] = static_cast<char>(i); // NOLINT
@@ -52,7 +52,7 @@ main(int argc, char* argv[])
   });
 
   while (true) {
-    if (!writer.write(chunk)) {
+    if (!writer.write(reinterpret_cast<char*>(&chunk), sizeof(chunk))) {
       TLOG() << "Could not write to file" << std::endl;
       exit(1);
     }

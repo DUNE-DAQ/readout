@@ -35,20 +35,23 @@ public:
     if (with_errors) {
       return BinarySearchQueueModel<T>::lower_bound(element, with_errors);
     }
-    uint64_t timestamp = element.get_timestamp(); // NOLINT(build/unsigned)
+    uint64_t timestamp = element.get_first_timestamp(); // NOLINT(build/unsigned)
     unsigned int start_index =
       IterableQueueModel<T>::readIndex_.load(std::memory_order_relaxed); // NOLINT(build/unsigned)
     size_t occupancy_guess = IterableQueueModel<T>::occupancy();
-    uint64_t last_ts = IterableQueueModel<T>::records_[start_index].get_timestamp();       // NOLINT(build/unsigned)
-    uint64_t newest_ts = last_ts + occupancy_guess * T::tick_dist * T::frames_per_element; // NOLINT(build/unsigned)
+    uint64_t last_ts = IterableQueueModel<T>::records_[start_index].get_first_timestamp(); // NOLINT(build/unsigned)
+    uint64_t newest_ts = // NOLINT(build/unsigned)
+      last_ts + occupancy_guess * T::expected_tick_difference *
+                  IterableQueueModel<T>::records_[start_index].get_num_frames(); 
 
     if (last_ts > timestamp || timestamp > newest_ts) {
       return IterableQueueModel<T>::end();
     }
 
-    int64_t time_tick_diff = (timestamp - last_ts) / T::tick_dist;
-    uint32_t num_element_offset = time_tick_diff / T::frames_per_element; // NOLINT(build/unsigned)
-    uint32_t target_index = start_index + num_element_offset;             // NOLINT(build/unsigned)
+    int64_t time_tick_diff = (timestamp - last_ts) / T::expected_tick_difference;
+    uint32_t num_element_offset = // NOLINT(build/unsigned)
+      time_tick_diff / IterableQueueModel<T>::records_[start_index].get_num_frames(); 
+    uint32_t target_index = start_index + num_element_offset;                         // NOLINT(build/unsigned)
     if (target_index >= IterableQueueModel<T>::size_) {
       target_index -= IterableQueueModel<T>::size_;
     }

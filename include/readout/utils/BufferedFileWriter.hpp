@@ -43,7 +43,7 @@ namespace readout {
  * @tparam Alignment The alignment used for allocations of buffers. It has to fulfil certain system specific
  * requirements such that file writing with O_DIRECT can work.
  */
-template<class ReadoutType, size_t Alignment = 4096>
+template<size_t Alignment = 4096>
 class BufferedFileWriter
 {
   using io_sink_t = boost::iostreams::file_descriptor_sink;
@@ -147,15 +147,15 @@ public:
   bool is_open() const { return m_is_open; }
 
   /**
-   * Write an element to the buffer. If the buffer is full, all data from it will be written to file.
+   * Write something to the buffer. If the buffer is full, all data from it will be written to file.
    * @param element The element to write.
    * @return true if the write was successful, false if the writer is not open or the write was not successful.
    */
-  bool write(const ReadoutType& element)
+  bool write(const char* memory, const size_t size)
   {
     if (!m_is_open)
       return false;
-    m_output_stream.write(reinterpret_cast<const char*>(&element), sizeof(element)); // NOLINT
+    m_output_stream.write(memory, size); // NOLINT
     return !m_output_stream.bad();
   }
 

@@ -100,7 +100,7 @@ private:
         m_input_queue->pop(element, std::chrono::milliseconds(100));
         m_packets_processed_total++;
         m_packets_processed_since_last_info++;
-        if (!m_buffered_writer.write(element)) {
+        if (!m_buffered_writer.write(reinterpret_cast<char*>(&element), sizeof(element))) { // NOLINT
           ers::warning(CannotWriteToFile(ERS_HERE, m_conf.output_file));
           break;
         }
@@ -117,7 +117,7 @@ private:
 
   // Internal
   datarecorder::Conf m_conf;
-  BufferedFileWriter<ReadoutType> m_buffered_writer;
+  BufferedFileWriter<> m_buffered_writer;
 
   // Threading
   ReusableThread m_work_thread;

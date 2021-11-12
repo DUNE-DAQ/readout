@@ -62,15 +62,15 @@ protected:
     if (inherited::m_emulator_mode) { // emulate perfectly incrementing timestamp
       // RS warning : not fixed rate!
       if (m_first_ts_fake) {
-        fp->fake_timestamp(m_previous_ts, 16);
+        fp->fake_timestamps(m_previous_ts, 16);
         m_first_ts_fake = false;
       } else {
-        fp->fake_timestamp(m_previous_ts + 192, 16);
+        fp->fake_timestamps(m_previous_ts + 192, 16);
       }
     }
 
     // Acquire timestamp
-    m_current_ts = fp->get_timestamp();
+    m_current_ts = fp->get_first_timestamp();
 
     // Check timestamp
     // RS warning : not fixed rate!
