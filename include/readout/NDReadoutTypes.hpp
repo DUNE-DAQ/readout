@@ -56,8 +56,13 @@ struct PACMAN_MESSAGE_STRUCT
             50000000);
   }
 
+  uint64_t get_first_timestamp() const
+  {
+    return get_timestamp();
+  }
+
   // FIX ME - implement this in the frame later
-  void set_timestamp(uint64_t /*ts*/) // NOLINT(build/unsigned)
+  void set_first_timestamp(uint64_t /*ts*/) // NOLINT(build/unsigned)
   {
     // reinterpret_cast<dunedaq::detdataformats::pacman::PACMANFrame*>(&data)->set_timestamp(ts); // NOLINT
   }
@@ -111,15 +116,18 @@ struct PACMAN_MESSAGE_STRUCT
     return reinterpret_cast<FrameType*>(data + PACMAN_FRAME_SIZE); // NOLINT
   }
 
+  size_t get_payload_size() { return PACMAN_FRAME_SIZE; }
+
+  size_t get_num_frames() { return 1; }
+
+  size_t get_frame_size() { return PACMAN_FRAME_SIZE; }
+
+
   static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kNDLArTPC;
   static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kNDLArTPC;
-  static const constexpr size_t frame_size = PACMAN_FRAME_SIZE;
 
   // Set the right value for this field
-  static const constexpr uint64_t tick_dist = 0; // NOLINT(build/unsigned)
-
-  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
-  static const constexpr size_t element_size = frame_size;
+  static const constexpr uint64_t expected_tick_difference = 0; // NOLINT(build/unsigned)
 };
 
 /**

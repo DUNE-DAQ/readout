@@ -46,7 +46,7 @@ public:
   virtual bool read(T& element) = 0;
 
   //! Write referenced object into LB without moving it
-  virtual bool put(T& element) = 0;
+  // virtual bool put(T& element) = 0;
 
   //! Get pointer to the front of the LB
   virtual const T* front() = 0;

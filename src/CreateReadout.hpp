@@ -27,11 +27,16 @@
 #include "pacman/PACMANListRequestHandler.hpp"
 #include "ssp/SSPFrameProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
-#include "wib/WIBTriggerPrimitiveProcessor.hpp"
+#include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
+#include "wib/RAWWIBTriggerPrimitiveProcessor.hpp"
+#include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
+#include "ssp/SSPFrameProcessor.hpp"
+#include "wib/WIBFrameProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
 #include "readout/models/DefaultRequestHandlerModel.hpp"
+#include "readout/models/ZeroCopyRecordingRequestHandlerModel.hpp"
 #include "readout/models/FixedRateQueueModel.hpp"
 
 #include "readout/models/EmptyFragmentRequestHandlerModel.hpp"
@@ -58,7 +63,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a wib";
         auto readout_model = std::make_unique<ReadoutModel<
           types::WIB_SUPERCHUNK_STRUCT,
-          DefaultRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>>,
+          ZeroCopyRecordingRequestHandlerModel<types::WIB_SUPERCHUNK_STRUCT, FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>>,
           FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>,
           WIBFrameProcessor>>(run_marker);
         readout_model->init(args);
@@ -101,6 +106,18 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return readout_model;
       }
 
+      if (inst.find("sw_tp") != std::string::npos) {
+        TLOG(TLVL_WORK_STEPS) << "Creating readout for sw tp";
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                       EmptyFragmentRequestHandlerModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                                                        BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+                       BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+                       SWWIBTriggerPrimitiveProcessor>>(run_marker);
+        readout_model->init(args);
+        return readout_model;
+      }
+     
       // IF SSP
       if (inst.find("ssp") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a SSPs using Searchable Queue";
@@ -110,20 +127,21 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           BinarySearchQueueModel<types::SSP_FRAME_STRUCT>,
           SSPFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
-      }
-
-      if (inst.find("tp") != std::string::npos) {
-        TLOG(TLVL_WORK_STEPS) << "Creating readout for tp";
-        auto readout_model = std::make_unique<ReadoutModel<
-          types::TP_READOUT_TYPE,
-          EmptyFragmentRequestHandlerModel<types::TP_READOUT_TYPE, BinarySearchQueueModel<types::TP_READOUT_TYPE>>,
-          BinarySearchQueueModel<types::TP_READOUT_TYPE>,
-          WIBTriggerPrimitiveProcessor>>(run_marker);
-        readout_model->init(args);
         return readout_model;
       }
 
+      if (inst.find("raw_tp") != std::string::npos) {
+        TLOG(TLVL_WORK_STEPS) << "Creating readout for raw tp";
+        auto readout_model = std::make_unique<
+          ReadoutModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                       EmptyFragmentRequestHandlerModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT,
+                                                        BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+                       BinarySearchQueueModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+                       RAWWIBTriggerPrimitiveProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+    
       // IF ND LAr PACMAN
       if (inst.find("pacman") != std::string::npos) {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a pacman";

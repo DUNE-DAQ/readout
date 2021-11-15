@@ -20,6 +20,7 @@
 
 #include <folly/ProducerConsumerQueue.h>
 
+#include <chrono>
 #include <functional>
 #include <future>
 #include <memory>

@@ -22,7 +22,8 @@ local info = {
         s.field("num_tps_sent",                  self.uint8,     0, doc="Number of sent TPs"),
         s.field("num_tpsets_sent",               self.uint8,     0, doc="Number of sent TPSets"),
         s.field("num_tps_dropped",               self.uint8,     0, doc="Number of dropped TPs (because they were too old)"),
-        s.field("rate_tp_hits",                  self.float8,    0, doc="TP hit rate in kHz")
+        s.field("rate_tp_hits",                  self.float8,    0, doc="TP hit rate in kHz"),
+        s.field("num_frame_errors",              self.uint8,     0, doc="Total number of frame errors")
    ], doc="Latency buffer information"),
 
    requesthandlerinfo: s.record("RequestHandlerInfo", [

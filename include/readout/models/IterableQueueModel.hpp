@@ -198,6 +198,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
       records_ = static_cast<T*>(_mm_malloc(sizeof(T) * size, alignment_size));
 
     } else if (!intrinsic_allocator && alignment_size > 0) { // std aligned allocator
+      std::cout << "Aligned alloc" << std::endl;
       records_ = static_cast<T*>(std::aligned_alloc(alignment_size, sizeof(T) * size));
 
     } else if (numa_aware && numa_node >= 0 && numa_node < 8) { // numa allocator from libnuma
@@ -224,9 +225,27 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     alignment_size_ = alignment_size;
   }
 
-  bool put(T& record) { return write_(record); }
+  // bool put(T& record) { return write(record); }
 
-  bool write(T&& record) override { return write_(std::move(record)); }
+  bool write(T&& record) override
+  {
+    auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
+    auto nextRecord = currentWrite + 1;
+    if (nextRecord == size_) {
+      nextRecord = 0;
+    }
+
+    if (nextRecord != readIndex_.load(std::memory_order_acquire)) {
+      new (&records_[currentWrite]) T(std::move(record));
+      writeIndex_.store(nextRecord, std::memory_order_release);
+      return true;
+    }
+    // queue is full
+
+    ++overflow_ctr;
+
+    return false;
+  }
 
   // move (or copy) the value at the front of the queue to given variable
   bool read(T& record) override
@@ -302,6 +321,9 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
     return static_cast<std::size_t>(ret);
   }
+
+  // The size of the underlying buffer, not the amount of usable slots
+  std::size_t get_size() const { return size_; }
 
   // maximum number of items in the queue.
   std::size_t capacity() const { return size_ - 1; }
@@ -396,6 +418,16 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     return &records_[currentLast];
   };
 
+  T* start_of_buffer()
+  {
+    return &records_[0];
+  }
+
+  T* end_of_buffer()
+  {
+    return &records_[size_];  
+  }
+
   Iterator end()
   {
     return Iterator(*this, std::numeric_limits<uint32_t>::max()); // NOLINT(build/unsigned)
@@ -420,15 +452,19 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     }
 
     if (conf.latency_buffer_preallocation) {
-      T element;
       for (size_t i = 0; i < size_ - 1; ++i) {
-        write_(element);
+        T element;
+        write_(std::move(element));
       }
       flush();
     }
   }
 
   void flush() override { pop(occupancy()); }
+
+  std::size_t get_alignment_size() {
+    return alignment_size_;
+  }
 
 protected:
   template<class... Args>

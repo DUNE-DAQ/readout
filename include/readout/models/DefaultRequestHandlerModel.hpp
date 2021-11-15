@@ -110,6 +110,7 @@ public:
     m_geoid.element_id = conf.element_id;
     m_geoid.region_id = conf.region_id;
     m_geoid.system_type = ReadoutType::system_type;
+    m_stream_buffer_size = conf.stream_buffer_size;
     // if (m_configured) {
     //  ers::error(ConfigurationError(ERS_HERE, "This object is already configured!"));
     if (m_pop_limit_pct < 0.0f || m_pop_limit_pct > 1.0f || m_pop_size_pct < 0.0f || m_pop_size_pct > 1.0f) {
@@ -119,13 +120,14 @@ public:
       m_max_requested_elements = m_pop_limit_size - m_pop_limit_size * m_pop_size_pct;
     }
 
-    if (conf.enable_raw_recording) {
+    if (conf.enable_raw_recording && !m_recording_configured) {
       std::string output_file = conf.output_file;
       if (remove(output_file.c_str()) == 0) {
         TLOG(TLVL_WORK_STEPS) << "Removed existing output file from previous run: " << conf.output_file << std::endl;
       }
 
       m_buffered_writer.open(conf.output_file, conf.stream_buffer_size, conf.compression_algorithm, conf.use_o_direct);
+      m_recording_configured = true;
     }
 
     m_recording_thread.set_name("recording", conf.element_id);
@@ -201,9 +203,9 @@ public:
           if (!m_cleanup_requested || (m_next_timestamp_to_record == 0)) {
             if (m_next_timestamp_to_record == 0) {
               auto front = m_latency_buffer->front();
-              m_next_timestamp_to_record = front == nullptr ? 0 : front->get_timestamp();
+              m_next_timestamp_to_record = front == nullptr ? 0 : front->get_first_timestamp();
             }
-            element_to_search.set_timestamp(m_next_timestamp_to_record);
+            element_to_search.set_first_timestamp(m_next_timestamp_to_record);
             size_t processed_chunks_in_loop = 0;
 
             {
@@ -220,15 +222,16 @@ public:
             }
             m_cv.notify_all();
 
-            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 100;) {
-              if ((*chunk_iter).get_timestamp() >= m_next_timestamp_to_record) {
-                if (!m_buffered_writer.write(*chunk_iter)) {
+            for (; chunk_iter != end && chunk_iter.good() && processed_chunks_in_loop < 1000;) {
+              if ((*chunk_iter).get_first_timestamp() >= m_next_timestamp_to_record) {
+                if (!m_buffered_writer.write(reinterpret_cast<char*>(chunk_iter->begin()), // NOLINT 
+                                             chunk_iter->get_payload_size())) {
                   ers::warning(CannotWriteToFile(ERS_HERE, m_output_file));
                 }
                 m_payloads_written++;
                 processed_chunks_in_loop++;
-                m_next_timestamp_to_record =
-                  (*chunk_iter).get_timestamp() + ReadoutType::tick_dist * ReadoutType::frames_per_element;
+                m_next_timestamp_to_record = (*chunk_iter).get_first_timestamp() +
+                                             ReadoutType::expected_tick_difference * (*chunk_iter).get_num_frames();
               }
               ++chunk_iter;
             }
@@ -419,7 +422,7 @@ protected:
 
       unsigned popped = 0;
       for (size_t i = 0; i < to_pop; ++i) {
-        if (m_latency_buffer->front()->get_timestamp() < m_next_timestamp_to_record) {
+        if (m_latency_buffer->front()->get_first_timestamp() < m_next_timestamp_to_record) {
           m_latency_buffer->pop(1);
           popped++;
         } else {
@@ -429,7 +432,7 @@ protected:
       // m_pops_count += to_pop;
       m_occupancy = m_latency_buffer->occupancy();
       m_pops_count += popped;
-      m_error_registry->remove_errors_until(m_latency_buffer->front()->get_timestamp());
+      m_error_registry->remove_errors_until(m_latency_buffer->front()->get_first_timestamp());
     }
     m_num_buffer_cleanups++;
   }
@@ -442,7 +445,7 @@ protected:
 
         auto last_frame = m_latency_buffer->back();                                       // NOLINT
         uint64_t newest_ts = last_frame == nullptr ? std::numeric_limits<uint64_t>::min() // NOLINT(build/unsigned)
-                                                   : last_frame->get_timestamp();
+                                                   : last_frame->get_first_timestamp();
 
         size_t size = m_waiting_requests.size();
         for (size_t i = 0; i < size;) {
@@ -536,10 +539,10 @@ protected:
 
     if (m_latency_buffer->occupancy() != 0) {
       // Data availability is calculated here
-      auto front_frame = m_latency_buffer->front();     // NOLINT
-      auto last_frame = m_latency_buffer->back();       // NOLINT
-      uint64_t last_ts = front_frame->get_timestamp();  // NOLINT(build/unsigned)
-      uint64_t newest_ts = last_frame->get_timestamp(); // NOLINT(build/unsigned)
+      auto front_element = m_latency_buffer->front();           // NOLINT
+      auto last_element = m_latency_buffer->back();             // NOLINT
+      uint64_t last_ts = front_element->get_first_timestamp();  // NOLINT(build/unsigned)
+      uint64_t newest_ts = last_element->get_first_timestamp(); // NOLINT(build/unsigned)
 
       uint64_t start_win_ts = dr.request_information.window_begin; // NOLINT(build/unsigned)
       uint64_t end_win_ts = dr.request_information.window_end;     // NOLINT(build/unsigned)
@@ -553,8 +556,8 @@ protected:
       // List of safe-extraction conditions
       if (last_ts <= start_win_ts && end_win_ts <= newest_ts) { // data is there
         ReadoutType request_element;
-        request_element.set_timestamp(start_win_ts);
-        auto start_iter = m_error_registry->has_error() ? m_latency_buffer->lower_bound(request_element, true)
+        request_element.set_first_timestamp(start_win_ts);
+        auto start_iter = m_error_registry->has_error("MISSING_FRAMES") ? m_latency_buffer->lower_bound(request_element, true)
                                                         : m_latency_buffer->lower_bound(request_element, false);
         if (start_iter == m_latency_buffer->end()) {
           // Due to some concurrent access, the start_iter could not be retrieved successfully, try again
@@ -567,21 +570,22 @@ protected:
           auto elements_handled = 0;
 
           ReadoutType* element = &(*start_iter);
-          while (start_iter.good() && element->get_timestamp() < end_win_ts) {
-            if (element->get_timestamp() < start_win_ts ||
-                element->get_timestamp() + (ReadoutType::frames_per_element - 1) * ReadoutType::tick_dist >=
+          while (start_iter.good() && element->get_first_timestamp() < end_win_ts) {
+            if (element->get_first_timestamp() < start_win_ts ||
+                element->get_first_timestamp() +
+                    (element->get_num_frames() - 1) * ReadoutType::expected_tick_difference >=
                   end_win_ts) {
               // We don't need the whole aggregated object (e.g.: superchunk)
               for (auto frame_iter = element->begin(); frame_iter != element->end(); frame_iter++) {
                 if ((*frame_iter).get_timestamp() >= start_win_ts && (*frame_iter).get_timestamp() < end_win_ts) {
-                  frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)),
-                                                                         std::size_t(ReadoutType::frame_size)));
+                  frag_pieces.emplace_back(
+                    std::make_pair<void*, size_t>(static_cast<void*>(&(*frame_iter)), element->get_frame_size()));
                 }
               }
             } else {
               // We are somewhere in the middle -> the whole aggregated object (e.g.: superchunk) can be copied
-              frag_pieces.emplace_back(std::make_pair<void*, size_t>(static_cast<void*>(&(*start_iter)),
-                                                                     std::size_t(ReadoutType::element_size)));
+              frag_pieces.emplace_back(
+                std::make_pair<void*, size_t>(static_cast<void*>((*start_iter).begin()), element->get_payload_size()));
             }
 
             elements_handled++;
@@ -648,7 +652,7 @@ protected:
   std::unique_ptr<LatencyBufferType>& m_latency_buffer;
 
   // Data recording
-  BufferedFileWriter<ReadoutType> m_buffered_writer;
+  BufferedFileWriter<> m_buffered_writer;
   ReusableThread m_recording_thread;
 
   ReusableThread m_cleanup_thread;
@@ -691,6 +695,8 @@ protected:
   static const constexpr uint32_t m_min_delay_us = 30000; // NOLINT(build/unsigned)
   int m_fragment_queue_timeout = 100;
   std::string m_output_file;
+  size_t m_stream_buffer_size = 0;
+  bool m_recording_configured = false;
 
   // Stats
   std::atomic<int> m_pop_counter;

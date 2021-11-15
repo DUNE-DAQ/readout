@@ -46,7 +46,7 @@ at /tmp/tp_frames.bin) and parsed using the "RawWibTp" format.
 
 To get the "tp_frames.bin" TP data:
 
-    curl https://cernbox.cern.ch/index.php/s/686ndOgupTli2RW/download -o /tmp/tp_frames.bin
+    curl https://cernbox.cern.ch/index.php/s/nd201XOcMCmHpIX/download -o /tmp/tp_frames.bin
 
 _Instructions on how to test the fake raw WIB TP readout will be provided here_
     
