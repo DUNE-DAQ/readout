@@ -11,10 +11,10 @@
 #include "appfwk/DAQModuleHelper.hpp"
 #include "logging/Logging.hpp"
 
+#include "readout/FrameErrorRegistry.hpp"
 #include "readout/ReadoutIssues.hpp"
 #include "readout/ReadoutLogging.hpp"
 #include "readout/ReadoutTypes.hpp"
-#include "readout/FrameErrorRegistry.hpp"
 #include "readout/models/IterableQueueModel.hpp"
 #include "readout/models/TaskRawDataProcessorModel.hpp"
 #include "readout/utils/ReusableThread.hpp"
@@ -27,6 +27,7 @@
 #include "tpg/FrameExpand.hpp"
 #include "tpg/ProcessAVX2.hpp"
 #include "tpg/ProcessingInfo.hpp"
+#include "tpg/RegisterToChannelNumber.hpp"
 #include "tpg/TPGConstants.hpp"
 
 #include <atomic>
@@ -329,7 +330,7 @@ protected:
       return;
 
     auto wfptr = reinterpret_cast<dunedaq::detdataformats::wib::WIBFrame*>((uint8_t*)fp); // NOLINT
-    uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                // NOLINT(build/unsigned)
+    uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                        // NOLINT(build/unsigned)
 
     swtpg::MessageRegistersCollection collection_registers;
 
@@ -339,6 +340,9 @@ protected:
     m_induction_items_to_process->write(std::move(ind_item));
 
     if (m_first_coll) {
+
+      m_register_channel_map = swtpg::get_register_to_offline_channel_map(wfptr, "VDColdboxChannelMap");
+      
       m_coll_tpg_pi->setState(collection_registers);
 
       m_fiber_no = wfptr->get_wib_header()->fiber_no;
@@ -396,7 +400,8 @@ protected:
       for (int i = 0; i < 16; ++i) {
         if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
           // This channel had a hit ending here, so we can create and output the hit here
-          const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
+          // const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
+          const uint16_t offline_channel = m_register_channel_map.collection[chan[i]];
           uint64_t tp_t_begin =                                                        // NOLINT(build/unsigned)
             timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);       // NOLINT(build/unsigned)
           uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);      // NOLINT(build/unsigned)
@@ -418,7 +423,7 @@ protected:
           trigprim.time_start = tp_t_begin;
           trigprim.time_peak = (tp_t_begin + tp_t_end) / 2;
           trigprim.time_over_threshold = hit_tover[i] * clocksPerTPCTick;
-          trigprim.channel = online_channel;
+          trigprim.channel = offline_channel;
           trigprim.adc_integral = hit_charge[i];
           trigprim.adc_peak = hit_charge[i] / 20;
           trigprim.detid =
@@ -544,6 +549,12 @@ private:
   uint8_t m_slot_no;  // NOLINT(build/unsigned)
   uint8_t m_crate_no; // NOLINT(build/unsigned)
 
+  swtpg::RegisterChannelMap m_register_channel_map; // Map from
+                                                    // expanded AVX
+                                                    // register
+                                                    // position to
+                                                    // offline channel
+                                                    // number
   // Collection
   const uint16_t m_coll_threshold = 5;                    // units of sigma // NOLINT(build/unsigned)
   const uint8_t m_coll_tap_exponent = 6;                  // NOLINT(build/unsigned)

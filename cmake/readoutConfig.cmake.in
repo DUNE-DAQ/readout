@@ -14,6 +14,7 @@ find_dependency(timinglibs)
 find_dependency(triggeralgs)
 find_dependency(trigger)
 find_dependency(folly)
+find_dependency(detchannelmaps)
 
 
 if (EXISTS ${CMAKE_SOURCE_DIR}/@PROJECT_NAME@)

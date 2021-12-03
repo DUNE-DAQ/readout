@@ -16,7 +16,9 @@ find_package(triggeralgs REQUIRED)
 find_package(timinglibs REQUIRED)
 find_package(trigger REQUIRED)
 find_package(folly REQUIRED)
+find_package(detchannelmaps REQUIRED)
 find_package(Boost COMPONENTS iostreams REQUIRED)
+
 set(BOOST_LIBS Boost::iostreams ${Boost_SYSTEM_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_LIBRARIES})
 
 daq_codegen( readoutconfig.jsonnet datalinkhandler.jsonnet  datarecorder.jsonnet  sourceemulatorconfig.jsonnet TEMPLATES Structs.hpp.j2 Nljs.hpp.j2 )
@@ -33,6 +35,7 @@ set(READOUT_DEPENDENCIES
   appfwk::appfwk
   opmonlib::opmonlib
   daqdataformats::daqdataformats
+  detchannelmaps::detchannelmaps
   detdataformats::detdataformats
   dfmessages::dfmessages
   triggeralgs::triggeralgs
