@@ -31,6 +31,7 @@
 #include "tpg/TPGConstants.hpp"
 
 #include <atomic>
+#include <detchannelmaps/TPCChannelMap.hpp>
 #include <functional>
 #include <memory>
 #include <queue>
@@ -222,7 +223,7 @@ public:
 
     if (config.enable_software_tpg) {
       m_sw_tpg_enabled = true;
-      m_channel_map_name = config.channel_map_name;
+      m_channel_map = dunedaq::detchannelmaps::make_map(config.channel_map_name);
       m_induction_items_to_process =
         std::make_unique<IterableQueueModel<InductionItemToProcess>>(200000, false, 0, true, 64); // 64 byte aligned
 
@@ -341,7 +342,7 @@ protected:
 
     if (m_first_coll) {
 
-      m_register_channel_map = swtpg::get_register_to_offline_channel_map(wfptr, m_channel_map_name);
+      m_register_channel_map = swtpg::get_register_to_offline_channel_map(wfptr, m_channel_map);
       
       m_coll_tpg_pi->setState(collection_registers);
 
@@ -549,7 +550,7 @@ private:
   uint8_t m_slot_no;  // NOLINT(build/unsigned)
   uint8_t m_crate_no; // NOLINT(build/unsigned)
 
-  std::string m_channel_map_name;
+  std::shared_ptr<detchannelmaps::TPCChannelMap> m_channel_map;
   swtpg::RegisterChannelMap m_register_channel_map; // Map from
                                                     // expanded AVX
                                                     // register
