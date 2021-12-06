@@ -15,6 +15,8 @@
 #include "wib/tpg/FrameExpand.hpp"
 #include "wib/tpg/TPGConstants.hpp"
 
+#include <boost/chrono/duration.hpp>
+#include <chrono>
 #include <sys/types.h>
 #include <vector>
 
@@ -27,10 +29,20 @@ struct RegisterChannelMap
   uint induction[256];
 };
 
+/**
+ * The code that expands ADCs from WIB frame format into AVX registers
+ * for the software TP generation puts the channels in the output
+ * registers in some order that is convenient for the expansion code,
+ * but doesn't have any particular pattern to it. So we need to map
+ * from position-in-register to offline channel number. This function
+ * creates that map
+ */
 RegisterChannelMap
-get_register_to_offline_channel_map(const dunedaq::detdataformats::wib::WIBFrame* frame, std::string channel_map_name)
+get_register_to_offline_channel_map(const dunedaq::detdataformats::wib::WIBFrame* frame,
+                                    std::shared_ptr<dunedaq::detchannelmaps::TPCChannelMap>& ch_map)
 {
-  auto ch_map = dunedaq::detchannelmaps::make_map(channel_map_name);
+  auto start_time = std::chrono::steady_clock::now();
+
   // Find the lowest offline channel number of all the channels in the input frame
   uint min_ch = UINT_MAX;
   for (size_t ich = 0; ich < dunedaq::detdataformats::wib::WIBFrame::s_num_ch_per_frame; ++ich) {
@@ -38,7 +50,9 @@ get_register_to_offline_channel_map(const dunedaq::detdataformats::wib::WIBFrame
       frame->get_wib_header()->crate_no, frame->get_wib_header()->slot_no, frame->get_wib_header()->fiber_no, ich);
     min_ch = std::min(min_ch, offline_ch);
   }
-  TLOG_DEBUG(0) << "get_register_to_offline_channel_map for crate " << frame->get_wib_header()->crate_no << " slot " << frame->get_wib_header()->slot_no << " fiber " << frame->get_wib_header()->fiber_no << ". min_ch is " << min_ch;
+  TLOG_DEBUG(0) << "get_register_to_offline_channel_map for crate " << frame->get_wib_header()->crate_no << " slot "
+                << frame->get_wib_header()->slot_no << " fiber " << frame->get_wib_header()->fiber_no << ". min_ch is "
+                << min_ch;
   // Now set each of the channels in our test frame to their
   // corresponding offline channel number, minus the minimum channel
   // number we just calculated (so we don't overflow the 12 bits we
@@ -66,7 +80,17 @@ get_register_to_offline_channel_map(const dunedaq::detdataformats::wib::WIBFrame
     ret.induction[i] = induction_registers.uint16(i) + min_ch;
   }
 
+  auto end_time = std::chrono::steady_clock::now();
+  auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+  TLOG_DEBUG(0) << "get_register_to_offline_channel_map built map in " << dur << "us";
   return ret;
+}
+
+RegisterChannelMap
+get_register_to_offline_channel_map(const dunedaq::detdataformats::wib::WIBFrame* frame, std::string channel_map_name)
+{
+  auto ch_map = dunedaq::detchannelmaps::make_map(channel_map_name);
+  return get_register_to_offline_channel_map(frame, ch_map);
 }
 
 } // namespace swtpg
