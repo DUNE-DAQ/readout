@@ -144,9 +144,17 @@ protected:
     m_payload_wrapper.rwtp.reset( rwtps );
 
     m_payload_wrapper.rwtp->set_nhits(nhits);
-    ::memcpy(static_cast<void*>(m_payload_wrapper.rwtp.get()),
+
+    ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_head),
              static_cast<void*>(source.data() + offset),
-             m_payload_wrapper.rwtp->get_frame_size());
+             2*RAW_WIB_TP_SUBFRAME_SIZE);
+
+    for (int i=0; i<nhits; i++) {
+      ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_blocks[i]),
+               static_cast<void*>(source.data() + offset + (2+i)*RAW_WIB_TP_SUBFRAME_SIZE),
+               RAW_WIB_TP_SUBFRAME_SIZE);
+    }
+
   } 
   void unpack_tpframe_version_1(int& offset) 
   {
@@ -187,12 +195,21 @@ protected:
     m_payload_wrapper.rwtp.reset( rwtps );
     m_payload_wrapper.rwtp->set_nhits(nhits);
 
-    ::memcpy(static_cast<void*>(m_payload_wrapper.rwtp.get()),
-             static_cast<void*>(tmpbuffer.data()),
-             m_payload_wrapper.rwtp->get_frame_size());
+    ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_head),
+             static_cast<void*>(tmpbuffer.data() + 0),
+             2*RAW_WIB_TP_SUBFRAME_SIZE);
+
+    for (int i=0; i<nhits; i++) {
+      ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_blocks[i]),
+               static_cast<void*>(tmpbuffer.data() + (2+i)*RAW_WIB_TP_SUBFRAME_SIZE),
+               RAW_WIB_TP_SUBFRAME_SIZE);
+    }
 
     // old format lacks number of hits
     m_payload_wrapper.rwtp->set_nhits(nhits); // explicitly set number of hits in new format
+ 
+    m_tp_frames++;
+    m_tp_hits += nhits;
   }
  
   void run_produce()
@@ -214,6 +231,10 @@ protected:
       // Which element to push to the buffer
       if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE)) { // NOLINT(build/unsigned)
         offset = 0;
+        //TLOG() << "TPEmulatorModel Number of TP frames " << m_tp_frames;
+        //TLOG() << "TPEmulatorModel Number of TP hits " << m_tp_hits;
+        m_tp_frames = 0;
+        m_tp_hits = 0;
       }
 
       // Create next TP frame
@@ -223,6 +244,12 @@ protected:
                m_payload_wrapper.rwtp->get_header_size());
       int nhits = m_payload_wrapper.rwtp->get_nhits();
       uint16_t padding = m_payload_wrapper.rwtp->get_padding_3(); // NOLINT
+
+      // temporary guard against empty frames without hits
+      if (m_payload_wrapper.rwtp->m_head.m_padding_3 != 48879) {
+        offset += RAW_WIB_TP_SUBFRAME_SIZE;
+        continue;
+      }
 
       if (padding == 48879) { // padding hex is BEEF, new TP format
        
@@ -288,6 +315,8 @@ private:
   dataformats::GeoID m_geoid;
 
   types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper;
+  int m_tp_frames = 0;
+  int m_tp_hits = 0;
 };
 
 } // namespace readout

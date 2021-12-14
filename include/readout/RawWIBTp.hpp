@@ -178,9 +178,6 @@ operator<<(std::ostream& o, TpData const& tp)
 //========================
 struct RawWIBTp
 {
-  TpHeader m_head;
-  TpData m_blocks[1];
-
   RawWIBTp()
   {
     m_nhits = 1;
@@ -226,6 +223,13 @@ struct RawWIBTp
 
 private:
   int m_nhits;
+
+public:
+  TpHeader m_head;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+  TpData m_blocks[];
+#pragma GCC diagnostic pop
 };
 
 inline std::ostream&
