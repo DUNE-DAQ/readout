@@ -567,7 +567,7 @@ private:
   std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_coll_tpg_pi;
 
   // Induction
-  const uint16_t m_ind_threshold = 3;                   // units of sigma // NOLINT(build/unsigned)
+  const uint16_t m_ind_threshold = 5;                   // units of sigma // NOLINT(build/unsigned)
   const uint8_t m_ind_tap_exponent = 6;                 // NOLINT(build/unsigned)
   const int m_ind_multiplier = 1 << m_ind_tap_exponent; // 64
   std::vector<int16_t> m_ind_taps;                      // firwin_int(7, 0.1, multiplier);
