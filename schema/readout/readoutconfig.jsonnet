@@ -68,7 +68,7 @@ local readoutconfig = {
                             doc="Channel map felix file for software TPG. If empty string, look in $READOUT_SHARE"),
             s.field("enable_software_tpg", self.choice, false,
                             doc="Enable software TPG"),
-            s.field("channel_map_name", self.string,
+            s.field("channel_map_name", self.string, default="None",
                             doc="Name of channel map"),
             s.field("emulator_mode", self.choice, false,
                             doc="If the input data is from an emulator."),
