@@ -251,6 +251,8 @@ public:
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Hit rate: " << std::to_string(new_hits / seconds / 1000.) << " [kHz]";
       TLOG_DEBUG(TLVL_TAKE_NOTE) << "Total new hits: " << new_hits << " new pushes: " << new_tps;
       info.rate_tp_hits = new_hits / seconds / 1000.;
+      uint64_t new_blog = inherited::m_total_postprocess_didntkeepup.exchange(0);
+      TLOG() << "New backlog (didn't keep up post-processing): " << new_blog; 
     }
     m_t0 = now;
 
