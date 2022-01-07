@@ -120,11 +120,11 @@ public:
       TLOG() << "COLL TAPS SIZE: " << m_coll_taps.size() << " threshold:" << m_coll_threshold
              << " exponent:" << m_coll_tap_exponent;
 
-      m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
+      m_coll_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::COLLECTION_REGISTERS_PER_FRAME>>(
         nullptr,
         swtpg::FRAMES_PER_MSG,
         0,
-        swtpg::REGISTERS_PER_FRAME,
+        swtpg::COLLECTION_REGISTERS_PER_FRAME,
         m_coll_primfind_dest,
         m_coll_taps_p,
         (uint8_t)m_coll_taps.size(), // NOLINT(build/unsigned)
@@ -133,11 +133,11 @@ public:
         0,
         0);
 
-      m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>>(
+      m_ind_tpg_pi = std::make_unique<swtpg::ProcessingInfo<swtpg::INDUCTION_REGISTERS_PER_FRAME>>(
         nullptr,
         swtpg::FRAMES_PER_MSG,
         0,
-        10,
+        swtpg::INDUCTION_REGISTERS_PER_FRAME,
         m_ind_primfind_dest,
         m_ind_taps_p,
         (uint8_t)m_ind_taps.size(), // NOLINT(build/unsigned)
@@ -336,11 +336,12 @@ protected:
     uint64_t timestamp = wfptr->get_wib_header()->get_timestamp();                        // NOLINT(build/unsigned)
 
     swtpg::MessageRegistersCollection collection_registers;
-
+    swtpg::MessageRegistersInduction induction_registers;
+    
     // InductionItemToProcess* ind_item = &m_dummy_induction_item;
-    InductionItemToProcess ind_item;
-    expand_message_adcs_inplace(fp, &collection_registers, &ind_item.registers);
-    m_induction_items_to_process->write(std::move(ind_item));
+    // InductionItemToProcess ind_item;
+    expand_message_adcs_inplace(fp, &collection_registers, &induction_registers);
+    // m_induction_items_to_process->write(std::move(ind_item));
 
     if (m_first_coll) {
 
@@ -359,10 +360,51 @@ protected:
     *m_coll_primfind_dest = swtpg::MAGIC;
     swtpg::process_window_avx2(*m_coll_tpg_pi);
 
+    m_ind_tpg_pi->input = &induction_registers;
+    *m_ind_primfind_dest = swtpg::MAGIC;
+    swtpg::process_window_avx2(*m_ind_tpg_pi);
+
+    convert_hits(timestamp, m_coll_primfind_dest, true);
+    convert_hits(timestamp, m_ind_primfind_dest, false);
+
+    // Check if we can send out a TPSet
+    if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tp_timeout < timestamp + 300) {
+      trigger::TPSet tpset;
+      tpset.start_time = (m_tp_buffer.top().time_start / m_tpset_window_size) * m_tpset_window_size;
+      tpset.end_time = tpset.start_time + m_tpset_window_size;
+      tpset.seqno = m_next_tpset_seqno++; // NOLINT(runtime/increment_decrement)
+      tpset.type = trigger::TPSet::Type::kPayload;
+      tpset.origin = m_geoid;
+
+      while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
+        triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
+        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp); // NOLINT
+        try {
+          m_tp_sink->push(*tp_readout_type);
+        } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+          ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tp_sink"));
+        }
+        tpset.objects.emplace_back(std::move(tp));
+        m_tp_buffer.pop();
+        m_sent_tps++;
+      }
+
+      try {
+        m_tpset_sink->push(std::move(tpset));
+        m_num_tps_pushed++;
+      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
+        ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tpset_sink"));
+      }
+      m_sent_tpsets++;
+    }
+  }
+
+  void convert_hits(uint64_t timestamp, uint16_t* primfind_it, bool collection)
+  {
     uint16_t chan[16], hit_end[16], hit_charge[16], hit_tover[16]; // NOLINT(build/unsigned)
     unsigned int nhits = 0;
 
-    uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
+    // uint16_t* primfind_it = m_coll_primfind_dest; // NOLINT(build/unsigned)
 
     constexpr int clocksPerTPCTick = 25;
 
@@ -404,7 +446,7 @@ protected:
         if (hit_charge[i] && chan[i] != swtpg::MAGIC) {
           // This channel had a hit ending here, so we can create and output the hit here
           // const uint16_t online_channel = swtpg::collection_index_to_channel(chan[i]); // NOLINT(build/unsigned)
-          const uint16_t offline_channel = m_register_channel_map.collection[chan[i]];
+          const uint16_t offline_channel = collection ? m_register_channel_map.collection[chan[i]] : m_register_channel_map.induction[chan[i]];
           uint64_t tp_t_begin =                                                        // NOLINT(build/unsigned)
             timestamp + clocksPerTPCTick * (int64_t(hit_end[i]) - hit_tover[i]);       // NOLINT(build/unsigned)
           uint64_t tp_t_end = timestamp + clocksPerTPCTick * int64_t(hit_end[i]);      // NOLINT(build/unsigned)
@@ -460,46 +502,21 @@ protected:
     // TLOG() << *wfptr;
     //}
 
-    m_num_hits_coll += nhits;
-    m_coll_hits_count += nhits;
+    if(collection){
+      m_num_hits_coll += nhits;
+      m_coll_hits_count += nhits;
+    }
+    else{
+      m_num_hits_ind += nhits;
+      m_ind_hits_count += nhits;
+    }
 
     if (m_first_coll) {
       TLOG() << "Total hits in first superchunk: " << nhits;
       m_first_coll = false;
     }
-
-    // Check if we can send out a TPSet
-    if (!m_tp_buffer.empty() && m_tp_buffer.top().time_start + m_tpset_window_size + m_tp_timeout < timestamp + 300) {
-      trigger::TPSet tpset;
-      tpset.start_time = (m_tp_buffer.top().time_start / m_tpset_window_size) * m_tpset_window_size;
-      tpset.end_time = tpset.start_time + m_tpset_window_size;
-      tpset.seqno = m_next_tpset_seqno++; // NOLINT(runtime/increment_decrement)
-      tpset.type = trigger::TPSet::Type::kPayload;
-      tpset.origin = m_geoid;
-
-      while (!m_tp_buffer.empty() && m_tp_buffer.top().time_start < tpset.end_time) {
-        triggeralgs::TriggerPrimitive tp = m_tp_buffer.top();
-        types::TP_READOUT_TYPE* tp_readout_type = reinterpret_cast<types::TP_READOUT_TYPE*>(&tp); // NOLINT
-        try {
-          m_tp_sink->push(*tp_readout_type);
-        } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-          ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tp_sink"));
-        }
-        tpset.objects.emplace_back(std::move(tp));
-        m_tp_buffer.pop();
-        m_sent_tps++;
-      }
-
-      try {
-        m_tpset_sink->push(std::move(tpset));
-        m_num_tps_pushed++;
-      } catch (const dunedaq::appfwk::QueueTimeoutExpired& excpt) {
-        ers::error(CannotWriteToQueue(ERS_HERE, m_geoid, "m_tpset_sink"));
-      }
-      m_sent_tpsets++;
-    }
   }
-
+  
   // Stage: induction hit finding port
   void find_induction_hits(frameptr /*fp*/)
   {
@@ -540,7 +557,7 @@ private:
   size_t m_num_hits_ind = 0;
 
   std::atomic<int> m_coll_hits_count{ 0 };
-  std::atomic<int> m_indu_hits_count{ 0 };
+  std::atomic<int> m_ind_hits_count{ 0 };
   std::atomic<int> m_num_tps_pushed{ 0 };
 
   bool m_first_coll = true;
@@ -566,7 +583,7 @@ private:
   std::vector<int16_t> m_coll_taps;                       // firwin_int(7, 0.1, multiplier);
   uint16_t* m_coll_primfind_dest;                         // NOLINT(build/unsigned)
   int16_t* m_coll_taps_p;
-  std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_coll_tpg_pi;
+  std::unique_ptr<swtpg::ProcessingInfo<swtpg::COLLECTION_REGISTERS_PER_FRAME>> m_coll_tpg_pi;
 
   // Induction
   const uint16_t m_ind_threshold = 5;                   // units of sigma // NOLINT(build/unsigned)
@@ -575,7 +592,7 @@ private:
   std::vector<int16_t> m_ind_taps;                      // firwin_int(7, 0.1, multiplier);
   uint16_t* m_ind_primfind_dest;                        // NOLINT(build/unsigned)
   int16_t* m_ind_taps_p;
-  std::unique_ptr<swtpg::ProcessingInfo<swtpg::REGISTERS_PER_FRAME>> m_ind_tpg_pi;
+  std::unique_ptr<swtpg::ProcessingInfo<swtpg::INDUCTION_REGISTERS_PER_FRAME>> m_ind_tpg_pi;
 
   std::unique_ptr<appfwk::DAQSink<types::TP_READOUT_TYPE>> m_tp_sink;
   std::unique_ptr<appfwk::DAQSink<trigger::TPSet>> m_tpset_sink;

@@ -101,11 +101,11 @@ private:
   alignas(32) uint16_t __restrict__ m_array[N * 16]; // NOLINT(build/unsigned)
 };
 
-typedef RegisterArray<6> FrameRegistersCollection;
-typedef RegisterArray<10> FrameRegistersInduction;
+typedef RegisterArray<COLLECTION_REGISTERS_PER_FRAME> FrameRegistersCollection;
+typedef RegisterArray<INDUCTION_REGISTERS_PER_FRAME> FrameRegistersInduction;
 
-typedef RegisterArray<6 * FRAMES_PER_MSG> MessageRegistersCollection;
-typedef RegisterArray<10 * FRAMES_PER_MSG> MessageRegistersInduction;
+typedef RegisterArray<COLLECTION_REGISTERS_PER_FRAME * FRAMES_PER_MSG> MessageRegistersCollection;
+typedef RegisterArray<INDUCTION_REGISTERS_PER_FRAME * FRAMES_PER_MSG> MessageRegistersInduction;
 
 struct FrameRegisters
 {
@@ -476,7 +476,7 @@ get_block_all_adcs(const dunedaq::detdataformats::wib::ColdataBlock& __restrict_
 
 //==============================================================================
 //
-inline RegisterArray<REGISTERS_PER_FRAME>
+inline RegisterArray<COLLECTION_REGISTERS_PER_FRAME>
 get_frame_collection_adcs(const dunedaq::detdataformats::wib::WIBFrame* __restrict__ frame)
 {
   // Each coldata block has 24 collection channels, so we have to
@@ -500,7 +500,7 @@ get_frame_collection_adcs(const dunedaq::detdataformats::wib::WIBFrame* __restri
   // 6 and 7) into the spaces in registers 0-5, so we first shuffle
   // register 6 so it has the items we want in the right place to
   // blend, and then blend
-  RegisterArray<REGISTERS_PER_FRAME> adcs;
+  RegisterArray<COLLECTION_REGISTERS_PER_FRAME> adcs;
 
   // A register where every 64-bit word is the 0th 64-bit word from the original register
   __m256i reg0_quad0 = _mm256_permute4x64_epi64(adcs_tmp.ymm(6), 0x00);
@@ -554,7 +554,7 @@ expand_message_adcs(const SUPERCHUNK_CHAR_STRUCT& __restrict__ ucs)
     const dunedaq::detdataformats::wib::WIBFrame* frame =
       reinterpret_cast<const dunedaq::detdataformats::wib::WIBFrame*>(&ucs) + iframe; // NOLINT
     FrameRegisters frame_regs = get_frame_divided_adcs(frame);
-    for (size_t iblock = 0; iblock < REGISTERS_PER_FRAME; ++iblock) {
+    for (size_t iblock = 0; iblock < COLLECTION_REGISTERS_PER_FRAME; ++iblock) {
       // Arrange it so that adjacent times are adjacent in
       // memory, which will hopefully make the trigger primitive
       // finding code itself a little easier
@@ -567,7 +567,7 @@ expand_message_adcs(const SUPERCHUNK_CHAR_STRUCT& __restrict__ ucs)
       adcs.collection_registers.set_ymm(iframe + iblock * FRAMES_PER_MSG, frame_regs.collection_registers.ymm(iblock));
     }
     // Same for induction registers
-    for (size_t iblock = 0; iblock < 10; ++iblock) {
+    for (size_t iblock = 0; iblock < INDUCTION_REGISTERS_PER_FRAME; ++iblock) {
       adcs.induction_registers.set_ymm(iframe + iblock * FRAMES_PER_MSG, frame_regs.induction_registers.ymm(iblock));
     }
   }
@@ -584,7 +584,7 @@ expand_message_adcs_inplace(const dunedaq::readout::types::WIB_SUPERCHUNK_STRUCT
     const dunedaq::detdataformats::wib::WIBFrame* frame =
       reinterpret_cast<const dunedaq::detdataformats::wib::WIBFrame*>(ucs) + iframe; // NOLINT
     FrameRegisters frame_regs = get_frame_divided_adcs(frame);
-    for (size_t iblock = 0; iblock < REGISTERS_PER_FRAME; ++iblock) {
+    for (size_t iblock = 0; iblock < COLLECTION_REGISTERS_PER_FRAME; ++iblock) {
       // Arrange it so that adjacent times are adjacent in
       // memory, which will hopefully make the trigger primitive
       // finding code itself a little easier
@@ -597,7 +597,7 @@ expand_message_adcs_inplace(const dunedaq::readout::types::WIB_SUPERCHUNK_STRUCT
       collection_registers->set_ymm(iframe + iblock * FRAMES_PER_MSG, frame_regs.collection_registers.ymm(iblock));
     }
     // Same for induction registers
-    for (size_t iblock = 0; iblock < 10; ++iblock) {
+    for (size_t iblock = 0; iblock < INDUCTION_REGISTERS_PER_FRAME; ++iblock) {
       induction_registers->set_ymm(iframe + iblock * FRAMES_PER_MSG, frame_regs.induction_registers.ymm(iblock));
     }
   }
