@@ -155,6 +155,9 @@ protected:
                RAW_WIB_TP_SUBFRAME_SIZE);
     }
 
+    m_tp_frames++;
+    m_tp_hits += nhits;
+ 
   } 
   void unpack_tpframe_version_1(int& offset) 
   {
@@ -231,8 +234,8 @@ protected:
       // Which element to push to the buffer
       if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE)) { // NOLINT(build/unsigned)
         offset = 0;
-        //TLOG() << "TPEmulatorModel Number of TP frames " << m_tp_frames;
-        //TLOG() << "TPEmulatorModel Number of TP hits " << m_tp_hits;
+        TLOG() << "TPEmulatorModel Number of TP frames " << m_tp_frames;
+        TLOG() << "TPEmulatorModel Number of TP hits " << m_tp_hits;
         m_tp_frames = 0;
         m_tp_hits = 0;
       }
@@ -245,14 +248,8 @@ protected:
       int nhits = m_payload_wrapper.rwtp->get_nhits();
       uint16_t padding = m_payload_wrapper.rwtp->get_padding_3(); // NOLINT
 
-      // temporary guard against empty frames without hits
-      if (m_payload_wrapper.rwtp->m_head.m_padding_3 != 48879) {
-        offset += RAW_WIB_TP_SUBFRAME_SIZE;
-        continue;
-      }
-
       if (padding == 48879) { // padding hex is BEEF, new TP format
-       
+
         unpack_tpframe_version_2(nhits, offset);
 
       } else { // old TP format
