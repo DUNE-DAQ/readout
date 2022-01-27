@@ -359,6 +359,11 @@ struct VariableSizePayloadWrapper
 // raw WIB TP
 struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
 {
+  RAW_WIB_TRIGGERPRIMITIVE_STRUCT()
+  {
+    m_raw_tp_frame_chunksize = 0;
+  }
+
   using FrameType = dunedaq::dataformats::RawWIBTp; 
 
   std::unique_ptr<FrameType> rwtp = nullptr;
@@ -398,6 +403,36 @@ struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
   size_t get_frame_size() {
     return this->rwtp->get_frame_size();
   }
+
+  void set_raw_tp_frame_chunk(std::vector<char>& source)
+  {
+    int bsize = source.capacity();
+    m_raw_tp_frame_chunk.reserve(bsize);
+    ::memcpy(static_cast<void*>(m_raw_tp_frame_chunk.data()),
+             static_cast<void*>(source.data()),
+             bsize);
+  }
+  void set_raw_tp_frame_chunksize(const int& size)
+  {
+    m_raw_tp_frame_chunksize = size; 
+  }
+  
+  void get_raw_tp_frame_chunk(std::vector<char>& buffer)
+  {
+    int bsize = m_raw_tp_frame_chunk.capacity();
+    buffer.reserve(bsize);
+    ::memcpy(static_cast<void*>(buffer.data()),
+             static_cast<void*>(m_raw_tp_frame_chunk.data()),
+             bsize);
+  }
+  int get_raw_tp_frame_chunksize()
+  {
+    return m_raw_tp_frame_chunksize;
+  }
+
+private:
+  std::vector<char> m_raw_tp_frame_chunk;
+  int m_raw_tp_frame_chunksize;
 
 };
 

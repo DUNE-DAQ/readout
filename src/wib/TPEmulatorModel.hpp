@@ -234,8 +234,8 @@ protected:
       // Which element to push to the buffer
       if (offset == num_elem * static_cast<int>(RAW_WIB_TP_SUBFRAME_SIZE)) { // NOLINT(build/unsigned)
         offset = 0;
-        TLOG() << "TPEmulatorModel Number of TP frames " << m_tp_frames;
-        TLOG() << "TPEmulatorModel Number of TP hits " << m_tp_hits;
+        //TLOG() << "TPEmulatorModel Number of TP frames " << m_tp_frames;
+        //TLOG() << "TPEmulatorModel Number of TP hits " << m_tp_hits;
         m_tp_frames = 0;
         m_tp_hits = 0;
       }
@@ -257,6 +257,17 @@ protected:
         unpack_tpframe_version_1(offset);
 
       }
+
+      // optional 
+      int bsize = m_payload_wrapper.rwtp->get_frame_size();
+      std::vector<char> tmpbuffer;
+      tmpbuffer.reserve(bsize);
+      ::memcpy(static_cast<void*>(tmpbuffer.data()),
+               static_cast<void*>(source.data() + offset),
+               m_payload_wrapper.rwtp->get_frame_size()); 
+      m_payload_wrapper.set_raw_tp_frame_chunk(tmpbuffer);
+      m_payload_wrapper.set_raw_tp_frame_chunksize(tmpbuffer.capacity());
+
 
       offset += m_payload_wrapper.rwtp->get_frame_size();
 
@@ -312,6 +323,7 @@ private:
   dataformats::GeoID m_geoid;
 
   types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper;
+  types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper2;
   int m_tp_frames = 0;
   int m_tp_hits = 0;
 };
