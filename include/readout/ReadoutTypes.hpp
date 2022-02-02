@@ -411,27 +411,21 @@ struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
     ::memcpy(static_cast<void*>(m_raw_tp_frame_chunk.data()),
              static_cast<void*>(source.data()),
              bsize);
+    m_raw_tp_frame_chunksize = bsize;
   }
-  void set_raw_tp_frame_chunksize(const int& size)
+
+  std::vector<std::uint8_t>& get_raw_tp_frame_chunk() // NOLINT(build/unsigned)
   {
-    m_raw_tp_frame_chunksize = size; 
+    return std::ref(m_raw_tp_frame_chunk);
   }
-  
-  void get_raw_tp_frame_chunk(std::vector<char>& buffer)
-  {
-    int bsize = m_raw_tp_frame_chunk.capacity();
-    buffer.reserve(bsize);
-    ::memcpy(static_cast<void*>(buffer.data()),
-             static_cast<void*>(m_raw_tp_frame_chunk.data()),
-             bsize);
-  }
+
   int get_raw_tp_frame_chunksize()
   {
     return m_raw_tp_frame_chunksize;
   }
 
 private:
-  std::vector<char> m_raw_tp_frame_chunk;
+  std::vector<std::uint8_t> m_raw_tp_frame_chunk;
   int m_raw_tp_frame_chunksize;
 
 };

@@ -258,7 +258,7 @@ protected:
 
       }
 
-      // optional 
+      // optional (test unpacking processor)
       int bsize = m_payload_wrapper.rwtp->get_frame_size();
       std::vector<char> tmpbuffer;
       tmpbuffer.reserve(bsize);
@@ -266,7 +266,6 @@ protected:
                static_cast<void*>(source.data() + offset),
                m_payload_wrapper.rwtp->get_frame_size()); 
       m_payload_wrapper.set_raw_tp_frame_chunk(tmpbuffer);
-      m_payload_wrapper.set_raw_tp_frame_chunksize(tmpbuffer.capacity());
 
 
       offset += m_payload_wrapper.rwtp->get_frame_size();

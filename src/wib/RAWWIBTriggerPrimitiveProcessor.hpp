@@ -36,15 +36,13 @@ namespace dunedaq {
     public:
       using inherited = TaskRawDataProcessorModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>;
       using frame_ptr = types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT*;
+      using constframeptr = const types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT*;
       using rwtp_ptr = dunedaq::dataformats::RawWIBTp*;
       using timestamp_t = std::uint64_t; // NOLINT(build/unsigned)
 
       explicit RAWWIBTriggerPrimitiveProcessor(std::unique_ptr<FrameErrorRegistry>& error_registry)
           : TaskRawDataProcessorModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>(error_registry)
       {
-        //TaskRawDataProcessorModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>::add_preprocess_task(
-        //    std::bind(&RAWWIBTriggerPrimitiveProcessor::tp_stitch, this, std::placeholders::_1));
-
         TaskRawDataProcessorModel<types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT>::add_preprocess_task(
             std::bind(&RAWWIBTriggerPrimitiveProcessor::tp_unpack, this, std::placeholders::_1));
       }
@@ -60,6 +58,7 @@ namespace dunedaq {
           // error
         }
       }
+
       void stop(const nlohmann::json& /*args*/) override
       {
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Number of TP frames " << m_frames;
@@ -67,12 +66,13 @@ namespace dunedaq {
       }
 
 
-      void unpack_tpframe_version_1(int& offset)
+      void unpack_tpframe_version_1(frame_ptr fr, int& offset)
       {
+        auto& srcbuffer = fr->get_raw_tp_frame_chunk();
 
         // Count number of subframes in a TP frame
         int n = 1;
-        while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)m_input_buffer.data()) // NOLINT
+        while (reinterpret_cast<types::TpSubframe*>(((uint8_t*)srcbuffer.data()) // NOLINT
                + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE)->word3 != 0xDEADBEEF) {
           n++;
         }
@@ -84,17 +84,17 @@ namespace dunedaq {
 
         // add header block 
         ::memcpy(static_cast<void*>(tmpbuffer.data() + 0),
-                 static_cast<void*>(m_input_buffer.data() + offset),
+                 static_cast<void*>(srcbuffer.data() + offset),
                  RAW_WIB_TP_SUBFRAME_SIZE);
 
         // add pedinfo block 
         ::memcpy(static_cast<void*>(tmpbuffer.data() + RAW_WIB_TP_SUBFRAME_SIZE),
-                 static_cast<void*>(m_input_buffer.data() + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE),
+                 static_cast<void*>(srcbuffer.data() + offset + (n-1)*RAW_WIB_TP_SUBFRAME_SIZE),
                  RAW_WIB_TP_SUBFRAME_SIZE);
 
         // add TP hits 
         ::memcpy(static_cast<void*>(tmpbuffer.data() + 2*RAW_WIB_TP_SUBFRAME_SIZE),
-                 static_cast<void*>(m_input_buffer.data() + offset + RAW_WIB_TP_SUBFRAME_SIZE),
+                 static_cast<void*>(srcbuffer.data() + offset + RAW_WIB_TP_SUBFRAME_SIZE),
                  nhits*RAW_WIB_TP_SUBFRAME_SIZE);
 
         dunedaq::dataformats::RawWIBTp* rwtps =
@@ -122,9 +122,14 @@ namespace dunedaq {
         uint16_t debug_padding = m_payload_wrapper.rwtp->get_padding_3(); // NOLINT
         //TLOG() << "Number of hits, padding " << debug_nhits << ", " << debug_padding; 
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Number of hits, padding " << debug_nhits << ", " << debug_padding; 
+
+	// stitch TP hits
+        tp_stitch(std::move(&m_payload_wrapper));
       }
 
-      void unpack_tpframe_version_2(int& nhits, int& offset) {
+      void unpack_tpframe_version_2(frame_ptr fr, int& nhits, int& offset) 
+      {
+        auto& srcbuffer = fr->get_raw_tp_frame_chunk();
 
         dunedaq::dataformats::RawWIBTp* rwtps =
                static_cast<dunedaq::dataformats::RawWIBTp*>( malloc(
@@ -136,12 +141,12 @@ namespace dunedaq {
         m_payload_wrapper.rwtp->set_nhits(nhits);
 
         ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_head),
-                 static_cast<void*>(m_input_buffer.data() + offset),
+                 static_cast<void*>(srcbuffer.data() + offset),
                  2*RAW_WIB_TP_SUBFRAME_SIZE);
 
         for (int i=0; i<nhits; i++) {
           ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_blocks[i]),
-                   static_cast<void*>(m_input_buffer.data() + offset + (2+i)*RAW_WIB_TP_SUBFRAME_SIZE),
+                   static_cast<void*>(srcbuffer.data() + offset + (2+i)*RAW_WIB_TP_SUBFRAME_SIZE),
                    RAW_WIB_TP_SUBFRAME_SIZE);
         }
 
@@ -149,11 +154,14 @@ namespace dunedaq {
         uint16_t debug_padding = m_payload_wrapper.rwtp->get_padding_3(); // NOLINT
         //TLOG() << "Number of hits, padding " << debug_nhits << ", " << debug_padding; 
         TLOG_DEBUG(TLVL_WORK_STEPS) << "Number of hits, padding " << debug_nhits << ", " << debug_padding; 
+
+	// stitch TP hits
+        tp_stitch(std::move(&m_payload_wrapper));
       }
 
       void tp_unpack(frame_ptr fr)
       {
-        fr->get_raw_tp_frame_chunk(m_input_buffer);
+        auto& srcbuffer = fr->get_raw_tp_frame_chunk();  
         int num_elem = fr->get_raw_tp_frame_chunksize();
 
         if (num_elem == 0) {
@@ -173,24 +181,23 @@ namespace dunedaq {
           // Create next TP frame
           m_payload_wrapper.rwtp.reset(new types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT::FrameType());
           ::memcpy(static_cast<void*>(&m_payload_wrapper.rwtp->m_head),
-                   static_cast<void*>(m_input_buffer.data() + offset),
+                   static_cast<void*>(srcbuffer.data() + offset),
                    m_payload_wrapper.rwtp->get_header_size());
           int nhits = m_payload_wrapper.rwtp->get_nhits();
           uint16_t padding = m_payload_wrapper.rwtp->get_padding_3(); // NOLINT
 
           if (padding == 48879) { // padding hex is BEEF, new TP format
 
-            unpack_tpframe_version_2(nhits, offset);
+            unpack_tpframe_version_2(fr, nhits, offset);
 
           } else { // old TP format
 
-            unpack_tpframe_version_1(offset);
+            unpack_tpframe_version_1(fr, offset);
 
           }
 
           offset += m_payload_wrapper.rwtp->get_frame_size();
         }
-        return;
       }
 
       void tp_stitch(frame_ptr fr)
@@ -203,6 +210,7 @@ namespace dunedaq {
         uint8_t m_fiber_no = rwtp->m_head.m_fiber_no;
         for (int i = 0; i < nhits; ++i) {
           TLOG_DEBUG(TLVL_WORK_STEPS) << "Processing raw TP hit " << i << " out of " << nhits << " hits in this frame.";
+          //TLOG() << "Processing raw TP hit " << i << " out of " << nhits << " hits in this frame.";
           triggeralgs::TriggerPrimitive trigprim;
           trigprim.time_start = ts_0 + rwtp->m_blocks[i].m_start_time * m_time_tick;
           trigprim.time_peak = ts_0 + rwtp->m_blocks[i].m_peak_time * m_time_tick;
@@ -266,7 +274,6 @@ namespace dunedaq {
       std::unique_ptr<source_t> m_tp_source;
 
       // unpacking
-      std::vector<char> m_input_buffer;
       static const constexpr std::size_t RAW_WIB_TP_SUBFRAME_SIZE = 12;
       types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper;
 
