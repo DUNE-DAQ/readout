@@ -15,7 +15,7 @@
 
 #include "appfwk/app/Nljs.hpp"
 #include "appfwk/cmd/Nljs.hpp"
-#include "dataformats/wib/WIBFrame.hpp"
+#include "detdataformats/wib/WIBFrame.hpp"
 #include "logging/Logging.hpp"
 #include "readout/RawWIBTp.hpp" // FIXME now using local copy
 

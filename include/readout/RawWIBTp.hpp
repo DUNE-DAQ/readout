@@ -16,7 +16,7 @@
 #include "dataformats/GeoID.hpp"
 
 namespace dunedaq {
-namespace dataformats {
+namespace detdataformats {
 
 using tp_word_t = uint32_t; // NOLINT(build/unsigned)
 
@@ -240,7 +240,7 @@ operator<<(std::ostream& o, RawWIBTp const& rwtp)
   return o;
 }
 
-} // namespace dataformats
+} // namespace daqdataformats
 } // namespace dunedaq
 
 #endif // READOUT_INCLUDE_READOUT_RAWWIBTP_HPP_

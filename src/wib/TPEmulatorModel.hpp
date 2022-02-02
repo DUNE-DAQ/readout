@@ -86,7 +86,7 @@ public:
 
       m_geoid.element_id = m_link_conf.geoid.element;
       m_geoid.region_id = m_link_conf.geoid.region;
-      m_geoid.system_type = dataformats::GeoID::SystemType::kTPC;
+      m_geoid.system_type = daqdataformats::GeoID::SystemType::kTPC;
       ;
 
       m_file_source = std::make_unique<FileSourceBuffer>(m_link_conf.input_limit, RAW_WIB_TP_SUBFRAME_SIZE);
@@ -320,6 +320,7 @@ private:
   bool m_is_configured = false;
   double m_rate_khz;
   dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
 
   types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper;
   types::RAW_WIB_TRIGGERPRIMITIVE_STRUCT m_payload_wrapper2;

@@ -246,7 +246,7 @@ private:
   std::vector<bool> m_dropouts; // Random population
 
   uint m_dropouts_length = 10000; // NOLINT(build/unsigned) Random population size
-  dataformats::GeoID m_geoid;
+  daqdataformats::GeoID m_geoid;
 };
 
 } // namespace readout

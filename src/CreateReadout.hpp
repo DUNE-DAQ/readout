@@ -23,8 +23,9 @@
 
 #include "daphne/DAPHNEFrameProcessor.hpp"
 #include "daphne/DAPHNEListRequestHandler.hpp"
-//#include "pacman/PACMANFrameProcessor.hpp"
-//#include "pacman/PACMANListRequestHandler.hpp"
+#include "pacman/PACMANFrameProcessor.hpp"
+#include "pacman/PACMANListRequestHandler.hpp"
+#include "ssp/SSPFrameProcessor.hpp"
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
 #include "wib/RAWWIBTriggerPrimitiveProcessor.hpp"
@@ -62,7 +63,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           FixedRateQueueModel<types::WIB_SUPERCHUNK_STRUCT>,
           WIBFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF WIB2
@@ -74,7 +75,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           FixedRateQueueModel<types::WIB2_SUPERCHUNK_STRUCT>,
           WIB2FrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF DAPHNE queue
@@ -87,7 +88,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                        BinarySearchQueueModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                        DAPHNEFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       // IF PDS skiplist
@@ -97,6 +98,18 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            DAPHNEListRequestHandler,
                                                            SkipListLatencyBufferModel<types::DAPHNE_SUPERCHUNK_STRUCT>,
                                                            DAPHNEFrameProcessor>>(run_marker);
+        readout_model->init(args);
+        return readout_model;
+      }
+
+      // IF SSP
+      if (inst.find("ssp") != std::string::npos) {
+        TLOG_DEBUG(TLVL_WORK_STEPS) << "Creating readout for a SSPs using Searchable Queue";
+        auto readout_model = std::make_unique<ReadoutModel<
+          types::SSP_FRAME_STRUCT,
+          DefaultRequestHandlerModel<types::SSP_FRAME_STRUCT, BinarySearchQueueModel<types::SSP_FRAME_STRUCT>>,
+          BinarySearchQueueModel<types::SSP_FRAME_STRUCT>,
+          SSPFrameProcessor>>(run_marker);
         readout_model->init(args);
         return std::move(readout_model);
       }
@@ -109,7 +122,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
           BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
           SWWIBTriggerPrimitiveProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
 
       if (inst.find("raw_tp") != std::string::npos) {
@@ -132,7 +145,7 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
                                                            SkipListLatencyBufferModel<types::PACMAN_MESSAGE_STRUCT>,
                                                            PACMANFrameProcessor>>(run_marker);
         readout_model->init(args);
-        return std::move(readout_model);
+        return readout_model;
       }
        */
 
