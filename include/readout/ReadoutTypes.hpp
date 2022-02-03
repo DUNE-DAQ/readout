@@ -372,26 +372,32 @@ struct VariableSizePayloadWrapper
 };
 
 // raw WIB TP
-struct RAW_WIB_TP_STRUCT
+struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
 {
   RAW_WIB_TRIGGERPRIMITIVE_STRUCT()
   {
     m_raw_tp_frame_chunksize = 0;
   }
 
-  using FrameType = dunedaq::dataformats::RawWIBTp; 
+  using FrameType = dunedaq::detdataformats::RawWIBTp; 
 
   std::unique_ptr<FrameType> rwtp = nullptr;
 
   bool operator<(const RAW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->rwtp->get_timestamp() < other.rwtp->get_timestamp(); }
 
-  uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
   {
     return rwtp->get_timestamp();
   }
-  void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
   {
     rwtp->set_timestamp(ts);
+  }
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    ts_next += offset;
+    rwtp->set_timestamp(ts_next);
   }
 
   FrameType* begin()
@@ -403,9 +409,14 @@ struct RAW_WIB_TP_STRUCT
     return rwtp.get() + 1; // NOLINT
   }
 
-  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
-  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
   static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = TP_SIZE;
+  static const constexpr size_t element_size = TP_SIZE;
+  static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
+
   // raw WIB TP frames are variable size
   size_t get_payload_size() {
     return this->rwtp->get_frame_size();
