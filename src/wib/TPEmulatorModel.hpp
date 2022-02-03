@@ -193,6 +193,18 @@ protected:
         payload_ptr->block.set_tp(*td);
       }
 
+      // optional (test unpacking processor)
+      int bsize = m_payload_wrapper.rwtp->get_frame_size();
+      std::vector<char> tmpbuffer;
+      tmpbuffer.reserve(bsize);
+      ::memcpy(static_cast<void*>(tmpbuffer.data()),
+               static_cast<void*>(source.data() + offset),
+               m_payload_wrapper.rwtp->get_frame_size()); 
+      m_payload_wrapper.set_raw_tp_frame_chunk(tmpbuffer);
+
+
+      offset += m_payload_wrapper.rwtp->get_frame_size();
+
       // queue in to actual DAQSink
       try {
         m_raw_data_sink->push(std::move(payload_ptr), m_sink_queue_timeout_ms);

@@ -374,9 +374,75 @@ struct VariableSizePayloadWrapper
 // raw WIB TP
 struct RAW_WIB_TP_STRUCT
 {
-  dunedaq::detdataformats::TpHeader head;
-  dunedaq::detdataformats::TpDataBlock block;
-  dunedaq::detdataformats::TpPedinfo ped;
+  RAW_WIB_TRIGGERPRIMITIVE_STRUCT()
+  {
+    m_raw_tp_frame_chunksize = 0;
+  }
+
+  using FrameType = dunedaq::dataformats::RawWIBTp; 
+
+  std::unique_ptr<FrameType> rwtp = nullptr;
+
+  bool operator<(const RAW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->rwtp->get_timestamp() < other.rwtp->get_timestamp(); }
+
+  uint64_t get_first_timestamp() const // NOLINT(build/unsigned)
+  {
+    return rwtp->get_timestamp();
+  }
+  void set_first_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    rwtp->set_timestamp(ts);
+  }
+
+  FrameType* begin()
+  {
+    return rwtp.get(); // NOLINT
+  }
+  FrameType* end()
+  {
+    return rwtp.get() + 1; // NOLINT
+  }
+
+  static const constexpr dataformats::GeoID::SystemType system_type = dataformats::GeoID::SystemType::kTPC;
+  static const constexpr dataformats::FragmentType fragment_type = dataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  // raw WIB TP frames are variable size
+  size_t get_payload_size() {
+    return this->rwtp->get_frame_size();
+  }
+
+  size_t get_num_frames() {
+    return 1;
+  }
+
+  size_t get_frame_size() {
+    return this->rwtp->get_frame_size();
+  }
+
+  void set_raw_tp_frame_chunk(std::vector<char>& source)
+  {
+    int bsize = source.capacity();
+    m_raw_tp_frame_chunk.reserve(bsize);
+    ::memcpy(static_cast<void*>(m_raw_tp_frame_chunk.data()),
+             static_cast<void*>(source.data()),
+             bsize);
+    m_raw_tp_frame_chunksize = bsize;
+  }
+
+  std::vector<std::uint8_t>& get_raw_tp_frame_chunk() // NOLINT(build/unsigned)
+  {
+    return std::ref(m_raw_tp_frame_chunk);
+  }
+
+  int get_raw_tp_frame_chunksize()
+  {
+    return m_raw_tp_frame_chunksize;
+  }
+
+private:
+  std::vector<std::uint8_t> m_raw_tp_frame_chunk;
+  int m_raw_tp_frame_chunksize;
+
 };
 
 struct TpSubframe
