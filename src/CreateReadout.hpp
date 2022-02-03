@@ -29,6 +29,7 @@
 #include "wib/WIBFrameProcessor.hpp"
 #include "wib/WIBTriggerPrimitiveProcessor.hpp"
 #include "wib2/WIB2FrameProcessor.hpp"
+#include "wib/SWWIBTriggerPrimitiveProcessor.hpp"
 #include "wib/RAWWIBTriggerPrimitiveProcessor.hpp"
 
 #include "readout/models/BinarySearchQueueModel.hpp"
@@ -114,6 +115,19 @@ createReadout(const nlohmann::json& args, std::atomic<bool>& run_marker)
         return std::move(readout_model);
       }
 
+      // SW WIB TP
+      if (inst.find("sw_tp") != std::string::npos) {
+        TLOG(TLVL_WORK_STEPS) << "Creating readout for sw tp";
+        auto readout_model = std::make_unique<ReadoutModel<
+          types::SW_WIB_TRIGGERPRIMITIVE_STRUCT,
+          EmptyFragmentRequestHandlerModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT, BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>>,
+          BinarySearchQueueModel<types::SW_WIB_TRIGGERPRIMITIVE_STRUCT>,
+          SWWIBTriggerPrimitiveProcessor>>(run_marker);
+        readout_model->init(args);
+        return std::move(readout_model);
+      }
+
+      // RAW WIB TP
       if (inst.find("raw_tp") != std::string::npos) {
         TLOG(TLVL_WORK_STEPS) << "Creating readout for raw tp";
         auto readout_model = std::make_unique<ReadoutModel<
