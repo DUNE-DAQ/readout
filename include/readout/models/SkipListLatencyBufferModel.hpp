@@ -104,7 +104,7 @@ public:
     return success;
   }
 
-  bool put(T& new_element) override
+  bool put(T& new_element) // override
   {
     bool success = false;
     {
