@@ -224,7 +224,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     alignment_size_ = alignment_size;
   }
 
-  bool put(T& record) { return write_(record); }
+  bool put(T& record) { return write_(std::move(record)); }
 
   bool write(T&& record) override { return write_(std::move(record)); }
 
@@ -422,7 +422,7 @@ struct IterableQueueModel : public LatencyBufferConcept<T>
     if (conf.latency_buffer_preallocation) {
       T element;
       for (size_t i = 0; i < size_ - 1; ++i) {
-        write_(element);
+        write_(std::move(element));
       }
       flush();
     }

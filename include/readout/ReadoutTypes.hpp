@@ -371,12 +371,144 @@ struct VariableSizePayloadWrapper
   std::unique_ptr<char> data = nullptr;
 };
 
-// raw WIB TP
-struct RAW_WIB_TP_STRUCT
+// sw WIB TP
+
+struct SW_WIB_TRIGGERPRIMITIVE_STRUCT
 {
-  dunedaq::detdataformats::TpHeader head;
-  dunedaq::detdataformats::TpDataBlock block;
-  dunedaq::detdataformats::TpPedinfo ped;
+  using FrameType = SW_WIB_TRIGGERPRIMITIVE_STRUCT;
+  // data
+  triggeralgs::TriggerPrimitive tp;
+  // comparable based on start timestamp
+  bool operator<(const SW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->tp.time_start < other.tp.time_start; }
+
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
+    return tp.time_start;
+  }
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    tp.time_start = ts;
+  }
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    ts_next += offset;
+    tp.time_start = ts_next;
+  }
+
+
+  FrameType* begin() { return this; }
+
+  FrameType* end() { return (this + 1); } // NOLINT
+
+  size_t get_payload_size() {
+    return TP_SIZE;
+  }
+
+  size_t get_num_frames() {
+    return 1;
+  }
+
+  size_t get_frame_size() {
+    return TP_SIZE;
+  }
+
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTriggerPrimitives;
+  static const constexpr uint64_t expected_tick_difference = 25; // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = TP_SIZE;
+  static const constexpr size_t element_size = TP_SIZE;
+  static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
+};
+
+static_assert(sizeof(struct SW_WIB_TRIGGERPRIMITIVE_STRUCT) == sizeof(triggeralgs::TriggerPrimitive),
+              "Check your assumptions on TP_READOUT_TYPE");
+
+
+// raw WIB TP
+struct RAW_WIB_TRIGGERPRIMITIVE_STRUCT
+{
+  RAW_WIB_TRIGGERPRIMITIVE_STRUCT()
+  {
+    m_raw_tp_frame_chunksize = 0;
+  }
+
+  using FrameType = dunedaq::detdataformats::RawWIBTp; 
+
+  std::unique_ptr<FrameType> rwtp = nullptr;
+
+  bool operator<(const RAW_WIB_TRIGGERPRIMITIVE_STRUCT& other) const { return this->rwtp->get_timestamp() < other.rwtp->get_timestamp(); }
+
+  uint64_t get_timestamp() const // NOLINT(build/unsigned)
+  {
+    return rwtp->get_timestamp();
+  }
+  void set_timestamp(uint64_t ts) // NOLINT(build/unsigned)
+  {
+    rwtp->set_timestamp(ts);
+  }
+  void fake_timestamp(uint64_t first_timestamp, uint64_t offset = 25) // NOLINT(build/unsigned)
+  {
+    uint64_t ts_next = first_timestamp; // NOLINT(build/unsigned)
+    ts_next += offset;
+    rwtp->set_timestamp(ts_next);
+  }
+
+  FrameType* begin()
+  {
+    return rwtp.get(); // NOLINT
+  }
+  FrameType* end()
+  {
+    return rwtp.get() + 1; // NOLINT
+  }
+
+  static const constexpr daqdataformats::GeoID::SystemType system_type = daqdataformats::GeoID::SystemType::kTPC;
+  static const constexpr daqdataformats::FragmentType fragment_type = daqdataformats::FragmentType::kTPCData;
+  static const constexpr uint64_t expected_tick_difference = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr size_t frame_size = TP_SIZE;
+  static const constexpr size_t element_size = TP_SIZE;
+  static const constexpr uint64_t tick_dist = 25; // 2 MHz@50MHz clock // NOLINT(build/unsigned)
+  static const constexpr uint8_t frames_per_element = 1; // NOLINT(build/unsigned)
+
+  // raw WIB TP frames are variable size
+  size_t get_payload_size() {
+    return this->rwtp->get_frame_size();
+  }
+
+  size_t get_num_frames() {
+    return 1;
+  }
+
+  size_t get_frame_size() {
+    return this->rwtp->get_frame_size();
+  }
+
+  void set_raw_tp_frame_chunk(std::vector<char>& source)
+  {
+    int bsize = source.capacity();
+    m_raw_tp_frame_chunk.reserve(bsize);
+    ::memcpy(static_cast<void*>(m_raw_tp_frame_chunk.data()),
+             static_cast<void*>(source.data()),
+             bsize);
+    m_raw_tp_frame_chunksize = bsize;
+  }
+
+  std::vector<std::uint8_t>& get_raw_tp_frame_chunk() // NOLINT(build/unsigned)
+  {
+    return std::ref(m_raw_tp_frame_chunk);
+  }
+
+  int get_raw_tp_frame_chunksize()
+  {
+    return m_raw_tp_frame_chunksize;
+  }
+
+private:
+  std::vector<std::uint8_t> m_raw_tp_frame_chunk;
+  int m_raw_tp_frame_chunksize;
+
 };
 
 struct TpSubframe
